@@ -1,0 +1,6 @@
+@RondiTrack_HostAddress = http://localhost:5101
+
+GET {{RondiTrack_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
