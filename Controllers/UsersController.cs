@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using RondiTrack.Common;
+using RondiTrack.DTOs.Users;
 using RondiTrack.Models;
 using RondiTrack.Repositories;
 
@@ -16,49 +18,88 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetAll()
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll()
     {
         var users = await _userRepository.GetAllAsync();
-        return Ok(users);
+
+        var response = users
+            .Select(UserResponse.FromEntity)
+            .ToList();
+
+        return Ok(response);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<User>> GetById(Guid id)
+    public async Task<ActionResult<UserResponse>> GetById(Guid id)
     {
         var user = await _userRepository.GetByIdAsync(id);
 
         if (user is null)
-            return NotFound();
+        {
+            return ProblemResponses.NotFound(
+                "User not found.",
+                HttpContext.Request.Path);
+        }
 
-        return Ok(user);
+        return Ok(UserResponse.FromEntity(user));
     }
 
     [HttpPost]
-    public async Task<ActionResult<User>> Create(User user)
+    public async Task<ActionResult<UserResponse>> Create(
+        CreateUserRequest request)
     {
+        User user;
+
+        try
+        {
+            user = new User(
+                request.Name,
+                request.Email);
+        }
+        catch (ArgumentException ex)
+        {
+            return ProblemResponses.BadRequest(
+                ex.Message,
+                HttpContext.Request.Path);
+        }
+
         await _userRepository.AddAsync(user);
+
+        var response =
+            UserResponse.FromEntity(user);
 
         return CreatedAtAction(
             nameof(GetById),
             new { id = user.Id },
-            user);
+            response);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, User updatedUser)
+    public async Task<IActionResult> Update(
+        Guid id,
+        UpdateUserRequest request)
     {
-        var user = await _userRepository.GetByIdAsync(id);
+        var user =
+            await _userRepository.GetByIdAsync(id);
 
         if (user is null)
-            return NotFound();
+        {
+            return ProblemResponses.NotFound(
+                "User not found.",
+                HttpContext.Request.Path);
+        }
 
         try
         {
-            user.UpdateDetails(updatedUser.Name, updatedUser.Email);
+            user.UpdateDetails(
+                request.Name,
+                request.Email);
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return ProblemResponses.BadRequest(
+                ex.Message,
+                HttpContext.Request.Path);
         }
 
         return NoContent();
@@ -67,10 +108,15 @@ public class UsersController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var deleted = await _userRepository.DeleteAsync(id);
+        var deleted =
+            await _userRepository.DeleteAsync(id);
 
         if (!deleted)
-            return NotFound();
+        {
+            return ProblemResponses.NotFound(
+                "User not found.",
+                HttpContext.Request.Path);
+        }
 
         return NoContent();
     }
