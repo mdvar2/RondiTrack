@@ -1,3 +1,5 @@
+using RondiTrack.Services;
+using RondiTrack.Idempotency;
 using RondiTrack.Repositories;
 using Scalar.AspNetCore;
 
@@ -8,6 +10,12 @@ builder.Services.AddControllers();
 
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IStokvelRepository, StokvelRepository>();
+builder.Services.AddSingleton<IContributionRepository, ContributionRepository>();
+
+builder.Services.AddSingleton<IIdempotencyStore, IdempotencyStore>();
+
+builder.Services.AddScoped<MembershipService>();
+builder.Services.AddScoped<ContributionService>();
 
 var app = builder.Build();
 
