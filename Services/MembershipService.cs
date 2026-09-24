@@ -1,3 +1,4 @@
+using RondiTrack.Exceptions;
 using RondiTrack.Repositories;
 
 namespace RondiTrack.Services;
@@ -15,7 +16,7 @@ public class MembershipService
         _userRepository = userRepository;
     }
 
-    public async Task<MembershipResult> AddMemberAsync(
+    public async Task AddMemberAsync(
         Guid stokvelId,
         Guid userId)
     {
@@ -23,23 +24,24 @@ public class MembershipService
             await _stokvelRepository.GetByIdAsync(stokvelId);
 
         if (stokvel is null)
-            return MembershipResult.StokvelNotFound;
+            throw new NotFoundException("Stokvel not found.");
 
         var user =
             await _userRepository.GetByIdAsync(userId);
 
         if (user is null)
-            return MembershipResult.UserNotFound;
+            throw new NotFoundException("User not found.");
 
         if (stokvel.Members.Any(member => member.Id == userId))
-            return MembershipResult.AlreadyMember;
+        {
+            throw new BusinessRuleException(
+                "User is already a member of this stokvel.");
+        }
 
         stokvel.AddMember(user);
-
-        return MembershipResult.Success;
     }
 
-    public async Task<MembershipResult> RemoveMemberAsync(
+    public async Task RemoveMemberAsync(
         Guid stokvelId,
         Guid userId)
     {
@@ -47,13 +49,14 @@ public class MembershipService
             await _stokvelRepository.GetByIdAsync(stokvelId);
 
         if (stokvel is null)
-            return MembershipResult.StokvelNotFound;
+            throw new NotFoundException("Stokvel not found.");
 
         if (!stokvel.Members.Any(member => member.Id == userId))
-            return MembershipResult.NotMember;
+        {
+            throw new BusinessRuleException(
+                "User is not a member of this stokvel.");
+        }
 
         stokvel.RemoveMember(userId);
-
-        return MembershipResult.Success;
     }
 }
