@@ -1,8 +1,7 @@
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Http;
 using RondiTrack.DTOs.Contributions;
+using RondiTrack.Exceptions;
 using RondiTrack.Idempotency;
 using RondiTrack.Models;
 using RondiTrack.Repositories;
@@ -28,83 +27,58 @@ public class ContributionService
         _idempotencyStore = idempotencyStore;
     }
 
-    public async Task<ContributionResult> RecordContributionAsync(
+    public async Task<ContributionResponse> RecordContributionAsync(
         Guid stokvelId,
         Guid userId,
         string idempotencyKey,
         RecordContributionRequest request)
     {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            throw new RequestValidationException(
+                "Idempotency-Key header is required.");
+        }
+
         var requestHash = CreateRequestHash(
             stokvelId,
             userId,
             request);
 
-        // 1. Check whether this Idempotency-Key was already used.
         var existingRecord =
             await _idempotencyStore.GetAsync(idempotencyKey);
 
         if (existingRecord is not null)
         {
-            // Same key but different request = conflict.
             if (existingRecord.RequestHash != requestHash)
             {
-                return new ContributionResult(
-                    ContributionOutcome.IdempotencyKeyConflict);
+                throw new BusinessRuleException(
+                    "Idempotency-Key was already used with a different request.");
             }
 
-            // Same key and same request = return original result.
-            return new ContributionResult(
-                ContributionOutcome.Replayed,
-                existingRecord.ResponseBody,
-                existingRecord.ResponseStatus);
+            return existingRecord.ResponseBody;
         }
 
-        // 2. Check that the stokvel exists.
         var stokvel =
             await _stokvelRepository.GetByIdAsync(stokvelId);
 
         if (stokvel is null)
-        {
-            return new ContributionResult(
-                ContributionOutcome.StokvelNotFound);
-        }
+            throw new NotFoundException("Stokvel not found.");
 
-        // 3. Check that the user exists.
         var user =
             await _userRepository.GetByIdAsync(userId);
 
         if (user is null)
-        {
-            return new ContributionResult(
-                ContributionOutcome.UserNotFound);
-        }
+            throw new NotFoundException("User not found.");
 
-        // 4. Check that the user belongs to this stokvel.
         var isMember =
             stokvel.Members.Any(member => member.Id == userId);
 
         if (!isMember)
         {
-            return new ContributionResult(
-                ContributionOutcome.NotMember);
+            throw new BusinessRuleException(
+                "User is not a member of this stokvel.");
         }
 
-        // 5. Check that the amount is valid.
-        if (request.Amount <= 0)
-        {
-            return new ContributionResult(
-                ContributionOutcome.InvalidAmount);
-        }
-
-        // 6. Check that the cycle follows YYYY-MM.
-        if (!IsValidCycle(request.Cycle))
-        {
-            return new ContributionResult(
-                ContributionOutcome.InvalidCycle);
-        }
-
-        // 7. Prevent the same member from paying
-        //    for the same contribution cycle twice.
         var existingContribution =
             await _contributionRepository.GetByMemberAndCycleAsync(
                 stokvelId,
@@ -113,11 +87,10 @@ public class ContributionService
 
         if (existingContribution is not null)
         {
-            return new ContributionResult(
-                ContributionOutcome.DuplicateContribution);
+            throw new BusinessRuleException(
+                "A contribution already exists for this member and cycle.");
         }
 
-        // 8. Create the contribution.
         var contribution = new Contribution(
             stokvelId,
             userId,
@@ -126,12 +99,9 @@ public class ContributionService
 
         await _contributionRepository.AddAsync(contribution);
 
-        // Convert the domain entity into an HTTP response DTO.
         var response =
             ContributionResponse.FromEntity(contribution);
 
-        // 9. Store the successful result against the
-        //    Idempotency-Key so retries are safe.
         var idempotencyRecord = new IdempotencyRecord(
             idempotencyKey,
             requestHash,
@@ -140,23 +110,7 @@ public class ContributionService
 
         await _idempotencyStore.SaveAsync(idempotencyRecord);
 
-        return new ContributionResult(
-            ContributionOutcome.Created,
-            response,
-            StatusCodes.Status201Created);
-    }
-
-    private static bool IsValidCycle(string cycle)
-    {
-        if (string.IsNullOrWhiteSpace(cycle))
-            return false;
-
-        return DateTime.TryParseExact(
-            cycle,
-            "yyyy-MM",
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.None,
-            out _);
+        return response;
     }
 
     private static string CreateRequestHash(

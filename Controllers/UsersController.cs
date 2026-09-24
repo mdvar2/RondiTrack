@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using RondiTrack.Common;
 using RondiTrack.DTOs.Users;
+using RondiTrack.Exceptions;
 using RondiTrack.Models;
 using RondiTrack.Repositories;
 
@@ -35,11 +35,7 @@ public class UsersController : ControllerBase
         var user = await _userRepository.GetByIdAsync(id);
 
         if (user is null)
-        {
-            return ProblemResponses.NotFound(
-                "User not found.",
-                HttpContext.Request.Path);
-        }
+            throw new NotFoundException("User not found.");
 
         return Ok(UserResponse.FromEntity(user));
     }
@@ -48,20 +44,9 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<UserResponse>> Create(
         CreateUserRequest request)
     {
-        User user;
-
-        try
-        {
-            user = new User(
-                request.Name,
-                request.Email);
-        }
-        catch (ArgumentException ex)
-        {
-            return ProblemResponses.BadRequest(
-                ex.Message,
-                HttpContext.Request.Path);
-        }
+        var user = new User(
+            request.Name,
+            request.Email);
 
         await _userRepository.AddAsync(user);
 
@@ -83,24 +68,11 @@ public class UsersController : ControllerBase
             await _userRepository.GetByIdAsync(id);
 
         if (user is null)
-        {
-            return ProblemResponses.NotFound(
-                "User not found.",
-                HttpContext.Request.Path);
-        }
+            throw new NotFoundException("User not found.");
 
-        try
-        {
-            user.UpdateDetails(
-                request.Name,
-                request.Email);
-        }
-        catch (ArgumentException ex)
-        {
-            return ProblemResponses.BadRequest(
-                ex.Message,
-                HttpContext.Request.Path);
-        }
+        user.UpdateDetails(
+            request.Name,
+            request.Email);
 
         return NoContent();
     }
@@ -112,11 +84,7 @@ public class UsersController : ControllerBase
             await _userRepository.DeleteAsync(id);
 
         if (!deleted)
-        {
-            return ProblemResponses.NotFound(
-                "User not found.",
-                HttpContext.Request.Path);
-        }
+            throw new NotFoundException("User not found.");
 
         return NoContent();
     }
