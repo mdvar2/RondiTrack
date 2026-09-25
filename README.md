@@ -1,13 +1,18 @@
 # RondiTrack
 
-RondiTrack is a .NET 10 Web API for managing users, stokvels, memberships, and member contributions. The application provides CRUD operations for users and stokvels, supports stokvel membership management, and allows member contributions to be recorded safely using idempotency.
+RondiTrack is a .NET 10 Web API for managing users, stokvels, memberships, contribution cycles, and member contributions.
+
+The project currently uses in-memory storage and demonstrates clean API design through request and response DTOs, repositories, a focused service layer, FluentValidation, centralized RFC 9457 error handling, correlation IDs, idempotent contribution recording, and negative-path integration tests.
 
 ## Technologies
 
 - .NET 10
 - ASP.NET Core Web API
+- FluentValidation
 - Built-in OpenAPI support
 - Scalar API Reference
+- xUnit
+- Microsoft.AspNetCore.Mvc.Testing
 - In-memory repositories
 - In-memory idempotency store
 
@@ -27,7 +32,13 @@ RondiTrack is a .NET 10 Web API for managing users, stokvels, memberships, and m
    dotnet run
    ```
 
-5. Open the Scalar API interface using the `/scalar` endpoint of the running application.
+5. Open the Scalar API interface for the running application.
+
+During development the application normally runs at:
+
+```text
+http://localhost:5101
+```
 
 ## API Endpoints
 
@@ -52,60 +63,95 @@ RondiTrack is a .NET 10 Web API for managing users, stokvels, memberships, and m
 - `POST /api/stokvels/{stokvelId}/members/{userId}` - Add a user to a stokvel
 - `DELETE /api/stokvels/{stokvelId}/members/{userId}` - Remove a user from a stokvel
 
+### Contribution Cycles
+
+- `GET /api/stokvels/{stokvelId}/cycles` - Get contribution cycles for a stokvel
+- `GET /api/stokvels/{stokvelId}/cycles/{cycleId}` - Get a contribution cycle
+- `POST /api/stokvels/{stokvelId}/cycles` - Create a contribution cycle
+- `PUT /api/stokvels/{stokvelId}/cycles/{cycleId}` - Update a contribution cycle
+- `DELETE /api/stokvels/{stokvelId}/cycles/{cycleId}` - Delete a contribution cycle
+
+Example create request:
+
+```json
+{
+  "period": "2026-09",
+  "targetAmount": 5000
+}
+```
+
+The period uses the `YYYY-MM` format.
+
 ### Contributions
 
 - `POST /api/stokvels/{stokvelId}/members/{userId}/contributions` - Record a contribution for a stokvel member
 
 The contribution endpoint requires an `Idempotency-Key` request header.
 
-Example request body:
+Example:
+
+```text
+Idempotency-Key: contribution-test-001
+```
+
+Request body:
 
 ```json
 {
-  "amount": 500,
-  "cycle": "2026-09"
+  "amount": 5000,
+  "contributionCycleId": "8316ae89-f4b2-4dfc-bbf0-c8ce8b5259b8"
 }
 ```
 
-The contribution cycle uses the `YYYY-MM` format.
+A contribution therefore references an actual `ContributionCycle` instead of accepting an arbitrary cycle string.
 
 ## Design Choices
 
 ### Controllers
 
-Controllers were chosen instead of Minimal APIs because they keep the endpoints for each resource grouped together. This makes the API structure easier to follow and maintain as the application grows.
+Controllers group HTTP endpoints around the resources exposed by the application.
 
-Controllers are responsible for HTTP concerns such as receiving request DTOs, calling the appropriate repository or service, and translating the result into an HTTP response. Business decisions involving membership and contributions are handled by services rather than directly in controllers.
+Controllers are responsible for HTTP concerns such as receiving request DTOs, calling the appropriate repository or service, and returning successful HTTP responses.
+
+Controllers do not construct error responses manually. When an operation fails, the application throws an appropriate exception and allows the centralized exception handler to create the HTTP error response.
+
+This keeps error formatting consistent and avoids repeating `ProblemDetails`, status-code, and error-message logic in every action.
 
 ### Domain Models
 
-The `User`, `Stokvel`, and `Contribution` models represent the application's internal domain state.
+The main domain models are:
+
+- `User`
+- `Stokvel`
+- `ContributionCycle`
+- `Contribution`
 
 The models protect their state using private setters. Changes are made through constructors and domain methods such as `UpdateDetails`, `AddMember`, and `RemoveMember`.
 
-Domain validation helps prevent invalid objects from being created. For example, contribution amounts must be greater than zero and a contribution must have a cycle.
+The entities also contain defensive checks so that invalid domain objects cannot easily be constructed directly.
 
 ### Request and Response DTOs
 
 Domain entities are not exposed directly through the HTTP API.
 
-Request DTOs define the information that callers are allowed to provide. For example:
+Request DTOs define the information callers are allowed to provide, including:
 
 - `CreateUserRequest`
 - `UpdateUserRequest`
 - `CreateStokvelRequest`
 - `UpdateStokvelRequest`
+- `CreateContributionCycleRequest`
+- `UpdateContributionCycleRequest`
 - `RecordContributionRequest`
 
-Using request DTOs prevents callers from directly supplying internal entity properties such as generated IDs and reduces the risk of over-posting.
-
-Response DTOs define the information that is returned to callers:
+Response DTOs define the shape returned to callers, including:
 
 - `UserResponse`
 - `StokvelResponse`
+- `ContributionCycleResponse`
 - `ContributionResponse`
 
-For example, `StokvelResponse` returns a `memberCount` rather than exposing the internal members collection.
+This separates the HTTP contract from the internal domain model and reduces the risk of over-posting internal properties such as generated IDs.
 
 ### Manual Mapping
 
@@ -114,105 +160,349 @@ Mapping between domain entities and response DTOs is performed manually using me
 ```csharp
 UserResponse.FromEntity(user)
 StokvelResponse.FromEntity(stokvel)
+ContributionCycleResponse.FromEntity(cycle)
 ContributionResponse.FromEntity(contribution)
 ```
 
-Manual mapping was chosen instead of an external mapping library because the mappings in RondiTrack are small and explicit.
+Manual mapping was chosen because the mappings in RondiTrack are small and explicit.
 
-This is especially appropriate for a money-related application because it makes the HTTP boundary easy to inspect and debug. There is no hidden mapping configuration deciding which financial or domain values are exposed to callers.
+This is also useful for a money-related application because it makes the HTTP boundary easy to inspect and debug rather than relying on hidden mapping configuration.
 
-### Service Layer
+## Validation vs Business Rules
 
-Services are introduced only for operations that require business decisions beyond straightforward CRUD.
+RondiTrack deliberately separates request validation from application and business-rule checks.
 
-`MembershipService` coordinates membership operations. It checks whether the stokvel and user exist and prevents the same user from being added to the same stokvel more than once.
+### Request Validation — "Is this request well-formed?"
 
-`ContributionService` coordinates contribution recording. It checks that:
+FluentValidation is used for request DTO validation.
 
-- the stokvel exists;
-- the user exists;
-- the user belongs to the stokvel;
-- the contribution amount is valid;
-- the cycle is valid;
-- the member has not already contributed for the same cycle; and
-- the `Idempotency-Key` has not been reused incorrectly.
+Validators check the shape of incoming data, for example:
 
-Simple CRUD operations continue to use repositories directly because they do not require the same business orchestration.
+- required names;
+- valid email format;
+- positive monetary values;
+- required contribution-cycle IDs; and
+- contribution-cycle periods using `YYYY-MM`.
 
-### Money
+Validators do not query repositories and do not decide whether a resource exists.
 
-`decimal` is used for monetary values such as `ContributionAmount` and contribution `Amount` because it is appropriate for monetary calculations and avoids the binary floating-point precision issues associated with types such as `double`.
+For example, an empty contribution-cycle period or a non-positive target amount is a malformed request and results in `400 Bad Request`.
 
-### Repository Abstraction
+Malformed JSON/model-binding failures are also routed through the same centralized error system so that they use the same error shape as FluentValidation failures.
 
-Data access is placed behind:
+### Exceptions — "Is this operation allowed?"
 
-- `IUserRepository`
-- `IStokvelRepository`
-- `IContributionRepository`
+Once the request is well-formed, the application may need to inspect current state.
 
-The current implementations use in-memory collections because persistent database storage is not required at this stage.
+Examples include:
 
-The repositories are registered as singletons so that the in-memory data remains available for the lifetime of the running application.
+- whether a user exists;
+- whether a stokvel exists;
+- whether a contribution cycle exists;
+- whether a user belongs to a stokvel;
+- whether a cycle belongs to the requested stokvel;
+- whether a contribution already exists; and
+- whether an idempotency key conflicts with an earlier request.
 
-### Idempotency
+These are not FluentValidation rules because they depend on application state rather than the shape of the request.
 
-Recording a contribution represents an operation that should be safe to retry. The contribution endpoint therefore requires an `Idempotency-Key`.
+This separation prevents validators from becoming a second service or repository layer.
 
-When a contribution request is received, the service creates a SHA-256 hash representing the request and checks the in-memory idempotency store.
+## Domain Exception Hierarchy
 
-The behaviour is:
+RondiTrack uses a small application-specific exception hierarchy based on `RondiTrackException`.
 
-- A new key and valid request records the contribution and stores the successful response.
-- The same key with the same request returns the original stored response without recording another contribution.
-- The same key with a different request is rejected with `409 Conflict`.
-- A different key does not bypass the duplicate-contribution rule. A member still cannot contribute twice for the same stokvel and cycle.
+The current exception types are:
 
-This provides two separate protections. Idempotency protects against accidental retries of the same operation, while the duplicate-contribution rule protects the business data even when a different key is used.
+- `RequestValidationException`
+- `NotFoundException`
+- `BusinessRuleException`
 
-The idempotency store is currently in memory, so its records are reset when the application restarts.
+They represent different categories of failure.
 
-### Error Responses
+### RequestValidationException
 
-API errors use RFC 9457 Problem Details and are returned as `application/problem+json`.
+Used when a request is malformed or missing required transport input.
 
-The error response contains fields such as:
+It maps to:
+
+```text
+400 Bad Request
+```
+
+### NotFoundException
+
+Used when a well-formed identifier refers to a resource that does not exist.
+
+It maps to:
+
+```text
+404 Not Found
+```
+
+### BusinessRuleException
+
+Used when the request is well-formed but conflicts with the current application state or a business rule.
+
+It maps to:
+
+```text
+409 Conflict
+```
+
+Examples include duplicate membership, duplicate contribution, and idempotency-key conflicts.
+
+### Duplicate Contribution vs Idempotency-Key Conflict
+
+Duplicate contribution and idempotency-key conflict currently use the same `BusinessRuleException` category because both requests are well-formed but conflict with existing application state.
+
+They are still separate business checks.
+
+An idempotency-key conflict occurs when the same key is reused with different request data:
+
+```text
+Same key + different request
+→ 409 Conflict
+```
+
+A duplicate contribution occurs when a different/new key is supplied but a contribution already exists for that member and contribution cycle:
+
+```text
+New key + existing member/cycle contribution
+→ 409 Conflict
+```
+
+Using the same exception category avoids creating unnecessary exception classes while preserving different error messages that identify the actual rule that failed.
+
+## Centralized Error Handling
+
+RondiTrack uses one `GlobalExceptionHandler` implementing ASP.NET Core's `IExceptionHandler`.
+
+Controllers and services throw exceptions describing what failed. The global handler is responsible for translating those exceptions into HTTP responses.
+
+The mapping is:
+
+| Exception | HTTP status |
+| --- | --- |
+| `RequestValidationException` | `400 Bad Request` |
+| `NotFoundException` | `404 Not Found` |
+| `BusinessRuleException` | `409 Conflict` |
+| Unexpected exception | `500 Internal Server Error` |
+
+This replaced the earlier approach of formatting errors individually in controllers.
+
+As a result, controllers do not contain repeated `try/catch` blocks or manually construct `ProblemDetails`.
+
+## RFC 9457 Problem Details
+
+API errors are returned using a consistent Problem Details structure with the media type:
+
+```text
+application/problem+json
+```
+
+For example:
 
 ```json
 {
   "type": "about:blank",
   "title": "Conflict",
   "status": 409,
-  "detail": "User is already a member of this stokvel.",
-  "instance": "/api/stokvels/..."
+  "detail": "A contribution already exists for this member and cycle.",
+  "instance": "/api/stokvels/.../members/.../contributions",
+  "correlationId": "0HN0QKKFQNVLN:00000001"
 }
 ```
 
-This gives callers one consistent error shape across the API.
+The same general shape is used for validation, not-found, business-rule, and unexpected server errors.
 
-### HTTP Status Codes
+## Correlation IDs and Structured Logging
 
-RondiTrack uses HTTP status codes according to the type of result.
+Every error response includes the current request's correlation ID.
 
-- `200 OK` is used when a request succeeds and returns a response body.
-- `201 Created` is used when a resource such as a user, stokvel, or contribution is created.
-- `204 No Content` is used for successful operations that do not need to return a response body.
-- `400 Bad Request` is used when the request does not meet the expected input requirements. For example, a contribution cycle that does not use the required `YYYY-MM` format returns `400`.
-- `404 Not Found` is used when the requested user or stokvel does not exist.
-- `409 Conflict` is used when the request conflicts with existing state, such as duplicate membership, duplicate contribution, or reuse of an idempotency key with a different request.
-- `422 Unprocessable Entity` is used when the request can be understood but a business rule prevents it from being processed. For example, attempting to record a contribution with an amount of zero returns `422`.
+The centralized exception handler also writes a structured log entry containing that same ID.
 
-The distinction between `400` and `422` is therefore that `400` represents a problem with the request/input itself, while `422` represents an understandable request that cannot be processed because of a business rule.
+For example, a duplicate contribution produced the following response information:
 
-### Asynchronous Operations
+```json
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "A contribution already exists for this member and cycle.",
+  "correlationId": "0HN0QKKFQNVLN:00000001"
+}
+```
 
-Repository, service, and controller operations use Task-based asynchronous contracts where appropriate. Controllers await repository and service operations rather than blocking on asynchronous work.
+The matching server log contained:
 
-This also allows the in-memory implementations to be replaced later by I/O-based persistence without requiring major changes to the API structure.
+```text
+Request failed. CorrelationId: 0HN0QKKFQNVLN:00000001
+RondiTrack.Exceptions.BusinessRuleException:
+A contribution already exists for this member and cycle.
+```
+
+The matching correlation ID connects the client-visible failure to the corresponding server-side log entry. This makes troubleshooting easier without exposing stack traces or internal implementation details to API clients.
+
+An idempotency-key conflict was also verified with the same mechanism:
+
+```text
+Request failed. CorrelationId: 0HNOQKKFQNVLM:00000006
+RondiTrack.Exceptions.BusinessRuleException:
+Idempotency-Key was already used with a different request.
+```
+
+## Service Layer
+
+Services are used only where an operation requires meaningful coordination or business decisions beyond straightforward CRUD.
+
+### MembershipService
+
+`MembershipService` coordinates membership operations.
+
+It checks:
+
+- whether the stokvel exists;
+- whether the user exists; and
+- whether membership already exists.
+
+### ContributionService
+
+`ContributionService` coordinates contribution recording.
+
+It checks:
+
+- the idempotency key;
+- whether the stokvel exists;
+- whether the user exists;
+- whether the user belongs to the stokvel;
+- whether the contribution cycle exists;
+- whether the contribution cycle belongs to the stokvel;
+- whether the member already has a contribution for that cycle; and
+- whether an idempotency key has already been associated with different request data.
+
+This is a genuine multi-resource workflow, so a service is appropriate.
+
+### Why ContributionCycle Does Not Have a Service
+
+`ContributionCycle` intentionally does not have its own service.
+
+Its current operations are straightforward CRUD. There is no meaningful multi-resource workflow or complex business process that would justify an additional service layer.
+
+The controller therefore communicates directly with `IContributionCycleRepository`.
+
+This keeps the architecture proportional to the problem rather than creating services for every entity automatically.
+
+If contribution-cycle operations gain meaningful business rules in the future, a service can be introduced when it is actually needed.
+
+## Repository Abstraction
+
+Data access is placed behind repository interfaces:
+
+- `IUserRepository`
+- `IStokvelRepository`
+- `IContributionRepository`
+- `IContributionCycleRepository`
+
+The current implementations use in-memory collections because persistent database storage is not required at this stage.
+
+Repositories separate data access from controllers and services. Their interfaces describe what data operations are available while their implementations decide how the data is currently stored.
+
+The repositories are registered as singletons so the in-memory state remains available for the lifetime of the running application.
+
+## Money
+
+`decimal` is used for monetary values such as contribution amounts and cycle target amounts.
+
+`decimal` is appropriate for financial values because it avoids the binary floating-point precision behaviour associated with types such as `double`.
+
+## Idempotency
+
+Recording a contribution represents an operation that should be safe to retry.
+
+The contribution endpoint therefore requires an `Idempotency-Key`.
+
+The contribution service creates a SHA-256 hash representing the request and checks the in-memory idempotency store.
+
+The behaviour is:
+
+- A new key and valid request records the contribution and stores the successful response.
+- The same key with the same request returns the original stored response without creating another contribution.
+- The same key with different request data returns `409 Conflict`.
+- A new key does not bypass the duplicate-contribution rule.
+
+During Scalar testing, a contribution was created using:
+
+```text
+Idempotency-Key: contribution-test-001
+```
+
+with:
+
+```json
+{
+  "amount": 5000,
+  "contributionCycleId": "8316ae89-f4b2-4dfc-bbf0-c8ce8b5259b8"
+}
+```
+
+The first request returned `201 Created`.
+
+Repeating the exact request with the same idempotency key returned the same contribution ID and original `recordedAtUtc` value, demonstrating that another contribution was not created.
+
+Changing only the amount while keeping the same idempotency key returned:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "Idempotency-Key was already used with a different request.",
+  "correlationId": "0HNOQKKFQNVLM:00000006"
+}
+```
+
+Using a new key (`contribution-test-002`) for the already-recorded member and cycle returned:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "A contribution already exists for this member and cycle.",
+  "correlationId": "0HN0QKKFQNVLN:00000001"
+}
+```
+
+This demonstrates that idempotency and duplicate-contribution protection solve different problems.
+
+The idempotency store is currently in memory, so its records are reset when the application restarts.
+
+## HTTP Status Codes
+
+RondiTrack currently uses:
+
+- `200 OK` when a successful request returns data.
+- `201 Created` when a new resource or contribution is created.
+- `204 No Content` for successful operations that require no response body.
+- `400 Bad Request` for malformed or invalid request input.
+- `404 Not Found` when a requested resource does not exist.
+- `409 Conflict` when a well-formed request conflicts with current application state or a business rule.
+- `500 Internal Server Error` for unexpected exceptions.
+
+The important distinction is:
+
+```text
+400 → Is the request well-formed?
+404 → Does the requested resource exist?
+409 → Is the well-formed operation allowed in the current state?
+```
 
 ## Data Storage
 
-The application currently uses seeded in-memory data for users and stokvels. Contributions and idempotency records are also stored in memory.
+The application currently uses seeded in-memory data for users and stokvels.
+
+Contribution cycles, contributions, and idempotency records are also stored in memory.
 
 All in-memory data is reset whenever the application restarts.
 
@@ -220,14 +510,61 @@ No database or Entity Framework Core is used at this stage.
 
 ## Testing
 
-The API is tested through Scalar.
+RondiTrack is tested manually through Scalar and automatically through xUnit integration tests.
 
-The contribution endpoint was verified with the following scenarios:
+### Scalar Testing
 
-- A valid contribution returns `201 Created`.
-- Repeating the same request with the same `Idempotency-Key` returns the exact original contribution response.
-- Reusing the same `Idempotency-Key` with a different payload returns `409 Conflict`.
-- Using a new key for a member and cycle that already has a contribution returns `409 Conflict`.
-- An invalid contribution amount returns `422 Unprocessable Entity`.
-- An invalid cycle format returns `400 Bad Request`.
-- Error responses use `application/problem+json`.
+The following scenarios were manually verified:
+
+- adding a stokvel member returns `204 No Content`;
+- creating a contribution cycle returns `201 Created`;
+- recording a valid contribution returns `201 Created`;
+- repeating the same contribution request with the same idempotency key returns the original contribution response;
+- reusing the same idempotency key with different request data returns `409 Conflict`;
+- using a new key for an existing member/cycle contribution returns `409 Conflict`;
+- malformed request data returns `400 Bad Request`;
+- requesting a nonexistent resource returns `404 Not Found`;
+- error responses use `application/problem+json`; and
+- response correlation IDs match the IDs written to server logs.
+
+### Automated Negative-Path Tests
+
+The `RondiTrack.Tests` xUnit project uses `Microsoft.AspNetCore.Mvc.Testing` to exercise the real HTTP pipeline.
+
+The current integration tests verify:
+
+1. A malformed request returns `400 Bad Request`.
+2. A nonexistent user returns `404 Not Found`.
+3. Duplicate membership returns `409 Conflict`.
+
+The tests also assert that error responses use:
+
+```text
+application/problem+json
+```
+
+and contain a correlation ID.
+
+Run the automated tests with:
+
+```bash
+dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj
+```
+
+Current result:
+
+```text
+total: 3
+failed: 0
+succeeded: 3
+skipped: 0
+```
+
+These tests exercise the request pipeline rather than directly constructing exceptions, which means they verify the interaction between request/model validation, controllers and services, the exception hierarchy, and the centralized exception handler.
+
+## Asynchronous Operations
+
+Repository, service, and controller operations use Task-based asynchronous contracts where appropriate.
+Controllers await repository and service operations instead of synchronously blocking on tasks.
+This also allows the current in-memory repository implementations to be replaced later by I/O-based persistence without requiring major changes to the API structure.
+
