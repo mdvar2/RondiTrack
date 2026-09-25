@@ -1,4 +1,3 @@
-using System.Globalization;
 using FluentValidation;
 using RondiTrack.DTOs.Contributions;
 
@@ -14,23 +13,9 @@ public class RecordContributionRequestValidator
             .WithMessage(
                 "Contribution amount must be greater than zero.");
 
-        RuleFor(request => request.Cycle)
+        RuleFor(request => request.ContributionCycleId)
             .NotEmpty()
-            .WithMessage("Contribution cycle is required.")
-            .Must(BeValidCycle)
-            .WithMessage("Cycle must use the YYYY-MM format.");
-    }
-
-    private static bool BeValidCycle(string cycle)
-    {
-        if (string.IsNullOrWhiteSpace(cycle))
-            return false;
-
-        return DateTime.TryParseExact(
-            cycle,
-            "yyyy-MM",
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.None,
-            out _);
+            .WithMessage(
+                "Contribution cycle ID is required.");
     }
 }

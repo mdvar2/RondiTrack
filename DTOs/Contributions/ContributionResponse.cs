@@ -6,20 +6,19 @@ public record ContributionResponse(
     Guid Id,
     Guid StokvelId,
     Guid UserId,
+    Guid ContributionCycleId,
     decimal Amount,
-    string Cycle,
-    DateTime RecordedAtUtc
-)
+    DateTime RecordedAtUtc)
 {
-    public static ContributionResponse FromEntity(Contribution contribution)
+    public static ContributionResponse FromEntity(
+        Contribution contribution)
     {
         return new ContributionResponse(
             contribution.Id,
             contribution.StokvelId,
             contribution.UserId,
+            contribution.ContributionCycleId,
             contribution.Amount,
-            contribution.Cycle,
-            contribution.RecordedAtUtc
-        );
+            contribution.RecordedAtUtc);
     }
 }

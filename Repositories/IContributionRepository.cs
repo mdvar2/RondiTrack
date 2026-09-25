@@ -9,7 +9,8 @@ public interface IContributionRepository
     Task<Contribution?> GetByMemberAndCycleAsync(
         Guid stokvelId,
         Guid userId,
-        string cycle);
+        Guid contributionCycleId);
 
-    Task AddAsync(Contribution contribution);
+    Task AddAsync(
+        Contribution contribution);
 }
