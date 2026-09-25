@@ -24,6 +24,10 @@ builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IStokvelRepository, StokvelRepository>();
 builder.Services.AddSingleton<IContributionRepository, ContributionRepository>();
 
+builder.Services.AddSingleton<
+    IContributionCycleRepository,
+    ContributionCycleRepository>();
+
 builder.Services.AddSingleton<IIdempotencyStore, IdempotencyStore>();
 
 builder.Services.AddScoped<MembershipService>();

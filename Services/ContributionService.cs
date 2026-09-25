@@ -11,17 +11,20 @@ namespace RondiTrack.Services;
 public class ContributionService
 {
     private readonly IContributionRepository _contributionRepository;
+    private readonly IContributionCycleRepository _cycleRepository;
     private readonly IStokvelRepository _stokvelRepository;
     private readonly IUserRepository _userRepository;
     private readonly IIdempotencyStore _idempotencyStore;
 
     public ContributionService(
         IContributionRepository contributionRepository,
+        IContributionCycleRepository cycleRepository,
         IStokvelRepository stokvelRepository,
         IUserRepository userRepository,
         IIdempotencyStore idempotencyStore)
     {
         _contributionRepository = contributionRepository;
+        _cycleRepository = cycleRepository;
         _stokvelRepository = stokvelRepository;
         _userRepository = userRepository;
         _idempotencyStore = idempotencyStore;
@@ -71,7 +74,8 @@ public class ContributionService
             throw new NotFoundException("User not found.");
 
         var isMember =
-            stokvel.Members.Any(member => member.Id == userId);
+            stokvel.Members.Any(
+                member => member.Id == userId);
 
         if (!isMember)
         {
@@ -79,11 +83,28 @@ public class ContributionService
                 "User is not a member of this stokvel.");
         }
 
+        var cycle =
+            await _cycleRepository.GetByIdAsync(
+                request.ContributionCycleId);
+
+        if (cycle is null)
+        {
+            throw new NotFoundException(
+                "Contribution cycle not found.");
+        }
+
+        if (cycle.StokvelId != stokvelId)
+        {
+            throw new BusinessRuleException(
+                "Contribution cycle does not belong to this stokvel.");
+        }
+
         var existingContribution =
-            await _contributionRepository.GetByMemberAndCycleAsync(
-                stokvelId,
-                userId,
-                request.Cycle);
+            await _contributionRepository
+                .GetByMemberAndCycleAsync(
+                    stokvelId,
+                    userId,
+                    request.ContributionCycleId);
 
         if (existingContribution is not null)
         {
@@ -94,21 +115,25 @@ public class ContributionService
         var contribution = new Contribution(
             stokvelId,
             userId,
-            request.Amount,
-            request.Cycle);
+            request.ContributionCycleId,
+            request.Amount);
 
-        await _contributionRepository.AddAsync(contribution);
+        await _contributionRepository.AddAsync(
+            contribution);
 
         var response =
-            ContributionResponse.FromEntity(contribution);
+            ContributionResponse.FromEntity(
+                contribution);
 
-        var idempotencyRecord = new IdempotencyRecord(
-            idempotencyKey,
-            requestHash,
-            StatusCodes.Status201Created,
-            response);
+        var idempotencyRecord =
+            new IdempotencyRecord(
+                idempotencyKey,
+                requestHash,
+                StatusCodes.Status201Created,
+                response);
 
-        await _idempotencyStore.SaveAsync(idempotencyRecord);
+        await _idempotencyStore.SaveAsync(
+            idempotencyRecord);
 
         return response;
     }
@@ -119,10 +144,14 @@ public class ContributionService
         RecordContributionRequest request)
     {
         var requestData =
-            $"{stokvelId}|{userId}|{request.Amount}|{request.Cycle}";
+            $"{stokvelId}|{userId}|{request.Amount}|" +
+            $"{request.ContributionCycleId}";
 
-        var bytes = Encoding.UTF8.GetBytes(requestData);
-        var hash = SHA256.HashData(bytes);
+        var bytes =
+            Encoding.UTF8.GetBytes(requestData);
+
+        var hash =
+            SHA256.HashData(bytes);
 
         return Convert.ToHexString(hash);
     }
