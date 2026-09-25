@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using RondiTrack.Filters;
 using RondiTrack.Handlers;
 using FluentValidation;
@@ -13,6 +14,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
+});
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
 });
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
