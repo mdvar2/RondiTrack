@@ -27,7 +27,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             RequestValidationException =>
                 (StatusCodes.Status400BadRequest, "Bad Request"),
 
-             NotFoundException =>
+            NotFoundException =>
                 (StatusCodes.Status404NotFound, "Not Found"),
 
             BusinessRuleException =>
@@ -60,12 +60,11 @@ public class GlobalExceptionHandler : IExceptionHandler
         httpContext.Response.StatusCode =
             statusCode;
 
-        httpContext.Response.ContentType =
-            "application/problem+json";
-
         await httpContext.Response.WriteAsJsonAsync(
             problem,
-            cancellationToken);
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
 
         return true;
     }
