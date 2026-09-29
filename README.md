@@ -510,7 +510,9 @@ No database or Entity Framework Core is used at this stage.
 
 ## Testing
 
-RondiTrack is tested manually through Scalar and automatically through xUnit integration tests.
+RondiTrack is tested manually through Scalar and automatically through xUnit unit and integration tests.
+
+The automated test suite currently contains **19 tests** covering happy paths, validation failures, not-found behaviour, business rules, idempotency, and additional edge cases.
 
 ### Scalar Testing
 
@@ -527,44 +529,236 @@ The following scenarios were manually verified:
 - error responses use `application/problem+json`; and
 - response correlation IDs match the IDs written to server logs.
 
-### Automated Negative-Path Tests
+Scalar also exposes the generated OpenAPI contract. Endpoint summaries, descriptions, success responses, and applicable `400`, `404`, and `409` responses are documented in the controllers and displayed in the API reference.
 
-The `RondiTrack.Tests` xUnit project uses `Microsoft.AspNetCore.Mvc.Testing` to exercise the real HTTP pipeline.
+### Unit Tests
 
-The current integration tests verify:
+Unit tests exercise business behaviour directly without going through HTTP or dependency injection.
 
-1. A malformed request returns `400 Bad Request`.
-2. A nonexistent user returns `404 Not Found`.
-3. Duplicate membership returns `409 Conflict`.
+The unit tests verify:
 
-The tests also assert that error responses use:
+- adding a user who is already a member throws `BusinessRuleException`;
+- recording another contribution for the same member and contribution cycle throws `BusinessRuleException`; and
+- reusing the same idempotency key with different request data throws `BusinessRuleException`.
+
+These tests verify business rules independently from the HTTP layer.
+
+### Integration Tests
+
+Integration tests use `Microsoft.AspNetCore.Mvc.Testing` and `WebApplicationFactory<Program>` to exercise the actual ASP.NET Core request pipeline.
+
+Happy-path integration tests verify:
+
+- creating a user and retrieving the created user;
+- creating a stokvel and retrieving the created stokvel;
+- creating a contribution cycle and retrieving the created cycle; and
+- recording a valid contribution.
+
+Negative-path and business-rule integration tests verify:
+
+- malformed input returns `400 Bad Request`;
+- a nonexistent user returns `404 Not Found`;
+- duplicate membership returns `409 Conflict`;
+- removing a user who is not a member returns `409 Conflict`;
+- a contribution from a non-member returns `409 Conflict`;
+- using a contribution cycle belonging to another stokvel returns `409 Conflict`;
+- recording another contribution for the same member and cycle with a different idempotency key returns `409 Conflict`; and
+- omitting the required `Idempotency-Key` returns `400 Bad Request`.
+
+Where applicable, error tests also verify the `application/problem+json` media type and Problem Details response information.
+
+### Idempotency Tests
+
+Idempotency is tested separately because retry behaviour forms part of the contribution endpoint contract.
+
+The automated tests verify:
 
 ```text
-application/problem+json
+Same key + same request
+→ same stored contribution response
 ```
 
-and contain a correlation ID.
+and:
 
-Run the automated tests with:
+```text
+Same key + different request
+→ 409 Conflict
+```
+
+Using a different key also does not bypass the duplicate-contribution business rule.
+
+### Edge Cases
+
+Three edge cases beyond the normal happy paths were deliberately identified and tested.
+
+#### 1. Missing Idempotency-Key
+
+The contribution endpoint requires an `Idempotency-Key` header.
+
+This edge case was identified by considering what happens when the contribution request body is otherwise valid but the required retry key is omitted.
+
+Expected result:
+
+```text
+400 Bad Request
+```
+
+The automated test confirms that the request is rejected with:
+
+```text
+Idempotency-Key header is required.
+```
+
+#### 2. Zero Contribution Amount
+
+The contribution validator requires the amount to be greater than zero.
+
+This edge case was identified by testing the exact boundary of the `GreaterThan(0)` rule rather than testing only a negative value.
+
+Test value:
+
+```text
+amount = 0
+```
+
+Expected result:
+
+```text
+400 Bad Request
+```
+
+The automated test confirms that zero cannot be recorded as a valid contribution.
+
+#### 3. Invalid Contribution-Cycle Period
+
+Contribution-cycle periods use the `YYYY-MM` format.
+
+The following value was tested:
+
+```text
+2027-13
+```
+
+Although it resembles the required format, month 13 is not a valid calendar month.
+
+This edge case was identified by checking whether validation verifies a real year/month value rather than only the visible structure of the string.
+
+Expected result:
+
+```text
+400 Bad Request
+```
+
+The automated test confirms that the invalid period is rejected.
+
+### Deliberate Broken-Rule Test
+
+One business-rule guard was deliberately disabled temporarily to verify that the automated tests detect a regression.
+
+The duplicate-membership check in `MembershipService.AddMemberAsync` was temporarily commented out.
+
+The existing integration test:
+
+```text
+DuplicateMembership_Returns409ProblemJson
+```
+
+normally expects:
+
+```text
+409 Conflict
+```
+
+With the service guard disabled, the defensive check in the `Stokvel` domain model threw an unexpected `InvalidOperationException`. The request therefore resulted in:
+
+```text
+500 Internal Server Error
+```
+
+The test correctly failed with:
+
+```text
+Expected: Conflict
+Actual:   InternalServerError
+
+total: 1
+failed: 1
+succeeded: 0
+```
+
+The duplicate-membership guard was then restored without changing the test.
+
+The exact same test was run again and passed:
+
+```text
+total: 1
+failed: 0
+succeeded: 1
+skipped: 0
+```
+
+This RED-to-GREEN check demonstrates that the test detects a real change in the API contract rather than simply executing code.
+
+### Running the Automated Tests
+
+Run the complete suite with:
 
 ```bash
 dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj
 ```
 
-Current result:
+To display the individual test names:
 
-```text
-total: 3
-failed: 0
-succeeded: 3
-skipped: 0
+```bash
+dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --logger "console;verbosity=detailed"
 ```
 
-These tests exercise the request pipeline rather than directly constructing exceptions, which means they verify the interaction between request/model validation, controllers and services, the exception hierarchy, and the centralized exception handler.
+The final detailed run produced:
+
+```text
+Test Run Successful.
+Total tests: 19
+Passed: 19
+
+Test summary:
+total: 19
+failed: 0
+succeeded: 19
+skipped: 0
+
+Build succeeded
+```
+
+The final detailed run showed the individual unit, happy-path, negative-path, business-rule, idempotency, and edge-case tests and finished with all **19 tests passing**.
+
+## Definition of Done
+
+| API area / endpoint | Documented | Validation / business guard | Automated coverage | Status codes reviewed |
+| --- | --- | --- | --- | --- |
+| `GET /api/users` | Yes | N/A - no request body | Resource happy path | Yes |
+| `GET /api/users/{id}` | Yes | Resource existence | Happy path + not found | Yes |
+| `POST /api/users` | Yes | FluentValidation | Happy path | Yes |
+| `PUT /api/users/{id}` | Yes | FluentValidation + existence | Contract reviewed | Yes |
+| `DELETE /api/users/{id}` | Yes | Resource existence | Contract reviewed | Yes |
+| `GET /api/stokvels` | Yes | N/A - no request body | Resource happy path | Yes |
+| `GET /api/stokvels/{id}` | Yes | Resource existence | Resource happy path | Yes |
+| `POST /api/stokvels` | Yes | FluentValidation | Happy path | Yes |
+| `PUT /api/stokvels/{id}` | Yes | FluentValidation + existence | Contract reviewed | Yes |
+| `DELETE /api/stokvels/{id}` | Yes | Resource existence | Contract reviewed | Yes |
+| `POST /api/stokvels/{stokvelId}/members/{userId}` | Yes | Existence + duplicate-membership rule | Unit + integration | Yes |
+| `DELETE /api/stokvels/{stokvelId}/members/{userId}` | Yes | Existence + membership rule | Integration | Yes |
+| `GET /api/stokvels/{stokvelId}/cycles` | Yes | Stokvel existence | Resource coverage | Yes |
+| `GET /api/stokvels/{stokvelId}/cycles/{cycleId}` | Yes | Existence + ownership | Resource happy path | Yes |
+| `POST /api/stokvels/{stokvelId}/cycles` | Yes | FluentValidation + existence | Happy path + edge case | Yes |
+| `PUT /api/stokvels/{stokvelId}/cycles/{cycleId}` | Yes | FluentValidation + existence/ownership | Contract reviewed | Yes |
+| `DELETE /api/stokvels/{stokvelId}/cycles/{cycleId}` | Yes | Existence + ownership | Contract reviewed | Yes |
+| `POST /api/stokvels/{stokvelId}/members/{userId}/contributions` | Yes | Validation + membership + cycle + duplicate + idempotency rules | Unit + integration + edge cases | Yes |
+
+`N/A` is used where an endpoint has no request body requiring FluentValidation. Existence checks and business guards are still applied where required.
 
 ## Asynchronous Operations
 
 Repository, service, and controller operations use Task-based asynchronous contracts where appropriate.
 Controllers await repository and service operations instead of synchronously blocking on tasks.
-This also allows the current in-memory repository implementations to be replaced later by I/O-based persistence without requiring major changes to the API structure.
+This allows the current in-memory repository implementations to be replaced later by I/O-based persistence without requiring major changes to the API structure.
 
