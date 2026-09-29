@@ -20,7 +20,20 @@ public class ContributionCyclesController : ControllerBase
         _cycleRepository = cycleRepository;
         _stokvelRepository = stokvelRepository;
     }
-
+    /// <summary>
+    /// Gets all contribution cycles for a stokvel.
+    /// </summary>
+    /// <remarks>
+    /// Returns all contribution cycles belonging to the specified stokvel.
+    /// An empty collection is returned when the stokvel exists but has no cycles.
+    /// Returns 404 when the stokvel does not exist.
+    /// </remarks>
+    [ProducesResponseType(
+        typeof(IEnumerable<ContributionCycleResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ContributionCycleResponse>>> GetAll(
         Guid stokvelId)
@@ -40,7 +53,20 @@ public class ContributionCyclesController : ControllerBase
 
         return Ok(response);
     }
-
+    /// <summary>
+    /// Gets a contribution cycle by ID.
+    /// </summary>
+    /// <remarks>
+    /// Returns the requested contribution cycle when it belongs to the specified stokvel.
+    /// Returns 404 when the stokvel does not exist, the cycle does not exist,
+    /// or the cycle does not belong to the specified stokvel.
+    /// </remarks>
+    [ProducesResponseType(
+        typeof(ContributionCycleResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpGet("{cycleId:guid}")]
     public async Task<ActionResult<ContributionCycleResponse>> GetById(
         Guid stokvelId,
@@ -62,7 +88,23 @@ public class ContributionCyclesController : ControllerBase
         return Ok(
             ContributionCycleResponse.FromEntity(cycle));
     }
-
+    /// <summary>
+    /// Creates a contribution cycle for a stokvel.
+    /// </summary>
+    /// <remarks>
+    /// Creates a new contribution cycle for an existing stokvel.
+    /// Returns 400 when the request fails validation.
+    /// Returns 404 when the stokvel does not exist.
+    /// </remarks>
+    [ProducesResponseType(
+        typeof(ContributionCycleResponse),
+        StatusCodes.Status201Created)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpPost]
     public async Task<ActionResult<ContributionCycleResponse>> Create(
         Guid stokvelId,
@@ -93,7 +135,22 @@ public class ContributionCyclesController : ControllerBase
             },
             response);
     }
-
+    /// <summary>
+    /// Updates an existing contribution cycle.
+    /// </summary>
+    /// <remarks>
+    /// Updates the period and target amount of an existing contribution cycle.
+    /// Returns 400 when the request fails validation.
+    /// Returns 404 when the stokvel or contribution cycle does not exist,
+    /// or when the cycle does not belong to the specified stokvel.
+    /// </remarks>
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpPut("{cycleId:guid}")]
     public async Task<IActionResult> Update(
         Guid stokvelId,
@@ -119,7 +176,18 @@ public class ContributionCyclesController : ControllerBase
 
         return NoContent();
     }
-
+    /// <summary>
+    /// Deletes a contribution cycle.
+    /// </summary>
+    /// <remarks>
+    /// Deletes an existing contribution cycle from the specified stokvel.
+    /// Returns 404 when the stokvel or contribution cycle does not exist,
+    /// or when the cycle does not belong to the specified stokvel.
+    /// </remarks>
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpDelete("{cycleId:guid}")]
     public async Task<IActionResult> Delete(
         Guid stokvelId,
