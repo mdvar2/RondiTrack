@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using RondiTrack.Data;
 using RondiTrack.Exceptions;
 using RondiTrack.Repositories;
 using RondiTrack.Services;
@@ -19,15 +22,57 @@ public class MembershipServiceTests
         var user = users.First();
         var stokvel = stokvels.First();
 
-        var service = new MembershipService(
-            stokvelRepository,
-            userRepository);
+        var configuration =
+            new ConfigurationBuilder()
+                .AddUserSecrets<Program>()
+                .Build();
 
-        await service.AddMemberAsync(stokvel.Id, user.Id);
+        var connectionString =
+            configuration.GetConnectionString(
+                "RondiTrackDb")
+            ?? throw new InvalidOperationException(
+                "Connection string 'RondiTrackDb' was not found.");
+
+        var options =
+            new DbContextOptionsBuilder<RondiTrackDbContext>()
+                .UseNpgsql(connectionString)
+                .Options;
+
+        await using var dbContext =
+            new RondiTrackDbContext(options);
+
+        var stokvelMemberRepository =
+            new EfStokvelMemberRepository(
+                dbContext);
+
+        var existingMember =
+            await stokvelMemberRepository
+                .GetByStokvelAndUserAsync(
+                    stokvel.Id,
+                    user.Id);
+
+        if (existingMember is not null)
+        {
+            await stokvelMemberRepository.RemoveAsync(
+                existingMember);
+        }
+
+        var service =
+            new MembershipService(
+                stokvelRepository,
+                userRepository,
+                stokvelMemberRepository);
+
+        await service.AddMemberAsync(
+            stokvel.Id,
+            user.Id);
 
         // Act
-        var exception = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => service.AddMemberAsync(stokvel.Id, user.Id));
+        var exception =
+            await Assert.ThrowsAsync<BusinessRuleException>(
+                () => service.AddMemberAsync(
+                    stokvel.Id,
+                    user.Id));
 
         // Assert
         Assert.Equal(

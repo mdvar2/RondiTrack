@@ -762,3 +762,18 @@ Repository, service, and controller operations use Task-based asynchronous contr
 Controllers await repository and service operations instead of synchronously blocking on tasks.
 This allows the current in-memory repository implementations to be replaced later by I/O-based persistence without requiring major changes to the API structure.
 
+---
+
+# Assignment 5.1 — EF Core & Database Foundations
+
+Assignment 5.1 introduces PostgreSQL and Entity Framework Core persistence to RondiTrack. The goal was to replace selected in-memory persistence with a real relational database while preserving the existing API behaviour and repository abstractions.
+
+## PostgreSQL Setup
+
+I chose to install PostgreSQL locally rather than use a container because I wanted to understand the database installation, Windows service, authentication, command-line connectivity, and connection-string configuration directly.
+
+The development environment uses PostgreSQL 17 and a dedicated database named:
+
+```text
+ronditrack
+

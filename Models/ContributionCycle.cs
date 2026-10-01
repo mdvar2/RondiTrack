@@ -10,6 +10,8 @@ public class ContributionCycle
 
     public decimal TargetAmount { get; private set; }
 
+    public string Status { get; private set; }
+
     public ContributionCycle(
         Guid stokvelId,
         string period,
@@ -31,6 +33,7 @@ public class ContributionCycle
         StokvelId = stokvelId;
         Period = period.Trim();
         TargetAmount = targetAmount;
+        Status = "Open";
     }
 
     public void UpdateDetails(
@@ -47,5 +50,10 @@ public class ContributionCycle
 
         Period = period.Trim();
         TargetAmount = targetAmount;
+    }
+
+    public void MarkPaidOut()
+    {
+        Status = "PaidOut";
     }
 }
