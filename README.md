@@ -1,38 +1,226 @@
 # RondiTrack
 
-RondiTrack is a .NET 10 Web API for managing users, stokvels, memberships, contribution cycles, and member contributions.
+RondiTrack is a .NET 10 Web API for managing users, stokvels, memberships, contribution cycles, member contributions, and payouts.
 
-The project currently uses in-memory storage and demonstrates clean API design through request and response DTOs, repositories, a focused service layer, FluentValidation, centralized RFC 9457 error handling, correlation IDs, idempotent contribution recording, and negative-path integration tests.
+The project uses a hybrid persistence approach while it is being migrated from in-memory storage to PostgreSQL. PostgreSQL and Entity Framework Core now persist stokvel memberships, contribution cycles, contributions, and payouts. Users and stokvels still use their existing in-memory repositories, and the idempotency store also remains in memory.
+
+The application demonstrates request and response DTOs, repository abstractions, service-layer business rules, FluentValidation, centralized RFC 9457 error handling, correlation IDs, idempotent contribution recording, PostgreSQL persistence, EF Core migrations, Npgsql retry configuration, and explicit database transactions.
 
 ## Technologies
 
 - .NET 10
 - ASP.NET Core Web API
+- Entity Framework Core 10
+- PostgreSQL 17
+- Npgsql Entity Framework Core provider
 - FluentValidation
 - Built-in OpenAPI support
 - Scalar API Reference
 - xUnit
 - Microsoft.AspNetCore.Mvc.Testing
-- In-memory repositories
+- .NET User Secrets
+- In-memory storage for repositories not yet migrated to EF Core
 - In-memory idempotency store
 
-## Running the Project
+---
 
-1. Clone the repository.
-2. Open a terminal in the project directory.
-3. Restore the dependencies:
+# Running the Project From a Clean Machine
 
-   ```bash
-   dotnet restore
-   ```
+Assignment 5.1 introduced PostgreSQL as a real persistence layer. The following steps document how another developer can reproduce my development setup from a clean Windows machine.
 
-4. Run the application:
+## 1. Prerequisites
 
-   ```bash
-   dotnet run
-   ```
+Install:
 
-5. Open the Scalar API interface for the running application.
+- .NET 10 SDK
+- Git
+- PostgreSQL 17
+
+Confirm .NET is available:
+
+```powershell
+dotnet --version
+```
+
+Confirm Git is available:
+
+```powershell
+git --version
+```
+
+## 2. Clone the Repository
+
+Clone RondiTrack and enter the project directory:
+
+```powershell
+git clone https://github.com/mdvar2/RondiTrack.git
+cd RondiTrack
+```
+
+Restore the project dependencies:
+
+```powershell
+dotnet restore
+```
+
+## 3. Install PostgreSQL
+
+I chose to install PostgreSQL locally rather than use a container.
+
+I made this choice because I wanted to work directly with the PostgreSQL Windows service, authentication, command-line client, database creation, and connection configuration.
+
+The development environment uses:
+
+```text
+PostgreSQL 17
+```
+
+PostgreSQL can be installed on Windows using the PostgreSQL installer or Windows Package Manager.
+
+For example:
+
+```powershell
+winget install PostgreSQL.PostgreSQL.17
+```
+
+During a normal PostgreSQL installation, configure a password for the local `postgres` administrator account and keep that password private.
+
+After installation, verify that the PostgreSQL service is running.
+
+For example:
+
+```powershell
+Get-Service *postgres*
+```
+
+The service should report a running state.
+
+## 4. Create the RondiTrack Database
+
+RondiTrack uses a dedicated database named:
+
+```text
+ronditrack
+```
+
+The database is separate from PostgreSQL's default databases.
+
+From PowerShell, PostgreSQL's command-line client can be started with:
+
+```powershell
+& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres
+```
+
+The `&` is required in PowerShell when executing a quoted executable path.
+
+Enter the local PostgreSQL password when prompted.
+
+Inside `psql`, create the database:
+
+```sql
+CREATE DATABASE ronditrack;
+```
+
+Connect to it:
+
+```text
+\c ronditrack
+```
+
+List databases if required:
+
+```text
+\l
+```
+
+Exit using:
+
+```text
+\q
+```
+
+## 5. Verify PostgreSQL Independently of RondiTrack
+
+Before relying on the API, database connectivity can be tested directly:
+
+```powershell
+& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -d ronditrack
+```
+
+If the PostgreSQL prompt opens successfully, the database is running and reachable independently of the RondiTrack application.
+
+This was an important part of the setup because it separates a PostgreSQL installation or authentication problem from an ASP.NET Core or EF Core problem.
+
+## 6. Configure the Connection String Securely
+
+The PostgreSQL password is not stored in `appsettings.json`, `appsettings.Development.json`, or another tracked source file.
+
+RondiTrack uses .NET User Secrets for the local development connection string.
+
+From the RondiTrack project directory, run:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+```
+
+Replace:
+
+```text
+YOUR_LOCAL_PASSWORD
+```
+
+with the password configured on that developer's PostgreSQL installation.
+
+The connection string is stored outside the Git repository under the developer's local user profile.
+
+The project contains only its `UserSecretsId`; the actual secret is never committed.
+
+## 7. Apply the EF Core Migration
+
+The migration files are committed to the repository.
+
+Apply them to the local `ronditrack` database using:
+
+```powershell
+dotnet ef database update
+```
+
+After the migration has been applied, PostgreSQL contains the RondiTrack tables and EF Core's migration-history table.
+
+## 8. Run the Tests
+
+The current test suite requires the local PostgreSQL instance to be available.
+
+Run:
+
+```powershell
+dotnet test .\RondiTrack.Tests\RondiTrack.Tests.csproj
+```
+
+The current Assignment 5.1 suite contains:
+
+```text
+21 tests
+```
+
+The final verified run produced:
+
+```text
+total: 21
+failed: 0
+succeeded: 21
+skipped: 0
+
+Build succeeded
+```
+
+## 9. Run the API
+
+Start RondiTrack:
+
+```powershell
+dotnet run
+```
 
 During development the application normally runs at:
 
@@ -40,9 +228,13 @@ During development the application normally runs at:
 http://localhost:5101
 ```
 
-## API Endpoints
+The Scalar API interface can then be used to exercise the HTTP endpoints.
 
-### Users
+---
+
+# API Endpoints
+
+## Users
 
 - `GET /api/users` - Get all users
 - `GET /api/users/{id}` - Get a user by ID
@@ -50,7 +242,7 @@ http://localhost:5101
 - `PUT /api/users/{id}` - Update a user
 - `DELETE /api/users/{id}` - Delete a user
 
-### Stokvels
+## Stokvels
 
 - `GET /api/stokvels` - Get all stokvels
 - `GET /api/stokvels/{id}` - Get a stokvel by ID
@@ -58,18 +250,20 @@ http://localhost:5101
 - `PUT /api/stokvels/{id}` - Update a stokvel
 - `DELETE /api/stokvels/{id}` - Delete a stokvel
 
-### Membership
+## Membership
 
 - `POST /api/stokvels/{stokvelId}/members/{userId}` - Add a user to a stokvel
 - `DELETE /api/stokvels/{stokvelId}/members/{userId}` - Remove a user from a stokvel
 
-### Contribution Cycles
+Membership is now also represented in PostgreSQL through the `StokvelMember` persistence model.
 
-- `GET /api/stokvels/{stokvelId}/cycles` - Get contribution cycles for a stokvel
-- `GET /api/stokvels/{stokvelId}/cycles/{cycleId}` - Get a contribution cycle
-- `POST /api/stokvels/{stokvelId}/cycles` - Create a contribution cycle
-- `PUT /api/stokvels/{stokvelId}/cycles/{cycleId}` - Update a contribution cycle
-- `DELETE /api/stokvels/{stokvelId}/cycles/{cycleId}` - Delete a contribution cycle
+## Contribution Cycles
+
+- `GET /api/stokvels/{stokvelId}/cycles`
+- `GET /api/stokvels/{stokvelId}/cycles/{cycleId}`
+- `POST /api/stokvels/{stokvelId}/cycles`
+- `PUT /api/stokvels/{stokvelId}/cycles/{cycleId}`
+- `DELETE /api/stokvels/{stokvelId}/cycles/{cycleId}`
 
 Example create request:
 
@@ -82,9 +276,11 @@ Example create request:
 
 The period uses the `YYYY-MM` format.
 
-### Contributions
+## Contributions
 
-- `POST /api/stokvels/{stokvelId}/members/{userId}/contributions` - Record a contribution for a stokvel member
+```text
+POST /api/stokvels/{stokvelId}/members/{userId}/contributions
+```
 
 The contribution endpoint requires an `Idempotency-Key` request header.
 
@@ -94,7 +290,7 @@ Example:
 Idempotency-Key: contribution-test-001
 ```
 
-Request body:
+Request:
 
 ```json
 {
@@ -103,38 +299,71 @@ Request body:
 }
 ```
 
-A contribution therefore references an actual `ContributionCycle` instead of accepting an arbitrary cycle string.
+A contribution references an actual `ContributionCycle` instead of accepting an arbitrary cycle string.
 
-## Design Choices
+## Payouts
 
-### Controllers
+Assignment 5.1 introduced payout processing.
 
-Controllers group HTTP endpoints around the resources exposed by the application.
+The payout endpoint is:
 
-Controllers are responsible for HTTP concerns such as receiving request DTOs, calling the appropriate repository or service, and returning successful HTTP responses.
+```text
+POST /api/stokvels/{stokvelId}/cycles/{cycleId}/payouts
+```
 
-Controllers do not construct error responses manually. When an operation fails, the application throws an appropriate exception and allows the centralized exception handler to create the HTTP error response.
+Example request:
 
-This keeps error formatting consistent and avoids repeating `ProblemDetails`, status-code, and error-message logic in every action.
+```json
+{
+  "amount": 5000
+}
+```
 
-### Domain Models
+Payout processing determines the next eligible recipient, creates a persisted `Payout`, and changes the contribution cycle status as one transaction.
 
-The main domain models are:
+---
+
+# Design Choices
+
+## Controllers
+
+Controllers handle HTTP concerns such as receiving request DTOs, invoking the appropriate repository or service, and returning successful HTTP responses.
+
+Controllers do not manually construct application error responses.
+
+When an operation fails, the appropriate application exception is allowed to reach the centralized exception handler.
+
+This keeps error formatting consistent and avoids repeated `try/catch`, `ProblemDetails`, and status-code logic throughout controllers.
+
+## Domain Models
+
+The current domain/persistence model includes:
 
 - `User`
 - `Stokvel`
+- `StokvelMember`
 - `ContributionCycle`
 - `Contribution`
+- `Payout`
 
-The models protect their state using private setters. Changes are made through constructors and domain methods such as `UpdateDetails`, `AddMember`, and `RemoveMember`.
+The models protect their state using private setters and domain methods where appropriate.
 
-The entities also contain defensive checks so that invalid domain objects cannot easily be constructed directly.
+Examples include:
 
-### Request and Response DTOs
+```text
+UpdateDetails
+AddMember
+RemoveMember
+MarkPaidOut
+```
 
-Domain entities are not exposed directly through the HTTP API.
+The entities also contain defensive checks so invalid objects cannot easily be created directly.
 
-Request DTOs define the information callers are allowed to provide, including:
+## Request and Response DTOs
+
+Domain entities are not exposed directly as the HTTP API contract.
+
+Request DTOs include:
 
 - `CreateUserRequest`
 - `UpdateUserRequest`
@@ -143,56 +372,59 @@ Request DTOs define the information callers are allowed to provide, including:
 - `CreateContributionCycleRequest`
 - `UpdateContributionCycleRequest`
 - `RecordContributionRequest`
+- `CreatePayoutRequest`
 
-Response DTOs define the shape returned to callers, including:
+Response DTOs include:
 
 - `UserResponse`
 - `StokvelResponse`
 - `ContributionCycleResponse`
 - `ContributionResponse`
+- `PayoutResponse`
 
-This separates the HTTP contract from the internal domain model and reduces the risk of over-posting internal properties such as generated IDs.
+This separates HTTP contracts from the internal model and reduces the risk of over-posting generated or internal properties.
 
-### Manual Mapping
+## Manual Mapping
 
-Mapping between domain entities and response DTOs is performed manually using methods such as:
+Mapping remains explicit.
+
+Examples include:
 
 ```csharp
-UserResponse.FromEntity(user)
-StokvelResponse.FromEntity(stokvel)
-ContributionCycleResponse.FromEntity(cycle)
-ContributionResponse.FromEntity(contribution)
+UserResponse.FromEntity(user);
+StokvelResponse.FromEntity(stokvel);
+ContributionCycleResponse.FromEntity(cycle);
+ContributionResponse.FromEntity(contribution);
+PayoutResponse.FromEntity(payout);
 ```
 
-Manual mapping was chosen because the mappings in RondiTrack are small and explicit.
+Manual mapping remains suitable because the mappings are small and easy to inspect.
 
-This is also useful for a money-related application because it makes the HTTP boundary easy to inspect and debug rather than relying on hidden mapping configuration.
+---
 
-## Validation vs Business Rules
+# Validation vs Business Rules
 
-RondiTrack deliberately separates request validation from application and business-rule checks.
+RondiTrack separates request validation from state-dependent business rules.
 
-### Request Validation — "Is this request well-formed?"
+## Request Validation — "Is this request well-formed?"
 
 FluentValidation is used for request DTO validation.
 
-Validators check the shape of incoming data, for example:
+Examples include:
 
 - required names;
 - valid email format;
 - positive monetary values;
 - required contribution-cycle IDs; and
-- contribution-cycle periods using `YYYY-MM`.
+- valid contribution-cycle periods using `YYYY-MM`.
 
-Validators do not query repositories and do not decide whether a resource exists.
+Validators do not query repositories to determine whether resources exist.
 
-For example, an empty contribution-cycle period or a non-positive target amount is a malformed request and results in `400 Bad Request`.
+Malformed JSON/model-binding failures are also routed through the centralized error system.
 
-Malformed JSON/model-binding failures are also routed through the same centralized error system so that they use the same error shape as FluentValidation failures.
+## Business Rules — "Is this operation allowed?"
 
-### Exceptions — "Is this operation allowed?"
-
-Once the request is well-formed, the application may need to inspect current state.
+After a request is well formed, the application may inspect current state.
 
 Examples include:
 
@@ -200,87 +432,27 @@ Examples include:
 - whether a stokvel exists;
 - whether a contribution cycle exists;
 - whether a user belongs to a stokvel;
-- whether a cycle belongs to the requested stokvel;
-- whether a contribution already exists; and
-- whether an idempotency key conflicts with an earlier request.
+- whether a cycle belongs to a stokvel;
+- whether a contribution already exists;
+- whether an idempotency key conflicts with an earlier request;
+- whether a payout cycle is open; and
+- whether an eligible payout recipient exists.
 
-These are not FluentValidation rules because they depend on application state rather than the shape of the request.
+These decisions belong to application/business behaviour rather than DTO shape validation.
 
-This separation prevents validators from becoming a second service or repository layer.
+---
 
-## Domain Exception Hierarchy
+# Domain Exception Hierarchy
 
 RondiTrack uses a small application-specific exception hierarchy based on `RondiTrackException`.
 
-The current exception types are:
+The current types include:
 
 - `RequestValidationException`
 - `NotFoundException`
 - `BusinessRuleException`
 
-They represent different categories of failure.
-
-### RequestValidationException
-
-Used when a request is malformed or missing required transport input.
-
-It maps to:
-
-```text
-400 Bad Request
-```
-
-### NotFoundException
-
-Used when a well-formed identifier refers to a resource that does not exist.
-
-It maps to:
-
-```text
-404 Not Found
-```
-
-### BusinessRuleException
-
-Used when the request is well-formed but conflicts with the current application state or a business rule.
-
-It maps to:
-
-```text
-409 Conflict
-```
-
-Examples include duplicate membership, duplicate contribution, and idempotency-key conflicts.
-
-### Duplicate Contribution vs Idempotency-Key Conflict
-
-Duplicate contribution and idempotency-key conflict currently use the same `BusinessRuleException` category because both requests are well-formed but conflict with existing application state.
-
-They are still separate business checks.
-
-An idempotency-key conflict occurs when the same key is reused with different request data:
-
-```text
-Same key + different request
-→ 409 Conflict
-```
-
-A duplicate contribution occurs when a different/new key is supplied but a contribution already exists for that member and contribution cycle:
-
-```text
-New key + existing member/cycle contribution
-→ 409 Conflict
-```
-
-Using the same exception category avoids creating unnecessary exception classes while preserving different error messages that identify the actual rule that failed.
-
-## Centralized Error Handling
-
-RondiTrack uses one `GlobalExceptionHandler` implementing ASP.NET Core's `IExceptionHandler`.
-
-Controllers and services throw exceptions describing what failed. The global handler is responsible for translating those exceptions into HTTP responses.
-
-The mapping is:
+The centralized mapping is:
 
 | Exception | HTTP status |
 | --- | --- |
@@ -289,13 +461,33 @@ The mapping is:
 | `BusinessRuleException` | `409 Conflict` |
 | Unexpected exception | `500 Internal Server Error` |
 
-This replaced the earlier approach of formatting errors individually in controllers.
+## Duplicate Contribution vs Idempotency Conflict
 
-As a result, controllers do not contain repeated `try/catch` blocks or manually construct `ProblemDetails`.
+These remain separate checks even though both currently use `BusinessRuleException`.
 
-## RFC 9457 Problem Details
+Same idempotency key with different data:
 
-API errors are returned using a consistent Problem Details structure with the media type:
+```text
+Same key + different request
+→ 409 Conflict
+```
+
+Different/new key for an existing member/cycle contribution:
+
+```text
+New key + existing member/cycle contribution
+→ 409 Conflict
+```
+
+---
+
+# Centralized Error Handling
+
+RondiTrack uses one `GlobalExceptionHandler` implementing ASP.NET Core's `IExceptionHandler`.
+
+Controllers and services throw exceptions describing what failed. The global handler translates those exceptions into consistent HTTP responses.
+
+Errors use RFC 9457 Problem Details with:
 
 ```text
 application/problem+json
@@ -314,59 +506,34 @@ For example:
 }
 ```
 
-The same general shape is used for validation, not-found, business-rule, and unexpected server errors.
+---
 
-## Correlation IDs and Structured Logging
+# Correlation IDs and Structured Logging
 
 Every error response includes the current request's correlation ID.
 
 The centralized exception handler also writes a structured log entry containing that same ID.
 
-For example, a duplicate contribution produced the following response information:
+This connects a client-visible failure with its corresponding server-side log without exposing internal stack traces to API clients.
 
-```json
-{
-  "type": "about:blank",
-  "title": "Conflict",
-  "status": 409,
-  "detail": "A contribution already exists for this member and cycle.",
-  "correlationId": "0HN0QKKFQNVLN:00000001"
-}
-```
+---
 
-The matching server log contained:
+# Service Layer
 
-```text
-Request failed. CorrelationId: 0HN0QKKFQNVLN:00000001
-RondiTrack.Exceptions.BusinessRuleException:
-A contribution already exists for this member and cycle.
-```
+Services are used when an operation requires meaningful coordination or business decisions beyond straightforward CRUD.
 
-The matching correlation ID connects the client-visible failure to the corresponding server-side log entry. This makes troubleshooting easier without exposing stack traces or internal implementation details to API clients.
-
-An idempotency-key conflict was also verified with the same mechanism:
-
-```text
-Request failed. CorrelationId: 0HNOQKKFQNVLM:00000006
-RondiTrack.Exceptions.BusinessRuleException:
-Idempotency-Key was already used with a different request.
-```
-
-## Service Layer
-
-Services are used only where an operation requires meaningful coordination or business decisions beyond straightforward CRUD.
-
-### MembershipService
+## MembershipService
 
 `MembershipService` coordinates membership operations.
 
 It checks:
 
 - whether the stokvel exists;
-- whether the user exists; and
-- whether membership already exists.
+- whether the user exists;
+- whether membership already exists; and
+- synchronizes the persisted `StokvelMember` representation through `IStokvelMemberRepository`.
 
-### ContributionService
+## ContributionService
 
 `ContributionService` coordinates contribution recording.
 
@@ -377,403 +544,607 @@ It checks:
 - whether the user exists;
 - whether the user belongs to the stokvel;
 - whether the contribution cycle exists;
-- whether the contribution cycle belongs to the stokvel;
-- whether the member already has a contribution for that cycle; and
-- whether an idempotency key has already been associated with different request data.
+- whether the cycle belongs to the stokvel;
+- whether the member already contributed to that cycle; and
+- whether an idempotency key was previously associated with different request data.
 
-This is a genuine multi-resource workflow, so a service is appropriate.
+## PayoutService
 
-### Why ContributionCycle Does Not Have a Service
+Assignment 5.1 introduced `PayoutService`.
 
-`ContributionCycle` intentionally does not have its own service.
+It coordinates the payout workflow:
 
-Its current operations are straightforward CRUD. There is no meaningful multi-resource workflow or complex business process that would justify an additional service layer.
+1. locate the contribution cycle;
+2. verify that the cycle is open;
+3. determine the next eligible persisted member;
+4. create the payout;
+5. persist the payout;
+6. mark the cycle as paid out;
+7. persist the cycle change; and
+8. commit the transaction.
 
-The controller therefore communicates directly with `IContributionCycleRepository`.
+This operation needs a service because it coordinates multiple database operations that must succeed or fail together.
 
-This keeps the architecture proportional to the problem rather than creating services for every entity automatically.
+---
 
-If contribution-cycle operations gain meaningful business rules in the future, a service can be introduced when it is actually needed.
+# Repository Abstraction and EF Core Migration
 
-## Repository Abstraction
+Data access continues to be represented through repository abstractions.
 
-Data access is placed behind repository interfaces:
+These include:
 
 - `IUserRepository`
 - `IStokvelRepository`
 - `IContributionRepository`
 - `IContributionCycleRepository`
+- `IStokvelMemberRepository`
 
-The current implementations use in-memory collections because persistent database storage is not required at this stage.
+Assignment 5.1 changed selected implementations without changing the HTTP contract.
 
-Repositories separate data access from controllers and services. Their interfaces describe what data operations are available while their implementations decide how the data is currently stored.
+## Contribution Repository Swap
 
-The repositories are registered as singletons so the in-memory state remains available for the lifetime of the running application.
+`ContributionRepository` was selected as the primary EF Core repository migration.
 
-## Money
+I chose it because `ContributionService` contains some of RondiTrack's strongest existing business behaviour:
 
-`decimal` is used for monetary values such as contribution amounts and cycle target amounts.
+- membership verification;
+- cycle verification;
+- cycle ownership;
+- duplicate contribution protection; and
+- idempotency behaviour.
 
-`decimal` is appropriate for financial values because it avoids the binary floating-point precision behaviour associated with types such as `double`.
+This made it a useful place to test whether the repository abstraction actually separated business behaviour from persistence.
 
-## Idempotency
+`ContributionRepository` now uses `RondiTrackDbContext` rather than an in-memory collection.
 
-Recording a contribution represents an operation that should be safe to retry.
+The contribution controller and DTO contract did not need to be rewritten to perform EF Core queries directly.
 
-The contribution endpoint therefore requires an `Idempotency-Key`.
+### Test-Abstraction Finding
 
-The contribution service creates a SHA-256 hash representing the request and checks the in-memory idempotency store.
+One existing service unit test had directly constructed the old concrete `ContributionRepository`.
+
+Once that concrete repository required a `DbContext`, the test setup exposed that dependency.
+
+A test-only `TestContributionRepository` implementing `IContributionRepository` was introduced so the service-level test could remain isolated from PostgreSQL infrastructure.
+
+This was a useful finding: the production service depended on the repository interface, but part of the test setup had still depended on the old concrete implementation.
+
+## Other EF Core Repositories
+
+`EfContributionCycleRepository` persists contribution cycles.
+
+`EfStokvelMemberRepository` persists membership records.
+
+The following repositories remain in memory:
+
+- `UserRepository`
+- `StokvelRepository`
+
+This is deliberate incremental migration rather than claiming that the entire application has already moved to PostgreSQL.
+
+---
+
+# DbContext and Full Schema
+
+RondiTrack uses one:
+
+```text
+RondiTrackDbContext
+```
+
+The context models all six required entities:
+
+```csharp
+public DbSet<User> Users => Set<User>();
+public DbSet<Stokvel> Stokvels => Set<Stokvel>();
+public DbSet<StokvelMember> StokvelMembers => Set<StokvelMember>();
+public DbSet<ContributionCycle> ContributionCycles => Set<ContributionCycle>();
+public DbSet<Contribution> Contributions => Set<Contribution>();
+public DbSet<Payout> Payouts => Set<Payout>();
+```
+
+All six are represented in the EF Core schema even though not every repository has been migrated to EF Core yet.
+
+---
+
+# EF Core Mapping Decision
+
+The property that did not fit the persistence model cleanly was:
+
+```text
+Stokvel.Members
+```
+
+The domain model exposes members as an `IReadOnlyCollection<User>` backed by a private `_members` collection.
+
+Assignment 5.1 also introduced `StokvelMember` as the explicit persisted representation of membership.
+
+Rather than trying to make EF Core persist both representations as the same relationship, `Stokvel.Members` is explicitly ignored:
+
+```csharp
+modelBuilder.Entity<Stokvel>()
+    .Ignore(stokvel => stokvel.Members);
+```
+
+Persisted membership is represented through the `StokvelMember` table.
+
+This decision keeps the existing domain collection behaviour while providing a separate relational representation for persisted membership.
+
+A consequence of the current hybrid design is that the in-memory `Stokvel.Members` collection and the persisted `StokvelMember` records represent membership in different parts of the application. This is a known transitional gap rather than something hidden by the persistence layer.
+
+---
+
+# Migration Review
+
+The first migration was generated using EF Core migrations.
+
+Before applying it, I inspected the generated migration rather than assuming generated database changes were automatically correct.
+
+I checked specifically for:
+
+- all six expected `CreateTable` operations;
+- primary keys;
+- the unique membership index; and
+- the unique contribution index.
+
+The membership uniqueness rule is protected using:
+
+```text
+StokvelId + UserId
+```
+
+The contribution uniqueness rule is protected using:
+
+```text
+StokvelId + UserId + ContributionCycleId
+```
+
+The first generated migration was removed and regenerated after I noticed that the required unique indexes were not represented in the model configuration.
+
+The indexes were configured and the migration was regenerated before being applied.
+
+## Why Migration Review Matters
+
+A migration is a database-schema diff and must be reviewed before execution.
+
+For example, a property rename can sometimes be interpreted as:
+
+```text
+DROP old column
+ADD new column
+```
+
+instead of:
+
+```text
+RENAME old column
+```
+
+A drop-and-add operation can destroy existing column data.
+
+For that reason, generated migration code must be read before applying it to a database containing important data.
+
+The final migration was applied with:
+
+```powershell
+dotnet ef database update
+```
+
+The migration files are committed to Git so another developer can reproduce the database schema.
+
+---
+
+# Secret Management
+
+The PostgreSQL connection string includes credentials and therefore must not be committed to Git.
+
+RondiTrack uses .NET User Secrets during local development.
+
+The application requests:
+
+```text
+ConnectionStrings:RondiTrackDb
+```
+
+from ASP.NET Core configuration.
+
+A teammate configures their own value using:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+```
+
+No real password is included in the repository.
+
+If the connection string is missing, application startup fails rather than silently running with an invalid database configuration.
+
+---
+
+# Npgsql Retry Configuration
+
+Npgsql is configured with:
+
+```csharp
+npgsqlOptions.EnableRetryOnFailure(
+    maxRetryCount: 3,
+    maxRetryDelay: TimeSpan.FromSeconds(2),
+    errorCodesToAdd: null);
+```
+
+I selected a maximum of three retries because a small number of retries gives a temporary connection problem an opportunity to recover without causing a long sequence of repeated attempts.
+
+The maximum retry delay is two seconds so that a temporary PostgreSQL/network interruption can be retried while keeping development requests reasonably responsive.
+
+An example of something worth retrying is a temporary database/network connectivity interruption.
+
+An example that should not simply be retried is a permanent constraint failure such as attempting to insert data that violates a unique database constraint.
+
+---
+
+# DbContext and Dependency-Injection Lifetime
+
+The original in-memory repositories were registered as singletons because their collections needed to survive between requests for as long as the application process was running.
+
+A `DbContext` has different lifecycle requirements.
+
+`RondiTrackDbContext` is scoped, and repositories that depend on it are also scoped.
+
+Current EF-backed registrations include:
+
+```text
+IContributionRepository
+→ ContributionRepository
+
+IContributionCycleRepository
+→ EfContributionCycleRepository
+
+IStokvelMemberRepository
+→ EfStokvelMemberRepository
+```
+
+A DbContext must not be held by a singleton repository.
+
+Sharing one context across unrelated requests could cause tracking conflicts, stale state, concurrency/thread-safety problems, or invalid lifetime behaviour.
+
+The lifetime therefore changes from singleton to scoped for repositories holding the DbContext.
+
+The repositories that remain genuinely in memory keep their previous singleton behaviour.
+
+---
+
+# Money
+
+`decimal` is used for monetary values such as contribution amounts, contribution-cycle targets, and payouts.
+
+`decimal` is appropriate for these values because it avoids the binary floating-point precision behaviour associated with types such as `double`.
+
+---
+
+# Idempotency
+
+Contribution recording remains idempotent.
+
+The endpoint requires:
+
+```text
+Idempotency-Key
+```
 
 The behaviour is:
 
-- A new key and valid request records the contribution and stores the successful response.
-- The same key with the same request returns the original stored response without creating another contribution.
-- The same key with different request data returns `409 Conflict`.
-- A new key does not bypass the duplicate-contribution rule.
+- new key + valid request → create contribution;
+- same key + same request → return the original contribution result;
+- same key + different request → `409 Conflict`;
+- new key + duplicate member/cycle contribution → `409 Conflict`.
 
-During Scalar testing, a contribution was created using:
+Idempotency and duplicate-contribution protection solve different problems.
 
-```text
-Idempotency-Key: contribution-test-001
-```
+The idempotency store remains in memory, so its records are lost when the application process restarts.
 
-with:
+This is documented as a known persistence gap.
 
-```json
-{
-  "amount": 5000,
-  "contributionCycleId": "8316ae89-f4b2-4dfc-bbf0-c8ce8b5259b8"
-}
-```
+---
 
-The first request returned `201 Created`.
+# Data Storage
 
-Repeating the exact request with the same idempotency key returned the same contribution ID and original `recordedAtUtc` value, demonstrating that another contribution was not created.
+RondiTrack is currently in an incremental migration state.
 
-Changing only the amount while keeping the same idempotency key returned:
+| Data | Current storage |
+| --- | --- |
+| Users | In memory |
+| Stokvels | In memory |
+| Stokvel membership records | PostgreSQL / EF Core |
+| Contribution cycles | PostgreSQL / EF Core |
+| Contributions | PostgreSQL / EF Core |
+| Payouts | PostgreSQL / EF Core |
+| Idempotency records | In memory |
 
-```json
-{
-  "type": "about:blank",
-  "title": "Conflict",
-  "status": 409,
-  "detail": "Idempotency-Key was already used with a different request.",
-  "correlationId": "0HNOQKKFQNVLM:00000006"
-}
-```
+The PostgreSQL database is therefore real and actively used, but the application has not pretended that every repository has already been migrated.
 
-Using a new key (`contribution-test-002`) for the already-recorded member and cycle returned:
+---
 
-```json
-{
-  "type": "about:blank",
-  "title": "Conflict",
-  "status": 409,
-  "detail": "A contribution already exists for this member and cycle.",
-  "correlationId": "0HN0QKKFQNVLN:00000001"
-}
-```
+# Payout Processing
 
-This demonstrates that idempotency and duplicate-contribution protection solve different problems.
+Assignment 5.1 introduced `Payout` as a working feature.
 
-The idempotency store is currently in memory, so its records are reset when the application restarts.
+A payout records:
 
-## HTTP Status Codes
+- the stokvel;
+- the recipient `StokvelMember`;
+- the contribution cycle;
+- the payout amount; and
+- the payment date/time.
 
-RondiTrack currently uses:
+## Rotation Rule
 
-- `200 OK` when a successful request returns data.
-- `201 Created` when a new resource or contribution is created.
-- `204 No Content` for successful operations that require no response body.
-- `400 Bad Request` for malformed or invalid request input.
-- `404 Not Found` when a requested resource does not exist.
-- `409 Conflict` when a well-formed request conflicts with current application state or a business rule.
-- `500 Internal Server Error` for unexpected exceptions.
+The deliberately minimal rotation rule is:
 
-The important distinction is:
+> The next eligible recipient is the earliest joined persisted stokvel member who has not already received a payout for that stokvel.
+
+Eligible members are ordered using:
 
 ```text
-400 → Is the request well-formed?
-404 → Does the requested resource exist?
-409 → Is the well-formed operation allowed in the current state?
+JoinedAtUtc
 ```
 
-## Data Storage
+Members who already appear in the stokvel's payout records are excluded.
 
-The application currently uses seeded in-memory data for users and stokvels.
+I chose this rule because it is deterministic and provides a real payout decision without expanding Assignment 5.1 into scheduling, notifications, partial payouts, or a complete stokvel payout engine.
 
-Contribution cycles, contributions, and idempotency records are also stored in memory.
+---
 
-All in-memory data is reset whenever the application restarts.
+# Explicit Payout Transaction
 
-No database or Entity Framework Core is used at this stage.
+Payout processing performs multiple related database operations.
 
-## Testing
+The operation:
 
-RondiTrack is tested manually through Scalar and automatically through xUnit unit and integration tests.
+1. reads the contribution cycle;
+2. determines the next eligible recipient;
+3. creates a `Payout`;
+4. saves the payout;
+5. changes the contribution-cycle status to `PaidOut`;
+6. saves the cycle update; and
+7. commits.
 
-The automated test suite currently contains **19 tests** covering happy paths, validation failures, not-found behaviour, business rules, idempotency, and additional edge cases.
+The payout and cycle update must succeed or fail together.
 
-### Scalar Testing
+A persisted payout with an open cycle would represent inconsistent state.
 
-The following scenarios were manually verified:
+Likewise, a cycle marked as paid out without a corresponding payout would also be inconsistent.
 
-- adding a stokvel member returns `204 No Content`;
-- creating a contribution cycle returns `201 Created`;
-- recording a valid contribution returns `201 Created`;
-- repeating the same contribution request with the same idempotency key returns the original contribution response;
-- reusing the same idempotency key with different request data returns `409 Conflict`;
-- using a new key for an existing member/cycle contribution returns `409 Conflict`;
-- malformed request data returns `400 Bad Request`;
-- requesting a nonexistent resource returns `404 Not Found`;
-- error responses use `application/problem+json`; and
-- response correlation IDs match the IDs written to server logs.
+For that reason the workflow uses an explicit EF Core database transaction.
 
-Scalar also exposes the generated OpenAPI contract. Endpoint summaries, descriptions, success responses, and applicable `400`, `404`, and `409` responses are documented in the controllers and displayed in the API reference.
+Because Npgsql retry-on-failure is enabled, the transaction is executed through EF Core's execution strategy.
 
-### Unit Tests
-
-Unit tests exercise business behaviour directly without going through HTTP or dependency injection.
-
-The unit tests verify:
-
-- adding a user who is already a member throws `BusinessRuleException`;
-- recording another contribution for the same member and contribution cycle throws `BusinessRuleException`; and
-- reusing the same idempotency key with different request data throws `BusinessRuleException`.
-
-These tests verify business rules independently from the HTTP layer.
-
-### Integration Tests
-
-Integration tests use `Microsoft.AspNetCore.Mvc.Testing` and `WebApplicationFactory<Program>` to exercise the actual ASP.NET Core request pipeline.
-
-Happy-path integration tests verify:
-
-- creating a user and retrieving the created user;
-- creating a stokvel and retrieving the created stokvel;
-- creating a contribution cycle and retrieving the created cycle; and
-- recording a valid contribution.
-
-Negative-path and business-rule integration tests verify:
-
-- malformed input returns `400 Bad Request`;
-- a nonexistent user returns `404 Not Found`;
-- duplicate membership returns `409 Conflict`;
-- removing a user who is not a member returns `409 Conflict`;
-- a contribution from a non-member returns `409 Conflict`;
-- using a contribution cycle belonging to another stokvel returns `409 Conflict`;
-- recording another contribution for the same member and cycle with a different idempotency key returns `409 Conflict`; and
-- omitting the required `Idempotency-Key` returns `400 Bad Request`.
-
-Where applicable, error tests also verify the `application/problem+json` media type and Problem Details response information.
-
-### Idempotency Tests
-
-Idempotency is tested separately because retry behaviour forms part of the contribution endpoint contract.
-
-The automated tests verify:
+The transaction structure therefore uses:
 
 ```text
-Same key + same request
-→ same stored contribution response
+CreateExecutionStrategy
+→ ExecuteAsync
+→ BeginTransactionAsync
+→ database work
+→ CommitAsync
 ```
 
-and:
+If an exception occurs, the transaction is rolled back and the exception is allowed to propagate through the application's existing error-handling system.
+
+---
+
+# Transaction Tests
+
+Two additional transaction-related tests were introduced for Assignment 5.1.
+
+## Successful Payout Persistence
+
+The successful path exercises `PayoutService` and then queries PostgreSQL using a fresh DbContext.
+
+The test verifies that:
+
+- the payout exists;
+- the correct recipient and amount were persisted; and
+- the contribution cycle is `PaidOut`.
+
+## Forced Rollback
+
+The rollback test deliberately opens an EF Core transaction, writes a payout, saves it inside the transaction, and then forces a failure before the contribution-cycle update is allowed to complete.
+
+The transaction is rolled back.
+
+A fresh DbContext then re-queries PostgreSQL.
+
+The test verifies:
 
 ```text
-Same key + different request
-→ 409 Conflict
+No partial Payout remains
+AND
+ContributionCycle.Status remains Open
 ```
 
-Using a different key also does not bypass the duplicate-contribution business rule.
+This proves the database transaction mechanism rolls the first write back rather than leaving partial state.
 
-### Edge Cases
+The current rollback test exercises the EF transaction mechanism directly rather than injecting a failure through `PayoutService` itself. A service-level failure-injection test would be a useful future strengthening of this coverage.
 
-Three edge cases beyond the normal happy paths were deliberately identified and tested.
+---
 
-#### 1. Missing Idempotency-Key
+# Testing
 
-The contribution endpoint requires an `Idempotency-Key` header.
+RondiTrack is tested using xUnit unit and integration tests.
 
-This edge case was identified by considering what happens when the contribution request body is otherwise valid but the required retry key is omitted.
+Assignment 5.1 specifically required the existing behaviour to be tested after replacing in-memory persistence with EF Core/PostgreSQL.
 
-Expected result:
+## Before the EF Core Migration
+
+At the end of Assignment 4.4, the complete suite contained:
 
 ```text
-400 Bad Request
+Total: 19
+Failed: 0
+Succeeded: 19
 ```
 
-The automated test confirms that the request is rejected with:
+This provides the baseline from before the persistence migration.
+
+## After the EF Core/PostgreSQL Migration
+
+After the repository migration and payout transaction work, the complete suite contains:
 
 ```text
-Idempotency-Key header is required.
-```
-
-#### 2. Zero Contribution Amount
-
-The contribution validator requires the amount to be greater than zero.
-
-This edge case was identified by testing the exact boundary of the `GreaterThan(0)` rule rather than testing only a negative value.
-
-Test value:
-
-```text
-amount = 0
-```
-
-Expected result:
-
-```text
-400 Bad Request
-```
-
-The automated test confirms that zero cannot be recorded as a valid contribution.
-
-#### 3. Invalid Contribution-Cycle Period
-
-Contribution-cycle periods use the `YYYY-MM` format.
-
-The following value was tested:
-
-```text
-2027-13
-```
-
-Although it resembles the required format, month 13 is not a valid calendar month.
-
-This edge case was identified by checking whether validation verifies a real year/month value rather than only the visible structure of the string.
-
-Expected result:
-
-```text
-400 Bad Request
-```
-
-The automated test confirms that the invalid period is rejected.
-
-### Deliberate Broken-Rule Test
-
-One business-rule guard was deliberately disabled temporarily to verify that the automated tests detect a regression.
-
-The duplicate-membership check in `MembershipService.AddMemberAsync` was temporarily commented out.
-
-The existing integration test:
-
-```text
-DuplicateMembership_Returns409ProblemJson
-```
-
-normally expects:
-
-```text
-409 Conflict
-```
-
-With the service guard disabled, the defensive check in the `Stokvel` domain model threw an unexpected `InvalidOperationException`. The request therefore resulted in:
-
-```text
-500 Internal Server Error
-```
-
-The test correctly failed with:
-
-```text
-Expected: Conflict
-Actual:   InternalServerError
-
-total: 1
-failed: 1
-succeeded: 0
-```
-
-The duplicate-membership guard was then restored without changing the test.
-
-The exact same test was run again and passed:
-
-```text
-total: 1
-failed: 0
-succeeded: 1
-skipped: 0
-```
-
-This RED-to-GREEN check demonstrates that the test detects a real change in the API contract rather than simply executing code.
-
-### Running the Automated Tests
-
-Run the complete suite with:
-
-```bash
-dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj
-```
-
-To display the individual test names:
-
-```bash
-dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --logger "console;verbosity=detailed"
-```
-
-The final detailed run produced:
-
-```text
-Test Run Successful.
-Total tests: 19
-Passed: 19
-
-Test summary:
-total: 19
-failed: 0
-succeeded: 19
-skipped: 0
+Total: 21
+Failed: 0
+Succeeded: 21
+Skipped: 0
 
 Build succeeded
 ```
 
-The final detailed run showed the individual unit, happy-path, negative-path, business-rule, idempotency, and edge-case tests and finished with all **19 tests passing**.
+The final test output also contained EF Core SQL commands executed against PostgreSQL, including persisted `StokvelMember`, `ContributionCycle`, `Contribution`, and payout-related database operations.
 
-## Definition of Done
+The database therefore was not merely configured in the project; the tests exercised the PostgreSQL-backed persistence.
 
-| API area / endpoint | Documented | Validation / business guard | Automated coverage | Status codes reviewed |
-| --- | --- | --- | --- | --- |
-| `GET /api/users` | Yes | N/A - no request body | Resource happy path | Yes |
-| `GET /api/users/{id}` | Yes | Resource existence | Happy path + not found | Yes |
-| `POST /api/users` | Yes | FluentValidation | Happy path | Yes |
-| `PUT /api/users/{id}` | Yes | FluentValidation + existence | Contract reviewed | Yes |
-| `DELETE /api/users/{id}` | Yes | Resource existence | Contract reviewed | Yes |
-| `GET /api/stokvels` | Yes | N/A - no request body | Resource happy path | Yes |
-| `GET /api/stokvels/{id}` | Yes | Resource existence | Resource happy path | Yes |
-| `POST /api/stokvels` | Yes | FluentValidation | Happy path | Yes |
-| `PUT /api/stokvels/{id}` | Yes | FluentValidation + existence | Contract reviewed | Yes |
-| `DELETE /api/stokvels/{id}` | Yes | Resource existence | Contract reviewed | Yes |
-| `POST /api/stokvels/{stokvelId}/members/{userId}` | Yes | Existence + duplicate-membership rule | Unit + integration | Yes |
-| `DELETE /api/stokvels/{stokvelId}/members/{userId}` | Yes | Existence + membership rule | Integration | Yes |
-| `GET /api/stokvels/{stokvelId}/cycles` | Yes | Stokvel existence | Resource coverage | Yes |
-| `GET /api/stokvels/{stokvelId}/cycles/{cycleId}` | Yes | Existence + ownership | Resource happy path | Yes |
-| `POST /api/stokvels/{stokvelId}/cycles` | Yes | FluentValidation + existence | Happy path + edge case | Yes |
-| `PUT /api/stokvels/{stokvelId}/cycles/{cycleId}` | Yes | FluentValidation + existence/ownership | Contract reviewed | Yes |
-| `DELETE /api/stokvels/{stokvelId}/cycles/{cycleId}` | Yes | Existence + ownership | Contract reviewed | Yes |
-| `POST /api/stokvels/{stokvelId}/members/{userId}/contributions` | Yes | Validation + membership + cycle + duplicate + idempotency rules | Unit + integration + edge cases | Yes |
+## Running the Automated Tests
 
-`N/A` is used where an endpoint has no request body requiring FluentValidation. Existence checks and business guards are still applied where required.
+Run:
 
-## Asynchronous Operations
+```powershell
+dotnet test .\RondiTrack.Tests\RondiTrack.Tests.csproj
+```
 
-Repository, service, and controller operations use Task-based asynchronous contracts where appropriate.
-Controllers await repository and service operations instead of synchronously blocking on tasks.
-This allows the current in-memory repository implementations to be replaced later by I/O-based persistence without requiring major changes to the API structure.
+For detailed individual test output:
+
+```powershell
+dotnet test .\RondiTrack.Tests\RondiTrack.Tests.csproj --logger "console;verbosity=detailed"
+```
+
+## Existing Business-Rule Coverage
+
+The suite continues to verify behaviour such as:
+
+- malformed requests;
+- nonexistent resources;
+- duplicate membership;
+- removing a non-member;
+- contribution from a non-member;
+- cycle ownership;
+- duplicate contributions;
+- missing idempotency keys;
+- same idempotency key with the same request;
+- same idempotency key with different request data;
+- zero contribution amount; and
+- invalid contribution-cycle periods.
+
+## Deliberate RED-to-GREEN Check From Assignment 4.4
+
+The earlier duplicate-membership guard mutation remains useful evidence that the suite can detect a real behavioural regression.
+
+With the duplicate-membership guard disabled, the expected `409 Conflict` became an unexpected `500 Internal Server Error`, causing the test to fail.
+
+After restoring the rule, the same test passed again.
+
+This demonstrates that the test suite is checking behaviour rather than merely executing code.
 
 ---
 
-# Assignment 5.1 — EF Core & Database Foundations
+# Definition of Done
 
-Assignment 5.1 introduces PostgreSQL and Entity Framework Core persistence to RondiTrack. The goal was to replace selected in-memory persistence with a real relational database while preserving the existing API behaviour and repository abstractions.
+Assignment 5.1 extends the previous Definition of Done with:
 
-## PostgreSQL Setup
+- `Persisted via EF Core`
+- `Explicit transaction tested`
 
-I chose to install PostgreSQL locally rather than use a container because I wanted to understand the database installation, Windows service, authentication, command-line connectivity, and connection-string configuration directly.
+| API area / endpoint | Documented | Validation / business guard | Automated coverage | Status reviewed | Persisted via EF Core | Explicit transaction tested |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET /api/users` | Yes | N/A | Happy path | Yes | No | N/A |
+| `GET /api/users/{id}` | Yes | Existence | Happy path + not found | Yes | No | N/A |
+| `POST /api/users` | Yes | FluentValidation | Happy path | Yes | No | N/A |
+| `PUT /api/users/{id}` | Yes | Validation + existence | Contract reviewed | Yes | No | N/A |
+| `DELETE /api/users/{id}` | Yes | Existence | Contract reviewed | Yes | No | N/A |
+| `GET /api/stokvels` | Yes | N/A | Happy path | Yes | No | N/A |
+| `GET /api/stokvels/{id}` | Yes | Existence | Happy path | Yes | No | N/A |
+| `POST /api/stokvels` | Yes | FluentValidation | Happy path | Yes | No | N/A |
+| `PUT /api/stokvels/{id}` | Yes | Validation + existence | Contract reviewed | Yes | No | N/A |
+| `DELETE /api/stokvels/{id}` | Yes | Existence | Contract reviewed | Yes | No | N/A |
+| Add stokvel member | Yes | Existence + duplicate rule | Unit + integration | Yes | Yes (`StokvelMember`) | N/A |
+| Remove stokvel member | Yes | Existence + membership rule | Integration | Yes | Yes (`StokvelMember`) | N/A |
+| `GET` contribution cycles | Yes | Stokvel/cycle checks | Resource coverage | Yes | Yes | N/A |
+| `POST` contribution cycle | Yes | Validation + existence | Happy path + edge case | Yes | Yes | N/A |
+| `PUT` contribution cycle | Yes | Validation + ownership | Contract reviewed | Yes | Yes | N/A |
+| `DELETE` contribution cycle | Yes | Existence + ownership | Contract reviewed | Yes | Yes | N/A |
+| Record contribution | Yes | Membership + cycle + duplicate + idempotency | Unit + integration + edge cases | Yes | Yes | N/A |
+| Process payout | Yes | Cycle + recipient + amount + rotation rules | Transaction tests | Yes | Yes | Yes |
 
-The development environment uses PostgreSQL 17 and a dedicated database named:
+`N/A` means an explicit transaction is not required for that operation.
 
-```text
-ronditrack
+---
+
+# Known Gaps and Deliberate Scope Decisions
+
+## Users and Stokvels Remain In Memory
+
+`User` and `Stokvel` are represented in the EF Core model, but their existing repositories remain in memory.
+
+Assignment 5.1 required at least one real repository swap rather than requiring every repository to be migrated at once.
+
+These are therefore reported honestly as not yet migrated.
+
+## Idempotency Remains In Memory
+
+The idempotency store is still memory-based.
+
+A process restart clears its entries.
+
+Persisting idempotency records would be a future improvement.
+
+## Hybrid Membership Representation
+
+`Stokvel.Members` remains part of the existing domain model while `StokvelMember` provides the new persisted membership representation.
+
+This transitional design allowed the persistence work to be introduced incrementally, but a later iteration could consolidate membership into one persistence-aware model.
+
+## Relational Constraints
+
+The initial database schema does not yet introduce foreign-key relationships between every modelled table.
+
+This is partly a consequence of the hybrid migration state, where related `User` and `Stokvel` repositories remain in memory while contribution-related data is persisted.
+
+Adding complete relational relationships and constraints is future persistence work rather than being hidden as if it were already complete.
+
+## Payout Rotation
+
+The current payout rule represents one simple pass through eligible members.
+
+Once every persisted member has received a payout, the current implementation has no next eligible member.
+
+A later version could introduce explicit rotation rounds.
+
+That was intentionally left outside Assignment 5.1 because the payout requirement asked for a minimal real rule rather than a full scheduling system.
+
+## Rollback Coverage
+
+The current tests prove:
+
+- the real `PayoutService` successful transaction path; and
+- database rollback through a deliberately interrupted explicit transaction.
+
+The forced rollback is currently tested directly at the EF transaction level rather than by injecting a failure into `PayoutService`.
+
+A future test could add a controlled failure point to prove the exact service orchestration rollback path without changing production behaviour.
+
+## Test Setup Exposed a Concrete Dependency
+
+An Assignment 4.4 service test directly constructed the old concrete `ContributionRepository`.
+
+When that repository became EF-backed, the test setup needed to use a test implementation of `IContributionRepository`.
+
+The business rule being tested did not change, but the migration exposed that the test itself had depended on an implementation detail.
+
+This is recorded as a migration finding rather than being hidden.
+
+---
+
+# Asynchronous Operations
+
+Repository, service, controller, and EF Core operations use Task-based asynchronous contracts where appropriate.
+Controllers await repository and service operations instead of synchronously blocking on tasks.
+The move from in-memory collections to PostgreSQL demonstrates why those asynchronous boundaries were useful: database access introduces real I/O without requiring controllers to synchronously block on it.
 
