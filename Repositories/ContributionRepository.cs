@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using RondiTrack.Data;
 using RondiTrack.Models;
 
 namespace RondiTrack.Repositories;
@@ -5,35 +7,42 @@ namespace RondiTrack.Repositories;
 public class ContributionRepository
     : IContributionRepository
 {
-    private readonly List<Contribution> _contributions = new();
+    private readonly RondiTrackDbContext _dbContext;
 
-    public Task<IEnumerable<Contribution>> GetAllAsync()
+    public ContributionRepository(
+        RondiTrackDbContext dbContext)
     {
-        return Task.FromResult<IEnumerable<Contribution>>(
-            _contributions.ToList());
+        _dbContext = dbContext;
     }
 
-    public Task<Contribution?> GetByMemberAndCycleAsync(
+    public async Task<IEnumerable<Contribution>> GetAllAsync()
+    {
+        return await _dbContext.Contributions
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<Contribution?> GetByMemberAndCycleAsync(
         Guid stokvelId,
         Guid userId,
         Guid contributionCycleId)
     {
-        var contribution =
-            _contributions.FirstOrDefault(
+        return await _dbContext.Contributions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
                 contribution =>
                     contribution.StokvelId == stokvelId &&
                     contribution.UserId == userId &&
                     contribution.ContributionCycleId ==
                         contributionCycleId);
-
-        return Task.FromResult(contribution);
     }
 
-    public Task AddAsync(
+    public async Task AddAsync(
         Contribution contribution)
     {
-        _contributions.Add(contribution);
+        await _dbContext.Contributions.AddAsync(
+            contribution);
 
-        return Task.CompletedTask;
+        await _dbContext.SaveChangesAsync();
     }
 }

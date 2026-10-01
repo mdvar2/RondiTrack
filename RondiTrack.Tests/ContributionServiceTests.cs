@@ -13,14 +13,26 @@ public class ContributionServiceTests
     public async Task RecordContributionAsync_WhenContributionAlreadyExistsForMemberAndCycle_ThrowsBusinessRuleException()
     {
         // Arrange
-        var contributionRepository = new ContributionRepository();
-        var cycleRepository = new ContributionCycleRepository();
-        var stokvelRepository = new StokvelRepository();
-        var userRepository = new UserRepository();
-        var idempotencyStore = new IdempotencyStore();
+        var contributionRepository =
+            new TestContributionRepository();
 
-        var users = await userRepository.GetAllAsync();
-        var stokvels = await stokvelRepository.GetAllAsync();
+        var cycleRepository =
+            new ContributionCycleRepository();
+
+        var stokvelRepository =
+            new StokvelRepository();
+
+        var userRepository =
+            new UserRepository();
+
+        var idempotencyStore =
+            new IdempotencyStore();
+
+        var users =
+            await userRepository.GetAllAsync();
+
+        var stokvels =
+            await stokvelRepository.GetAllAsync();
 
         var user = users.First();
         var stokvel = stokvels.First();
@@ -52,30 +64,44 @@ public class ContributionServiceTests
             request);
 
         // Act
-        var exception = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => service.RecordContributionAsync(
-                stokvel.Id,
-                user.Id,
-                "second-key",
-                request));
+        var exception =
+            await Assert.ThrowsAsync<BusinessRuleException>(
+                () => service.RecordContributionAsync(
+                    stokvel.Id,
+                    user.Id,
+                    "second-key",
+                    request));
 
         // Assert
         Assert.Equal(
             "A contribution already exists for this member and cycle.",
             exception.Message);
     }
+
     [Fact]
     public async Task RecordContributionAsync_WhenSameIdempotencyKeyUsedWithDifferentRequest_ThrowsBusinessRuleException()
     {
         // Arrange
-        var contributionRepository = new ContributionRepository();
-        var cycleRepository = new ContributionCycleRepository();
-        var stokvelRepository = new StokvelRepository();
-        var userRepository = new UserRepository();
-        var idempotencyStore = new IdempotencyStore();
+        var contributionRepository =
+            new TestContributionRepository();
 
-        var users = await userRepository.GetAllAsync();
-        var stokvels = await stokvelRepository.GetAllAsync();
+        var cycleRepository =
+            new ContributionCycleRepository();
+
+        var stokvelRepository =
+            new StokvelRepository();
+
+        var userRepository =
+            new UserRepository();
+
+        var idempotencyStore =
+            new IdempotencyStore();
+
+        var users =
+            await userRepository.GetAllAsync();
+
+        var stokvels =
+            await stokvelRepository.GetAllAsync();
 
         var user = users.First();
         var stokvel = stokvels.First();
@@ -96,9 +122,10 @@ public class ContributionServiceTests
             userRepository,
             idempotencyStore);
 
-        var firstRequest = new RecordContributionRequest(
-            500m,
-            cycle.Id);
+        var firstRequest =
+            new RecordContributionRequest(
+                500m,
+                cycle.Id);
 
         await service.RecordContributionAsync(
             stokvel.Id,
@@ -106,22 +133,23 @@ public class ContributionServiceTests
             "payment-001",
             firstRequest);
 
-        var secondRequest = new RecordContributionRequest(
-            600m, // Different amount
-            cycle.Id);
+        var secondRequest =
+            new RecordContributionRequest(
+                600m,
+                cycle.Id);
 
         // Act
-        var exception = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => service.RecordContributionAsync(
-                stokvel.Id,
-                user.Id,
-                "payment-001",
-                secondRequest));
+        var exception =
+            await Assert.ThrowsAsync<BusinessRuleException>(
+                () => service.RecordContributionAsync(
+                    stokvel.Id,
+                    user.Id,
+                    "payment-001",
+                    secondRequest));
 
         // Assert
         Assert.Equal(
             "Idempotency-Key was already used with a different request.",
             exception.Message);
     }
-            
 }

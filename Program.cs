@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RondiTrack.Data;
 using RondiTrack.Filters;
 using RondiTrack.Handlers;
 using FluentValidation;
@@ -26,18 +28,49 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+var connectionString =
+    builder.Configuration.GetConnectionString("RondiTrackDb")
+    ?? throw new InvalidOperationException(
+        "Connection string 'RondiTrackDb' was not found.");
+
+builder.Services.AddDbContext<RondiTrackDbContext>(options =>
+{
+    options.UseNpgsql(
+        connectionString,
+        npgsqlOptions =>
+        {
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(2),
+                errorCodesToAdd: null);
+        });
+});
+
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IStokvelRepository, StokvelRepository>();
-builder.Services.AddSingleton<IContributionRepository, ContributionRepository>();
 
 builder.Services.AddSingleton<
-    IContributionCycleRepository,
-    ContributionCycleRepository>();
+    IStokvelRepository,
+    StokvelRepository>();
 
-builder.Services.AddSingleton<IIdempotencyStore, IdempotencyStore>();
+builder.Services.AddScoped<
+    IContributionRepository,
+    ContributionRepository>();
+
+builder.Services.AddScoped<
+    IContributionCycleRepository,
+    EfContributionCycleRepository>();
+
+builder.Services.AddScoped<
+    IStokvelMemberRepository,
+    EfStokvelMemberRepository>();
+
+builder.Services.AddSingleton<
+    IIdempotencyStore,
+    IdempotencyStore>();
 
 builder.Services.AddScoped<MembershipService>();
 builder.Services.AddScoped<ContributionService>();
+builder.Services.AddScoped<PayoutService>();
 
 var app = builder.Build();
 
