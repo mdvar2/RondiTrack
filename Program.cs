@@ -46,9 +46,11 @@ builder.Services.AddDbContext<RondiTrackDbContext>(options =>
         });
 });
 
-builder.Services.AddSingleton<IUserRepository, UserRepository>();
+builder.Services.AddScoped<
+    IUserRepository,
+    UserRepository>();
 
-builder.Services.AddSingleton<
+builder.Services.AddScoped<
     IStokvelRepository,
     StokvelRepository>();
 

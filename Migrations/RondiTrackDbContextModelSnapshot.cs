@@ -17,7 +17,7 @@ namespace RondiTrack.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -44,6 +44,10 @@ namespace RondiTrack.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContributionCycleId");
+
+                    b.HasIndex("UserId", "StokvelId");
 
                     b.HasIndex("StokvelId", "UserId", "ContributionCycleId")
                         .IsUnique();
@@ -91,13 +95,15 @@ namespace RondiTrack.Migrations
                     b.Property<DateTime>("PaidAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("StokvelId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("StokvelMemberId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId", "StokvelId");
 
                     b.ToTable("Payouts");
                 });
@@ -122,23 +128,22 @@ namespace RondiTrack.Migrations
 
             modelBuilder.Entity("RondiTrack.Models.StokvelMember", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StokvelId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("JoinedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("StokvelId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                    b.HasKey("UserId", "StokvelId");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("StokvelId", "UserId")
-                        .IsUnique();
+                    b.HasIndex("StokvelId");
 
                     b.ToTable("StokvelMembers");
                 });
@@ -160,6 +165,70 @@ namespace RondiTrack.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("RondiTrack.Models.Contribution", b =>
+                {
+                    b.HasOne("RondiTrack.Models.ContributionCycle", "Cycle")
+                        .WithMany("Contributions")
+                        .HasForeignKey("ContributionCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RondiTrack.Models.StokvelMember", "Member")
+                        .WithMany()
+                        .HasForeignKey("UserId", "StokvelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cycle");
+
+                    b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("RondiTrack.Models.Payout", b =>
+                {
+                    b.HasOne("RondiTrack.Models.StokvelMember", "RecipientMember")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId", "StokvelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RecipientMember");
+                });
+
+            modelBuilder.Entity("RondiTrack.Models.StokvelMember", b =>
+                {
+                    b.HasOne("RondiTrack.Models.Stokvel", "Stokvel")
+                        .WithMany("StokvelMemberships")
+                        .HasForeignKey("StokvelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RondiTrack.Models.User", "User")
+                        .WithMany("StokvelMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Stokvel");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RondiTrack.Models.ContributionCycle", b =>
+                {
+                    b.Navigation("Contributions");
+                });
+
+            modelBuilder.Entity("RondiTrack.Models.Stokvel", b =>
+                {
+                    b.Navigation("StokvelMemberships");
+                });
+
+            modelBuilder.Entity("RondiTrack.Models.User", b =>
+                {
+                    b.Navigation("StokvelMemberships");
                 });
 #pragma warning restore 612, 618
         }

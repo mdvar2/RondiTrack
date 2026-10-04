@@ -8,6 +8,10 @@ public interface IStokvelMemberRepository
         Guid stokvelId,
         Guid userId);
 
+    Task<bool> ExistsAsync(
+        Guid stokvelId,
+        Guid userId);
+
     Task AddAsync(StokvelMember stokvelMember);
 
     Task RemoveAsync(StokvelMember stokvelMember);

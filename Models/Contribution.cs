@@ -14,6 +14,10 @@ public class Contribution
 
     public DateTime RecordedAtUtc { get; private set; }
 
+    public ContributionCycle Cycle { get; private set; } = null!;
+
+    public StokvelMember Member { get; private set; } = null!;
+
     public Contribution(
         Guid stokvelId,
         Guid userId,

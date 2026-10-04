@@ -5,7 +5,7 @@ namespace RondiTrack.DTOs.Payouts;
 public record PayoutResponse(
     Guid Id,
     Guid StokvelId,
-    Guid StokvelMemberId,
+    Guid RecipientUserId,
     Guid ContributionCycleId,
     decimal Amount,
     DateTime PaidAtUtc)
@@ -16,7 +16,7 @@ public record PayoutResponse(
         return new PayoutResponse(
             payout.Id,
             payout.StokvelId,
-            payout.StokvelMemberId,
+            payout.RecipientUserId,
             payout.ContributionCycleId,
             payout.Amount,
             payout.PaidAtUtc);

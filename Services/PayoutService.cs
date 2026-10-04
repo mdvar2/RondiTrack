@@ -60,7 +60,7 @@ public class PayoutService
                             "Payout amount must be greater than zero.");
                     }
 
-                    var paidMemberIds =
+                    var paidRecipientUserIds =
                         await _dbContext.Payouts
                             .Where(
                                 payout =>
@@ -68,7 +68,7 @@ public class PayoutService
                                         stokvelId)
                             .Select(
                                 payout =>
-                                    payout.StokvelMemberId)
+                                    payout.RecipientUserId)
                             .ToListAsync();
 
                     var nextMember =
@@ -77,8 +77,8 @@ public class PayoutService
                                 member =>
                                     member.StokvelId ==
                                         stokvelId &&
-                                    !paidMemberIds.Contains(
-                                        member.Id))
+                                    !paidRecipientUserIds.Contains(
+                                        member.UserId))
                             .OrderBy(
                                 member =>
                                     member.JoinedAtUtc)
@@ -92,7 +92,7 @@ public class PayoutService
 
                     var payout = new Payout(
                         stokvelId,
-                        nextMember.Id,
+                        nextMember.UserId,
                         contributionCycleId,
                         amount);
 

@@ -2,9 +2,16 @@ namespace RondiTrack.Models;
 
 public class User
 {
+    private readonly List<StokvelMember> _stokvelMemberships = new();
+
     public Guid Id { get; private set; }
+
     public string Name { get; private set; }
+
     public string Email { get; private set; }
+
+    public IReadOnlyCollection<StokvelMember> StokvelMemberships =>
+        _stokvelMemberships.AsReadOnly();
 
     public User(string name, string email)
     {

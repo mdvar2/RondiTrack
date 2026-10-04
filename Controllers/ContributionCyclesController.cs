@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RondiTrack.DTOs.ContributionCycles;
+using RondiTrack.DTOs.Contributions;
 using RondiTrack.Exceptions;
 using RondiTrack.Models;
 using RondiTrack.Repositories;
@@ -12,14 +13,18 @@ public class ContributionCyclesController : ControllerBase
 {
     private readonly IContributionCycleRepository _cycleRepository;
     private readonly IStokvelRepository _stokvelRepository;
+    private readonly IContributionRepository _contributionRepository;
 
     public ContributionCyclesController(
         IContributionCycleRepository cycleRepository,
-        IStokvelRepository stokvelRepository)
+        IStokvelRepository stokvelRepository,
+        IContributionRepository contributionRepository)
     {
         _cycleRepository = cycleRepository;
         _stokvelRepository = stokvelRepository;
+        _contributionRepository = contributionRepository;
     }
+
     /// <summary>
     /// Gets all contribution cycles for a stokvel.
     /// </summary>
@@ -39,7 +44,7 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
@@ -53,6 +58,7 @@ public class ContributionCyclesController : ControllerBase
 
         return Ok(response);
     }
+
     /// <summary>
     /// Gets a contribution cycle by ID.
     /// </summary>
@@ -73,13 +79,13 @@ public class ContributionCyclesController : ControllerBase
         Guid cycleId)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
 
         var cycle =
-            await _cycleRepository.GetByIdAsync(cycleId);
+            await _cycleRepository.GetByIdReadOnlyAsync(cycleId);
 
         if (cycle is null || cycle.StokvelId != stokvelId)
             throw new NotFoundException(
@@ -88,6 +94,48 @@ public class ContributionCyclesController : ControllerBase
         return Ok(
             ContributionCycleResponse.FromEntity(cycle));
     }
+
+    /// <summary>
+    /// Gets contributions for a contribution cycle.
+    /// </summary>
+    /// <remarks>
+    /// Returns contributions together with membership and user information.
+    /// The query projects directly to the response DTO so that only the
+    /// columns required by the API response are fetched.
+    /// </remarks>
+    [ProducesResponseType(
+        typeof(IEnumerable<ContributionWithMemberResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
+    [HttpGet("{cycleId:guid}/contributions")]
+    public async Task<ActionResult<IEnumerable<ContributionWithMemberResponse>>>
+        GetContributions(
+            Guid stokvelId,
+            Guid cycleId)
+    {
+        var stokvel =
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
+
+        if (stokvel is null)
+            throw new NotFoundException("Stokvel not found.");
+
+        var cycle =
+            await _cycleRepository.GetByIdReadOnlyAsync(cycleId);
+
+        if (cycle is null || cycle.StokvelId != stokvelId)
+            throw new NotFoundException(
+                "Contribution cycle not found.");
+
+        var response =
+            await _contributionRepository.GetByCycleProjectedAsync(
+                stokvelId,
+                cycleId);
+
+        return Ok(response);
+    }
+
     /// <summary>
     /// Creates a contribution cycle for a stokvel.
     /// </summary>
@@ -111,15 +159,16 @@ public class ContributionCyclesController : ControllerBase
         CreateContributionCycleRequest request)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
 
-        var cycle = new ContributionCycle(
-            stokvelId,
-            request.Period,
-            request.TargetAmount);
+        var cycle =
+            new ContributionCycle(
+                stokvelId,
+                request.Period,
+                request.TargetAmount);
 
         await _cycleRepository.AddAsync(cycle);
 
@@ -135,6 +184,7 @@ public class ContributionCyclesController : ControllerBase
             },
             response);
     }
+
     /// <summary>
     /// Updates an existing contribution cycle.
     /// </summary>
@@ -144,7 +194,8 @@ public class ContributionCyclesController : ControllerBase
     /// Returns 404 when the stokvel or contribution cycle does not exist,
     /// or when the cycle does not belong to the specified stokvel.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
     [ProducesResponseType(
         typeof(ProblemDetails),
         StatusCodes.Status400BadRequest)]
@@ -158,7 +209,7 @@ public class ContributionCyclesController : ControllerBase
         UpdateContributionCycleRequest request)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
@@ -174,8 +225,11 @@ public class ContributionCyclesController : ControllerBase
             request.Period,
             request.TargetAmount);
 
+        await _cycleRepository.UpdateAsync(cycle);
+
         return NoContent();
     }
+
     /// <summary>
     /// Deletes a contribution cycle.
     /// </summary>
@@ -184,7 +238,8 @@ public class ContributionCyclesController : ControllerBase
     /// Returns 404 when the stokvel or contribution cycle does not exist,
     /// or when the cycle does not belong to the specified stokvel.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
     [ProducesResponseType(
         typeof(ProblemDetails),
         StatusCodes.Status404NotFound)]
@@ -194,13 +249,13 @@ public class ContributionCyclesController : ControllerBase
         Guid cycleId)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
 
         var cycle =
-            await _cycleRepository.GetByIdAsync(cycleId);
+            await _cycleRepository.GetByIdReadOnlyAsync(cycleId);
 
         if (cycle is null || cycle.StokvelId != stokvelId)
             throw new NotFoundException(

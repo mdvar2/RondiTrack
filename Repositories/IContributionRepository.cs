@@ -1,3 +1,4 @@
+using RondiTrack.DTOs.Contributions;
 using RondiTrack.Models;
 
 namespace RondiTrack.Repositories;
@@ -10,6 +11,11 @@ public interface IContributionRepository
         Guid stokvelId,
         Guid userId,
         Guid contributionCycleId);
+
+    Task<IEnumerable<ContributionWithMemberResponse>>
+        GetByCycleProjectedAsync(
+            Guid stokvelId,
+            Guid contributionCycleId);
 
     Task AddAsync(
         Contribution contribution);

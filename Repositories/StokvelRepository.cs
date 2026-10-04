@@ -1,40 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using RondiTrack.Data;
 using RondiTrack.Models;
 
 namespace RondiTrack.Repositories;
 
 public class StokvelRepository : IStokvelRepository
 {
-    private readonly List<Stokvel> _stokvels = new()
-    {
-        new Stokvel("Ubuntu Savings Club", 500m),
-        new Stokvel("Siyakhula Stokvel", 1000m)
-    };
+    private readonly RondiTrackDbContext _dbContext;
 
-    public Task<IEnumerable<Stokvel>> GetAllAsync()
+    public StokvelRepository(
+        RondiTrackDbContext dbContext)
     {
-        return Task.FromResult<IEnumerable<Stokvel>>(_stokvels);
+        _dbContext = dbContext;
     }
 
-    public Task<Stokvel?> GetByIdAsync(Guid id)
+    public async Task<IEnumerable<Stokvel>> GetAllAsync()
     {
-        var stokvel = _stokvels.FirstOrDefault(stokvel => stokvel.Id == id);
-        return Task.FromResult(stokvel);
+        return await _dbContext.Stokvels
+            .AsNoTracking()
+            .ToListAsync();
     }
 
-    public Task AddAsync(Stokvel stokvel)
+    public async Task<Stokvel?> GetByIdAsync(Guid id)
     {
-        _stokvels.Add(stokvel);
-        return Task.CompletedTask;
+        return await _dbContext.Stokvels
+            .FirstOrDefaultAsync(
+                stokvel => stokvel.Id == id);
     }
 
-    public Task<bool> DeleteAsync(Guid id)
+    public async Task<Stokvel?> GetByIdReadOnlyAsync(Guid id)
     {
-        var stokvel = _stokvels.FirstOrDefault(stokvel => stokvel.Id == id);
+        return await _dbContext.Stokvels
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                stokvel => stokvel.Id == id);
+    }
+
+    public async Task AddAsync(Stokvel stokvel)
+    {
+        await _dbContext.Stokvels.AddAsync(stokvel);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(Stokvel stokvel)
+    {
+        _dbContext.Stokvels.Update(stokvel);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var stokvel =
+            await _dbContext.Stokvels
+                .FirstOrDefaultAsync(
+                    stokvel => stokvel.Id == id);
 
         if (stokvel is null)
-            return Task.FromResult(false);
+            return false;
 
-        _stokvels.Remove(stokvel);
-        return Task.FromResult(true);
+        _dbContext.Stokvels.Remove(stokvel);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
     }
 }

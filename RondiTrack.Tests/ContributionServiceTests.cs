@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using RondiTrack.Data;
 using RondiTrack.DTOs.Contributions;
 using RondiTrack.Exceptions;
 using RondiTrack.Idempotency;
@@ -13,6 +16,25 @@ public class ContributionServiceTests
     public async Task RecordContributionAsync_WhenContributionAlreadyExistsForMemberAndCycle_ThrowsBusinessRuleException()
     {
         // Arrange
+        var configuration =
+            new ConfigurationBuilder()
+                .AddUserSecrets<Program>()
+                .Build();
+
+        var connectionString =
+            configuration.GetConnectionString(
+                "RondiTrackDb")
+            ?? throw new InvalidOperationException(
+                "Connection string 'RondiTrackDb' was not found.");
+
+        var options =
+            new DbContextOptionsBuilder<RondiTrackDbContext>()
+                .UseNpgsql(connectionString)
+                .Options;
+
+        await using var dbContext =
+            new RondiTrackDbContext(options);
+
         var contributionRepository =
             new TestContributionRepository();
 
@@ -20,42 +42,59 @@ public class ContributionServiceTests
             new ContributionCycleRepository();
 
         var stokvelRepository =
-            new StokvelRepository();
+            new StokvelRepository(dbContext);
 
         var userRepository =
-            new UserRepository();
+            new UserRepository(dbContext);
+
+        var stokvelMemberRepository =
+            new EfStokvelMemberRepository(dbContext);
 
         var idempotencyStore =
             new IdempotencyStore();
 
-        var users =
-            await userRepository.GetAllAsync();
+        var user =
+            new User(
+                $"Contribution Test User {Guid.NewGuid()}",
+                $"contribution-{Guid.NewGuid()}@example.com");
 
-        var stokvels =
-            await stokvelRepository.GetAllAsync();
+        var stokvel =
+            new Stokvel(
+                $"Contribution Test Stokvel {Guid.NewGuid()}",
+                500m);
 
-        var user = users.First();
-        var stokvel = stokvels.First();
+        await userRepository.AddAsync(user);
+        await stokvelRepository.AddAsync(stokvel);
 
-        stokvel.AddMember(user);
+        var membership =
+            new StokvelMember(
+                stokvel.Id,
+                user.Id);
 
-        var cycle = new ContributionCycle(
-            stokvel.Id,
-            "2026-09",
-            500m);
+        await stokvelMemberRepository.AddAsync(
+            membership);
+
+        var cycle =
+            new ContributionCycle(
+                stokvel.Id,
+                "2026-09",
+                500m);
 
         await cycleRepository.AddAsync(cycle);
 
-        var service = new ContributionService(
-            contributionRepository,
-            cycleRepository,
-            stokvelRepository,
-            userRepository,
-            idempotencyStore);
+        var service =
+            new ContributionService(
+                contributionRepository,
+                cycleRepository,
+                stokvelRepository,
+                userRepository,
+                stokvelMemberRepository,
+                idempotencyStore);
 
-        var request = new RecordContributionRequest(
-            500m,
-            cycle.Id);
+        var request =
+            new RecordContributionRequest(
+                500m,
+                cycle.Id);
 
         await service.RecordContributionAsync(
             stokvel.Id,
@@ -82,6 +121,25 @@ public class ContributionServiceTests
     public async Task RecordContributionAsync_WhenSameIdempotencyKeyUsedWithDifferentRequest_ThrowsBusinessRuleException()
     {
         // Arrange
+        var configuration =
+            new ConfigurationBuilder()
+                .AddUserSecrets<Program>()
+                .Build();
+
+        var connectionString =
+            configuration.GetConnectionString(
+                "RondiTrackDb")
+            ?? throw new InvalidOperationException(
+                "Connection string 'RondiTrackDb' was not found.");
+
+        var options =
+            new DbContextOptionsBuilder<RondiTrackDbContext>()
+                .UseNpgsql(connectionString)
+                .Options;
+
+        await using var dbContext =
+            new RondiTrackDbContext(options);
+
         var contributionRepository =
             new TestContributionRepository();
 
@@ -89,38 +147,54 @@ public class ContributionServiceTests
             new ContributionCycleRepository();
 
         var stokvelRepository =
-            new StokvelRepository();
+            new StokvelRepository(dbContext);
 
         var userRepository =
-            new UserRepository();
+            new UserRepository(dbContext);
+
+        var stokvelMemberRepository =
+            new EfStokvelMemberRepository(dbContext);
 
         var idempotencyStore =
             new IdempotencyStore();
 
-        var users =
-            await userRepository.GetAllAsync();
+        var user =
+            new User(
+                $"Idempotency Test User {Guid.NewGuid()}",
+                $"idempotency-{Guid.NewGuid()}@example.com");
 
-        var stokvels =
-            await stokvelRepository.GetAllAsync();
+        var stokvel =
+            new Stokvel(
+                $"Idempotency Test Stokvel {Guid.NewGuid()}",
+                500m);
 
-        var user = users.First();
-        var stokvel = stokvels.First();
+        await userRepository.AddAsync(user);
+        await stokvelRepository.AddAsync(stokvel);
 
-        stokvel.AddMember(user);
+        var membership =
+            new StokvelMember(
+                stokvel.Id,
+                user.Id);
 
-        var cycle = new ContributionCycle(
-            stokvel.Id,
-            "2026-09",
-            500m);
+        await stokvelMemberRepository.AddAsync(
+            membership);
+
+        var cycle =
+            new ContributionCycle(
+                stokvel.Id,
+                "2026-09",
+                500m);
 
         await cycleRepository.AddAsync(cycle);
 
-        var service = new ContributionService(
-            contributionRepository,
-            cycleRepository,
-            stokvelRepository,
-            userRepository,
-            idempotencyStore);
+        var service =
+            new ContributionService(
+                contributionRepository,
+                cycleRepository,
+                stokvelRepository,
+                userRepository,
+                stokvelMemberRepository,
+                idempotencyStore);
 
         var firstRequest =
             new RecordContributionRequest(

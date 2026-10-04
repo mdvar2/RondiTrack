@@ -20,17 +20,28 @@ public class NegativePathTests
     [Fact]
     public async Task MalformedRequest_Returns400ProblemJson()
     {
-        var stokvelsResponse =
-            await _client.GetAsync("/api/stokvels");
+        // Arrange - create a dedicated stokvel
+        var stokvelRequest = new
+        {
+            name = $"Malformed Request Stokvel {Guid.NewGuid()}",
+            contributionAmount = 500m
+        };
 
-        stokvelsResponse.EnsureSuccessStatusCode();
+        var stokvelResponse =
+            await _client.PostAsJsonAsync(
+                "/api/stokvels",
+                stokvelRequest);
 
-        using var stokvelsJson =
+        Assert.Equal(
+            HttpStatusCode.Created,
+            stokvelResponse.StatusCode);
+
+        using var stokvelJson =
             JsonDocument.Parse(
-                await stokvelsResponse.Content.ReadAsStringAsync());
+                await stokvelResponse.Content.ReadAsStringAsync());
 
         var stokvelId =
-            stokvelsJson.RootElement[0]
+            stokvelJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
@@ -41,16 +52,19 @@ public class NegativePathTests
         }
         """;
 
-        var content = new StringContent(
-            invalidJson,
-            Encoding.UTF8,
-            "application/json");
+        var content =
+            new StringContent(
+                invalidJson,
+                Encoding.UTF8,
+                "application/json");
 
+        // Act
         var response =
             await _client.PostAsync(
                 $"/api/stokvels/{stokvelId}/cycles",
                 content);
 
+        // Assert
         Assert.Equal(
             HttpStatusCode.BadRequest,
             response.StatusCode);
@@ -79,14 +93,16 @@ public class NegativePathTests
     [Fact]
     public async Task NonexistentUser_Returns404ProblemJson()
     {
+        // Arrange
         var missingUserId =
-            Guid.Parse(
-                "11111111-1111-1111-1111-111111111111");
+            Guid.NewGuid();
 
+        // Act
         var response =
             await _client.GetAsync(
                 $"/api/users/{missingUserId}");
 
+        // Assert
         Assert.Equal(
             HttpStatusCode.NotFound,
             response.StatusCode);
@@ -121,34 +137,60 @@ public class NegativePathTests
     [Fact]
     public async Task DuplicateMembership_Returns409ProblemJson()
     {
-        var stokvelsResponse =
-            await _client.GetAsync("/api/stokvels");
+        // Arrange - create a dedicated stokvel
+        var stokvelRequest = new
+        {
+            name = $"Duplicate Membership Stokvel {Guid.NewGuid()}",
+            contributionAmount = 500m
+        };
 
-        stokvelsResponse.EnsureSuccessStatusCode();
+        var stokvelResponse =
+            await _client.PostAsJsonAsync(
+                "/api/stokvels",
+                stokvelRequest);
 
-        using var stokvelsJson =
+        Assert.Equal(
+            HttpStatusCode.Created,
+            stokvelResponse.StatusCode);
+
+        using var stokvelJson =
             JsonDocument.Parse(
-                await stokvelsResponse.Content.ReadAsStringAsync());
+                await stokvelResponse.Content.ReadAsStringAsync());
 
         var stokvelId =
-            stokvelsJson.RootElement[0]
+            stokvelJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
-        var usersResponse =
-            await _client.GetAsync("/api/users");
+        // Arrange - create a dedicated user
+        var uniqueUserValue =
+            Guid.NewGuid();
 
-        usersResponse.EnsureSuccessStatusCode();
+        var userRequest = new
+        {
+            name = $"Duplicate Membership User {uniqueUserValue}",
+            email = $"duplicate.membership.{uniqueUserValue}@example.com"
+        };
 
-        using var usersJson =
+        var userResponse =
+            await _client.PostAsJsonAsync(
+                "/api/users",
+                userRequest);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            userResponse.StatusCode);
+
+        using var userJson =
             JsonDocument.Parse(
-                await usersResponse.Content.ReadAsStringAsync());
+                await userResponse.Content.ReadAsStringAsync());
 
         var userId =
-            usersJson.RootElement[0]
+            userJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
+        // Act - first membership should succeed
         var firstResponse =
             await _client.PostAsync(
                 $"/api/stokvels/{stokvelId}/members/{userId}",
@@ -158,11 +200,13 @@ public class NegativePathTests
             HttpStatusCode.NoContent,
             firstResponse.StatusCode);
 
+        // Act - same membership again should fail
         var secondResponse =
             await _client.PostAsync(
                 $"/api/stokvels/{stokvelId}/members/{userId}",
                 null);
 
+        // Assert
         Assert.Equal(
             HttpStatusCode.Conflict,
             secondResponse.StatusCode);

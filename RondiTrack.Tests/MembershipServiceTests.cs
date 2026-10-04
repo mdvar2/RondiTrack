@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RondiTrack.Data;
 using RondiTrack.Exceptions;
+using RondiTrack.Models;
 using RondiTrack.Repositories;
 using RondiTrack.Services;
 
@@ -13,15 +14,6 @@ public class MembershipServiceTests
     public async Task AddMemberAsync_WhenUserAlreadyMember_ThrowsBusinessRuleException()
     {
         // Arrange
-        var userRepository = new UserRepository();
-        var stokvelRepository = new StokvelRepository();
-
-        var users = await userRepository.GetAllAsync();
-        var stokvels = await stokvelRepository.GetAllAsync();
-
-        var user = users.First();
-        var stokvel = stokvels.First();
-
         var configuration =
             new ConfigurationBuilder()
                 .AddUserSecrets<Program>()
@@ -41,21 +33,27 @@ public class MembershipServiceTests
         await using var dbContext =
             new RondiTrackDbContext(options);
 
+        var userRepository =
+            new UserRepository(dbContext);
+
+        var stokvelRepository =
+            new StokvelRepository(dbContext);
+
         var stokvelMemberRepository =
-            new EfStokvelMemberRepository(
-                dbContext);
+            new EfStokvelMemberRepository(dbContext);
 
-        var existingMember =
-            await stokvelMemberRepository
-                .GetByStokvelAndUserAsync(
-                    stokvel.Id,
-                    user.Id);
+        var user =
+            new User(
+                $"Membership Test User {Guid.NewGuid()}",
+                $"membership-{Guid.NewGuid()}@example.com");
 
-        if (existingMember is not null)
-        {
-            await stokvelMemberRepository.RemoveAsync(
-                existingMember);
-        }
+        var stokvel =
+            new Stokvel(
+                $"Membership Test Stokvel {Guid.NewGuid()}",
+                500m);
+
+        await userRepository.AddAsync(user);
+        await stokvelRepository.AddAsync(stokvel);
 
         var service =
             new MembershipService(

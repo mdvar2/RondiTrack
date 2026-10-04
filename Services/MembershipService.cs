@@ -25,42 +25,43 @@ public class MembershipService
         Guid userId)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(
+                stokvelId);
 
         if (stokvel is null)
-            throw new NotFoundException("Stokvel not found.");
+        {
+            throw new NotFoundException(
+                "Stokvel not found.");
+        }
 
         var user =
-            await _userRepository.GetByIdAsync(userId);
+            await _userRepository.GetByIdReadOnlyAsync(
+                userId);
 
         if (user is null)
-            throw new NotFoundException("User not found.");
+        {
+            throw new NotFoundException(
+                "User not found.");
+        }
 
-        if (stokvel.Members.Any(
-            member => member.Id == userId))
+        var membershipExists =
+            await _stokvelMemberRepository.ExistsAsync(
+                stokvelId,
+                userId);
+
+        if (membershipExists)
         {
             throw new BusinessRuleException(
                 "User is already a member of this stokvel.");
         }
 
-        stokvel.AddMember(user);
+        var stokvelMember =
+            new StokvelMember(
+                stokvelId,
+                userId);
 
-        var persistedMember =
-            await _stokvelMemberRepository
-                .GetByStokvelAndUserAsync(
-                    stokvelId,
-                    userId);
-
-        if (persistedMember is null)
-        {
-            var stokvelMember =
-                new StokvelMember(
-                    stokvelId,
-                    userId);
-
-            await _stokvelMemberRepository.AddAsync(
-                stokvelMember);
-        }
+        await _stokvelMemberRepository.AddAsync(
+            stokvelMember);
     }
 
     public async Task RemoveMemberAsync(
@@ -68,30 +69,28 @@ public class MembershipService
         Guid userId)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(
+                stokvelId);
 
         if (stokvel is null)
-            throw new NotFoundException("Stokvel not found.");
-
-        if (!stokvel.Members.Any(
-            member => member.Id == userId))
         {
-            throw new BusinessRuleException(
-                "User is not a member of this stokvel.");
+            throw new NotFoundException(
+                "Stokvel not found.");
         }
 
-        stokvel.RemoveMember(userId);
-
-        var persistedMember =
+        var existingMembership =
             await _stokvelMemberRepository
                 .GetByStokvelAndUserAsync(
                     stokvelId,
                     userId);
 
-        if (persistedMember is not null)
+        if (existingMembership is null)
         {
-            await _stokvelMemberRepository.RemoveAsync(
-                persistedMember);
+            throw new BusinessRuleException(
+                "User is not a member of this stokvel.");
         }
+
+        await _stokvelMemberRepository.RemoveAsync(
+            existingMembership);
     }
 }

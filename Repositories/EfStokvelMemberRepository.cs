@@ -27,6 +27,18 @@ public class EfStokvelMemberRepository
                     member.UserId == userId);
     }
 
+    public async Task<bool> ExistsAsync(
+        Guid stokvelId,
+        Guid userId)
+    {
+        return await _dbContext.StokvelMembers
+            .AsNoTracking()
+            .AnyAsync(
+                member =>
+                    member.StokvelId == stokvelId &&
+                    member.UserId == userId);
+    }
+
     public async Task AddAsync(
         StokvelMember stokvelMember)
     {
