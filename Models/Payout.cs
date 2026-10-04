@@ -6,7 +6,7 @@ public class Payout
 
     public Guid StokvelId { get; private set; }
 
-    public Guid StokvelMemberId { get; private set; }
+    public Guid RecipientUserId { get; private set; }
 
     public Guid ContributionCycleId { get; private set; }
 
@@ -14,9 +14,13 @@ public class Payout
 
     public DateTime PaidAtUtc { get; private set; }
 
+    // Navigation to the specific membership identified by
+    // the composite key (UserId, StokvelId).
+    public StokvelMember RecipientMember { get; private set; } = null!;
+
     public Payout(
         Guid stokvelId,
-        Guid stokvelMemberId,
+        Guid recipientUserId,
         Guid contributionCycleId,
         decimal amount)
     {
@@ -24,9 +28,9 @@ public class Payout
             throw new ArgumentException(
                 "Stokvel ID is required.");
 
-        if (stokvelMemberId == Guid.Empty)
+        if (recipientUserId == Guid.Empty)
             throw new ArgumentException(
-                "Stokvel member ID is required.");
+                "Recipient user ID is required.");
 
         if (contributionCycleId == Guid.Empty)
             throw new ArgumentException(
@@ -38,7 +42,7 @@ public class Payout
 
         Id = Guid.NewGuid();
         StokvelId = stokvelId;
-        StokvelMemberId = stokvelMemberId;
+        RecipientUserId = recipientUserId;
         ContributionCycleId = contributionCycleId;
         Amount = amount;
         PaidAtUtc = DateTime.UtcNow;

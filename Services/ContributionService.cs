@@ -14,6 +14,7 @@ public class ContributionService
     private readonly IContributionCycleRepository _cycleRepository;
     private readonly IStokvelRepository _stokvelRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IStokvelMemberRepository _stokvelMemberRepository;
     private readonly IIdempotencyStore _idempotencyStore;
 
     public ContributionService(
@@ -21,12 +22,14 @@ public class ContributionService
         IContributionCycleRepository cycleRepository,
         IStokvelRepository stokvelRepository,
         IUserRepository userRepository,
+        IStokvelMemberRepository stokvelMemberRepository,
         IIdempotencyStore idempotencyStore)
     {
         _contributionRepository = contributionRepository;
         _cycleRepository = cycleRepository;
         _stokvelRepository = stokvelRepository;
         _userRepository = userRepository;
+        _stokvelMemberRepository = stokvelMemberRepository;
         _idempotencyStore = idempotencyStore;
     }
 
@@ -42,13 +45,15 @@ public class ContributionService
                 "Idempotency-Key header is required.");
         }
 
-        var requestHash = CreateRequestHash(
-            stokvelId,
-            userId,
-            request);
+        var requestHash =
+            CreateRequestHash(
+                stokvelId,
+                userId,
+                request);
 
         var existingRecord =
-            await _idempotencyStore.GetAsync(idempotencyKey);
+            await _idempotencyStore.GetAsync(
+                idempotencyKey);
 
         if (existingRecord is not null)
         {
@@ -62,29 +67,38 @@ public class ContributionService
         }
 
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(stokvelId);
+            await _stokvelRepository.GetByIdReadOnlyAsync(
+                stokvelId);
 
         if (stokvel is null)
-            throw new NotFoundException("Stokvel not found.");
+        {
+            throw new NotFoundException(
+                "Stokvel not found.");
+        }
 
         var user =
-            await _userRepository.GetByIdAsync(userId);
+            await _userRepository.GetByIdReadOnlyAsync(
+                userId);
 
         if (user is null)
-            throw new NotFoundException("User not found.");
+        {
+            throw new NotFoundException(
+                "User not found.");
+        }
 
-        var isMember =
-            stokvel.Members.Any(
-                member => member.Id == userId);
+        var membershipExists =
+            await _stokvelMemberRepository.ExistsAsync(
+                stokvelId,
+                userId);
 
-        if (!isMember)
+        if (!membershipExists)
         {
             throw new BusinessRuleException(
                 "User is not a member of this stokvel.");
         }
 
         var cycle =
-            await _cycleRepository.GetByIdAsync(
+            await _cycleRepository.GetByIdReadOnlyAsync(
                 request.ContributionCycleId);
 
         if (cycle is null)
@@ -112,11 +126,12 @@ public class ContributionService
                 "A contribution already exists for this member and cycle.");
         }
 
-        var contribution = new Contribution(
-            stokvelId,
-            userId,
-            request.ContributionCycleId,
-            request.Amount);
+        var contribution =
+            new Contribution(
+                stokvelId,
+                userId,
+                request.ContributionCycleId,
+                request.Amount);
 
         await _contributionRepository.AddAsync(
             contribution);
@@ -148,11 +163,14 @@ public class ContributionService
             $"{request.ContributionCycleId}";
 
         var bytes =
-            Encoding.UTF8.GetBytes(requestData);
+            Encoding.UTF8.GetBytes(
+                requestData);
 
         var hash =
-            SHA256.HashData(bytes);
+            SHA256.HashData(
+                bytes);
 
-        return Convert.ToHexString(hash);
+        return Convert.ToHexString(
+            hash);
     }
 }

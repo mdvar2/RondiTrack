@@ -16,6 +16,7 @@ public class UsersController : ControllerBase
     {
         _userRepository = userRepository;
     }
+
     /// <summary>
     /// Gets all users.
     /// </summary>
@@ -37,6 +38,7 @@ public class UsersController : ControllerBase
 
         return Ok(response);
     }
+
     /// <summary>
     /// Gets a user by ID.
     /// </summary>
@@ -44,18 +46,24 @@ public class UsersController : ControllerBase
     /// Returns the requested user when the ID matches an existing user.
     /// Returns 404 when no user exists with the supplied ID.
     /// </remarks>
-    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        typeof(UserResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<UserResponse>> GetById(Guid id)
     {
-        var user = await _userRepository.GetByIdAsync(id);
+        var user =
+            await _userRepository.GetByIdReadOnlyAsync(id);
 
         if (user is null)
             throw new NotFoundException("User not found.");
 
         return Ok(UserResponse.FromEntity(user));
     }
+
     /// <summary>
     /// Creates a new user.
     /// </summary>
@@ -63,15 +71,20 @@ public class UsersController : ControllerBase
     /// Creates a user from a valid name and email address.
     /// Returns 400 when the request fails validation.
     /// </remarks>
-    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(UserResponse),
+        StatusCodes.Status201Created)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
     [HttpPost]
     public async Task<ActionResult<UserResponse>> Create(
         CreateUserRequest request)
     {
-        var user = new User(
-            request.Name,
-            request.Email);
+        var user =
+            new User(
+                request.Name,
+                request.Email);
 
         await _userRepository.AddAsync(user);
 
@@ -83,6 +96,7 @@ public class UsersController : ControllerBase
             new { id = user.Id },
             response);
     }
+
     /// <summary>
     /// Updates an existing user.
     /// </summary>
@@ -91,9 +105,14 @@ public class UsersController : ControllerBase
     /// Returns 400 when the request fails validation.
     /// Returns 404 when the user does not exist.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -109,8 +128,11 @@ public class UsersController : ControllerBase
             request.Name,
             request.Email);
 
+        await _userRepository.UpdateAsync(user);
+
         return NoContent();
     }
+
     /// <summary>
     /// Deletes a user.
     /// </summary>
@@ -118,8 +140,11 @@ public class UsersController : ControllerBase
     /// Deletes the user with the supplied ID.
     /// Returns 404 when the user does not exist.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

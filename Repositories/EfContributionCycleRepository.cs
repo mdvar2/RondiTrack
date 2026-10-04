@@ -36,10 +36,29 @@ public class EfContributionCycleRepository
                     cycle.Id == id);
     }
 
+    public async Task<ContributionCycle?> GetByIdReadOnlyAsync(
+        Guid id)
+    {
+        return await _dbContext.ContributionCycles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                cycle =>
+                    cycle.Id == id);
+    }
+
     public async Task AddAsync(
         ContributionCycle contributionCycle)
     {
         await _dbContext.ContributionCycles.AddAsync(
+            contributionCycle);
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(
+        ContributionCycle contributionCycle)
+    {
+        _dbContext.ContributionCycles.Update(
             contributionCycle);
 
         await _dbContext.SaveChangesAsync();

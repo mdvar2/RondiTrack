@@ -20,10 +20,12 @@ public class HappyPathTests
     public async Task User_CreateThenGet_ReturnsCreatedUser()
     {
         // Arrange
+        var uniqueValue = Guid.NewGuid();
+
         var request = new
         {
-            name = "Test User",
-            email = "test.user@example.com"
+            name = $"Test User {uniqueValue}",
+            email = $"test.user.{uniqueValue}@example.com"
         };
 
         // Act - create the user
@@ -61,13 +63,13 @@ public class HappyPathTests
                 await getResponse.Content.ReadAsStringAsync());
 
         Assert.Equal(
-            "Test User",
+            request.name,
             userJson.RootElement
                 .GetProperty("name")
                 .GetString());
 
         Assert.Equal(
-            "test.user@example.com",
+            request.email,
             userJson.RootElement
                 .GetProperty("email")
                 .GetString());
@@ -77,9 +79,11 @@ public class HappyPathTests
     public async Task Stokvel_CreateThenGet_ReturnsCreatedStokvel()
     {
         // Arrange
+        var uniqueValue = Guid.NewGuid();
+
         var request = new
         {
-            name = "Test Savings Club",
+            name = $"Test Savings Club {uniqueValue}",
             contributionAmount = 500m
         };
 
@@ -118,7 +122,7 @@ public class HappyPathTests
                 await getResponse.Content.ReadAsStringAsync());
 
         Assert.Equal(
-            "Test Savings Club",
+            request.name,
             stokvelJson.RootElement
                 .GetProperty("name")
                 .GetString());
@@ -133,18 +137,28 @@ public class HappyPathTests
     [Fact]
     public async Task ContributionCycle_CreateThenGet_ReturnsCreatedCycle()
     {
-        // Arrange - get an existing stokvel
-        var stokvelsResponse =
-            await _client.GetAsync("/api/stokvels");
+        // Arrange - create a dedicated stokvel
+        var stokvelRequest = new
+        {
+            name = $"Cycle Test Stokvel {Guid.NewGuid()}",
+            contributionAmount = 500m
+        };
 
-        stokvelsResponse.EnsureSuccessStatusCode();
+        var stokvelResponse =
+            await _client.PostAsJsonAsync(
+                "/api/stokvels",
+                stokvelRequest);
 
-        using var stokvelsJson =
+        Assert.Equal(
+            HttpStatusCode.Created,
+            stokvelResponse.StatusCode);
+
+        using var stokvelJson =
             JsonDocument.Parse(
-                await stokvelsResponse.Content.ReadAsStringAsync());
+                await stokvelResponse.Content.ReadAsStringAsync());
 
         var stokvelId =
-            stokvelsJson.RootElement[0]
+            stokvelJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
@@ -204,37 +218,59 @@ public class HappyPathTests
     [Fact]
     public async Task Contribution_Record_ReturnsCreatedContribution()
     {
-        // Arrange - get an existing stokvel
-        var stokvelsResponse =
-            await _client.GetAsync("/api/stokvels");
+        // Arrange - create a dedicated stokvel
+        var stokvelRequest = new
+        {
+            name = $"Contribution Test Stokvel {Guid.NewGuid()}",
+            contributionAmount = 500m
+        };
 
-        stokvelsResponse.EnsureSuccessStatusCode();
+        var stokvelResponse =
+            await _client.PostAsJsonAsync(
+                "/api/stokvels",
+                stokvelRequest);
 
-        using var stokvelsJson =
+        Assert.Equal(
+            HttpStatusCode.Created,
+            stokvelResponse.StatusCode);
+
+        using var stokvelJson =
             JsonDocument.Parse(
-                await stokvelsResponse.Content.ReadAsStringAsync());
+                await stokvelResponse.Content.ReadAsStringAsync());
 
         var stokvelId =
-            stokvelsJson.RootElement[0]
+            stokvelJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
-        // Arrange - get an existing user
-        var usersResponse =
-            await _client.GetAsync("/api/users");
+        // Arrange - create a dedicated user
+        var uniqueUserValue = Guid.NewGuid();
 
-        usersResponse.EnsureSuccessStatusCode();
+        var userRequest = new
+        {
+            name = $"Contribution Test User {uniqueUserValue}",
+            email = $"contribution.{uniqueUserValue}@example.com"
+        };
 
-        using var usersJson =
+        var userResponse =
+            await _client.PostAsJsonAsync(
+                "/api/users",
+                userRequest);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            userResponse.StatusCode);
+
+        using var userJson =
             JsonDocument.Parse(
-                await usersResponse.Content.ReadAsStringAsync());
+                await userResponse.Content.ReadAsStringAsync());
 
         var userId =
-            usersJson.RootElement[0]
+            userJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
-        // Arrange - add the user as a member
+        // Arrange - add the dedicated user as a member
         var membershipResponse =
             await _client.PostAsync(
                 $"/api/stokvels/{stokvelId}/members/{userId}",
@@ -264,7 +300,7 @@ public class HappyPathTests
             JsonDocument.Parse(
                 await cycleResponse.Content.ReadAsStringAsync());
 
-                var cycleId =
+        var cycleId =
             cycleJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
@@ -283,13 +319,15 @@ public class HappyPathTests
 
         request.Headers.Add(
             "Idempotency-Key",
-            "happy-path-contribution-001");
+            $"happy-path-contribution-{Guid.NewGuid()}");
 
         request.Content =
-            JsonContent.Create(contributionRequest);
+            JsonContent.Create(
+                contributionRequest);
 
         var contributionResponse =
-            await _client.SendAsync(request);
+            await _client.SendAsync(
+                request);
 
         // Assert - contribution was created
         Assert.Equal(
@@ -297,5 +335,3 @@ public class HappyPathTests
             contributionResponse.StatusCode);
     }
 }
-
-

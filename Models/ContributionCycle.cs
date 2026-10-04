@@ -2,6 +2,8 @@ namespace RondiTrack.Models;
 
 public class ContributionCycle
 {
+    private readonly List<Contribution> _contributions = new();
+
     public Guid Id { get; private set; }
 
     public Guid StokvelId { get; private set; }
@@ -11,6 +13,9 @@ public class ContributionCycle
     public decimal TargetAmount { get; private set; }
 
     public string Status { get; private set; }
+
+    public IReadOnlyCollection<Contribution> Contributions =>
+        _contributions.AsReadOnly();
 
     public ContributionCycle(
         Guid stokvelId,

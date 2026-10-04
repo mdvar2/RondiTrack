@@ -55,13 +55,17 @@ public class StokvelsController : ControllerBase
     /// Returns the requested stokvel when the ID matches an existing stokvel.
     /// Returns 404 when no stokvel exists with the supplied ID.
     /// </remarks>
-    [ProducesResponseType(typeof(StokvelResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        typeof(StokvelResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<StokvelResponse>> GetById(Guid id)
     {
         var stokvel =
-            await _stokvelRepository.GetByIdAsync(id);
+            await _stokvelRepository.GetByIdReadOnlyAsync(id);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
@@ -76,15 +80,20 @@ public class StokvelsController : ControllerBase
     /// Creates a stokvel from a valid name and contribution amount.
     /// Returns 400 when the request fails validation.
     /// </remarks>
-    [ProducesResponseType(typeof(StokvelResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(StokvelResponse),
+        StatusCodes.Status201Created)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
     [HttpPost]
     public async Task<ActionResult<StokvelResponse>> Create(
         CreateStokvelRequest request)
     {
-        var stokvel = new Stokvel(
-            request.Name,
-            request.ContributionAmount);
+        var stokvel =
+            new Stokvel(
+                request.Name,
+                request.ContributionAmount);
 
         await _stokvelRepository.AddAsync(stokvel);
 
@@ -105,9 +114,14 @@ public class StokvelsController : ControllerBase
     /// Returns 400 when the request fails validation.
     /// Returns 404 when the stokvel does not exist.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -123,6 +137,8 @@ public class StokvelsController : ControllerBase
             request.Name,
             request.ContributionAmount);
 
+        await _stokvelRepository.UpdateAsync(stokvel);
+
         return NoContent();
     }
 
@@ -133,8 +149,11 @@ public class StokvelsController : ControllerBase
     /// Deletes the stokvel with the supplied ID.
     /// Returns 404 when the stokvel does not exist.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -155,9 +174,14 @@ public class StokvelsController : ControllerBase
     /// Returns 404 when the stokvel or user does not exist.
     /// Returns 409 when the user is already a member of the stokvel.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status409Conflict)]
     [HttpPost("{stokvelId:guid}/members/{userId:guid}")]
     public async Task<IActionResult> AddMember(
         Guid stokvelId,
@@ -178,9 +202,14 @@ public class StokvelsController : ControllerBase
     /// Returns 404 when the stokvel does not exist.
     /// Returns 409 when the user is not a member of the stokvel.
     /// </remarks>
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status409Conflict)]
     [HttpDelete("{stokvelId:guid}/members/{userId:guid}")]
     public async Task<IActionResult> RemoveMember(
         Guid stokvelId,

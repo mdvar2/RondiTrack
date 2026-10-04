@@ -26,11 +26,26 @@ public class ContributionCycleRepository
         return Task.FromResult(cycle);
     }
 
+    public Task<ContributionCycle?> GetByIdReadOnlyAsync(
+        Guid id)
+    {
+        var cycle = _cycles
+            .FirstOrDefault(cycle => cycle.Id == id);
+
+        return Task.FromResult(cycle);
+    }
+
     public Task AddAsync(
         ContributionCycle contributionCycle)
     {
         _cycles.Add(contributionCycle);
 
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(
+        ContributionCycle contributionCycle)
+    {
         return Task.CompletedTask;
     }
 

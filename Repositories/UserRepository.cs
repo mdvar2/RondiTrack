@@ -1,41 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using RondiTrack.Data;
 using RondiTrack.Models;
 
 namespace RondiTrack.Repositories;
 
 public class UserRepository : IUserRepository
 {
-    private readonly List<User> _users = new()
-    {
-        new User("Kelly Ezeji", "kelly@example.com"),
-        new User("Yamkela Nomlala", "yamkela@example.com"),
-        new User("Mihle Ngcobozi", "mihle@example.com")
-    };
+    private readonly RondiTrackDbContext _dbContext;
 
-    public Task<IEnumerable<User>> GetAllAsync()
+    public UserRepository(
+        RondiTrackDbContext dbContext)
     {
-        return Task.FromResult<IEnumerable<User>>(_users);
+        _dbContext = dbContext;
     }
 
-    public Task<User?> GetByIdAsync(Guid id)
+    public async Task<IEnumerable<User>> GetAllAsync()
     {
-        var user = _users.FirstOrDefault(user => user.Id == id);
-        return Task.FromResult(user);
+        return await _dbContext.Users
+            .AsNoTracking()
+            .ToListAsync();
     }
 
-    public Task AddAsync(User user)
+    public async Task<User?> GetByIdAsync(Guid id)
     {
-        _users.Add(user);
-        return Task.CompletedTask;
+        return await _dbContext.Users
+            .FirstOrDefaultAsync(
+                user => user.Id == id);
     }
 
-    public Task<bool> DeleteAsync(Guid id)
+    public async Task<User?> GetByIdReadOnlyAsync(Guid id)
     {
-        var user = _users.FirstOrDefault(user => user.Id == id);
+        return await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                user => user.Id == id);
+    }
+
+    public async Task AddAsync(User user)
+    {
+        await _dbContext.Users.AddAsync(user);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(User user)
+    {
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var user =
+            await _dbContext.Users
+                .FirstOrDefaultAsync(
+                    user => user.Id == id);
 
         if (user is null)
-            return Task.FromResult(false);
+            return false;
 
-        _users.Remove(user);
-        return Task.FromResult(true);
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
     }
 }

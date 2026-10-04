@@ -19,34 +19,60 @@ public class IdempotencyTests
     [Fact]
     public async Task SameKeyAndSameRequest_ReturnsSameContribution()
     {
-        var stokvelsResponse =
-            await _client.GetAsync("/api/stokvels");
+        // Arrange - create a dedicated stokvel
+        var stokvelRequest = new
+        {
+            name = $"Same Request Stokvel {Guid.NewGuid()}",
+            contributionAmount = 500m
+        };
 
-        stokvelsResponse.EnsureSuccessStatusCode();
+        var stokvelResponse =
+            await _client.PostAsJsonAsync(
+                "/api/stokvels",
+                stokvelRequest);
 
-        using var stokvelsJson =
+        Assert.Equal(
+            HttpStatusCode.Created,
+            stokvelResponse.StatusCode);
+
+        using var stokvelJson =
             JsonDocument.Parse(
-                await stokvelsResponse.Content.ReadAsStringAsync());
+                await stokvelResponse.Content.ReadAsStringAsync());
 
         var stokvelId =
-            stokvelsJson.RootElement[0]
+            stokvelJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
-        var usersResponse =
-            await _client.GetAsync("/api/users");
+        // Arrange - create a dedicated user
+        var uniqueUserValue =
+            Guid.NewGuid();
 
-        usersResponse.EnsureSuccessStatusCode();
+        var userRequest = new
+        {
+            name = $"Same Request User {uniqueUserValue}",
+            email = $"same.request.{uniqueUserValue}@example.com"
+        };
 
-        using var usersJson =
+        var userResponse =
+            await _client.PostAsJsonAsync(
+                "/api/users",
+                userRequest);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            userResponse.StatusCode);
+
+        using var userJson =
             JsonDocument.Parse(
-                await usersResponse.Content.ReadAsStringAsync());
+                await userResponse.Content.ReadAsStringAsync());
 
         var userId =
-            usersJson.RootElement[0]
+            userJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
+        // Arrange - create membership
         var membershipResponse =
             await _client.PostAsync(
                 $"/api/stokvels/{stokvelId}/members/{userId}",
@@ -56,6 +82,7 @@ public class IdempotencyTests
             HttpStatusCode.NoContent,
             membershipResponse.StatusCode);
 
+        // Arrange - create contribution cycle
         var cycleRequest = new
         {
             period = "2026-11",
@@ -86,9 +113,10 @@ public class IdempotencyTests
             contributionCycleId = cycleId
         };
 
-        const string idempotencyKey =
-            "same-request-test-001";
+        var idempotencyKey =
+            $"same-request-{Guid.NewGuid()}";
 
+        // Act - first request
         using var firstRequest =
             CreateContributionRequest(
                 stokvelId,
@@ -97,7 +125,8 @@ public class IdempotencyTests
                 contributionRequest);
 
         var firstResponse =
-            await _client.SendAsync(firstRequest);
+            await _client.SendAsync(
+                firstRequest);
 
         Assert.Equal(
             HttpStatusCode.Created,
@@ -106,6 +135,7 @@ public class IdempotencyTests
         var firstBody =
             await firstResponse.Content.ReadAsStringAsync();
 
+        // Act - exact same request with exact same key
         using var secondRequest =
             CreateContributionRequest(
                 stokvelId,
@@ -114,11 +144,13 @@ public class IdempotencyTests
                 contributionRequest);
 
         var secondResponse =
-            await _client.SendAsync(secondRequest);
+            await _client.SendAsync(
+                secondRequest);
 
         var secondBody =
             await secondResponse.Content.ReadAsStringAsync();
 
+        // Assert - original result is returned
         Assert.Equal(
             firstResponse.StatusCode,
             secondResponse.StatusCode);
@@ -131,34 +163,60 @@ public class IdempotencyTests
     [Fact]
     public async Task SameKeyAndDifferentRequest_Returns409Conflict()
     {
-        var stokvelsResponse =
-            await _client.GetAsync("/api/stokvels");
+        // Arrange - create a dedicated stokvel
+        var stokvelRequest = new
+        {
+            name = $"Different Request Stokvel {Guid.NewGuid()}",
+            contributionAmount = 500m
+        };
 
-        stokvelsResponse.EnsureSuccessStatusCode();
+        var stokvelResponse =
+            await _client.PostAsJsonAsync(
+                "/api/stokvels",
+                stokvelRequest);
 
-        using var stokvelsJson =
+        Assert.Equal(
+            HttpStatusCode.Created,
+            stokvelResponse.StatusCode);
+
+        using var stokvelJson =
             JsonDocument.Parse(
-                await stokvelsResponse.Content.ReadAsStringAsync());
+                await stokvelResponse.Content.ReadAsStringAsync());
 
         var stokvelId =
-            stokvelsJson.RootElement[1]
+            stokvelJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
-        var usersResponse =
-            await _client.GetAsync("/api/users");
+        // Arrange - create a dedicated user
+        var uniqueUserValue =
+            Guid.NewGuid();
 
-        usersResponse.EnsureSuccessStatusCode();
+        var userRequest = new
+        {
+            name = $"Different Request User {uniqueUserValue}",
+            email = $"different.request.{uniqueUserValue}@example.com"
+        };
 
-        using var usersJson =
+        var userResponse =
+            await _client.PostAsJsonAsync(
+                "/api/users",
+                userRequest);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            userResponse.StatusCode);
+
+        using var userJson =
             JsonDocument.Parse(
-                await usersResponse.Content.ReadAsStringAsync());
+                await userResponse.Content.ReadAsStringAsync());
 
         var userId =
-            usersJson.RootElement[1]
+            userJson.RootElement
                 .GetProperty("id")
                 .GetGuid();
 
+        // Arrange - create membership
         var membershipResponse =
             await _client.PostAsync(
                 $"/api/stokvels/{stokvelId}/members/{userId}",
@@ -168,6 +226,7 @@ public class IdempotencyTests
             HttpStatusCode.NoContent,
             membershipResponse.StatusCode);
 
+        // Arrange - create contribution cycle
         var cycleRequest = new
         {
             period = "2026-12",
@@ -192,8 +251,8 @@ public class IdempotencyTests
                 .GetProperty("id")
                 .GetGuid();
 
-        const string idempotencyKey =
-            "different-request-test-001";
+        var idempotencyKey =
+            $"different-request-{Guid.NewGuid()}";
 
         var firstPayload = new
         {
@@ -201,6 +260,7 @@ public class IdempotencyTests
             contributionCycleId = cycleId
         };
 
+        // Act - first request
         using var firstRequest =
             CreateContributionRequest(
                 stokvelId,
@@ -209,12 +269,14 @@ public class IdempotencyTests
                 firstPayload);
 
         var firstResponse =
-            await _client.SendAsync(firstRequest);
+            await _client.SendAsync(
+                firstRequest);
 
         Assert.Equal(
             HttpStatusCode.Created,
             firstResponse.StatusCode);
 
+        // Act - same key but different payload
         var differentPayload = new
         {
             amount = 600m,
@@ -229,8 +291,10 @@ public class IdempotencyTests
                 differentPayload);
 
         var secondResponse =
-            await _client.SendAsync(secondRequest);
+            await _client.SendAsync(
+                secondRequest);
 
+        // Assert
         Assert.Equal(
             HttpStatusCode.Conflict,
             secondResponse.StatusCode);
@@ -266,7 +330,8 @@ public class IdempotencyTests
             idempotencyKey);
 
         request.Content =
-            JsonContent.Create(payload);
+            JsonContent.Create(
+                payload);
 
         return request;
     }

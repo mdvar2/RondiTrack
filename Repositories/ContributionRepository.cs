@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RondiTrack.Data;
+using RondiTrack.DTOs.Contributions;
 using RondiTrack.Models;
 
 namespace RondiTrack.Repositories;
@@ -35,6 +36,33 @@ public class ContributionRepository
                     contribution.UserId == userId &&
                     contribution.ContributionCycleId ==
                         contributionCycleId);
+    }
+
+    public async Task<IEnumerable<ContributionWithMemberResponse>>
+        GetByCycleProjectedAsync(
+            Guid stokvelId,
+            Guid contributionCycleId)
+    {
+        return await _dbContext.Contributions
+            .AsNoTracking()
+            .Where(
+                contribution =>
+                    contribution.StokvelId == stokvelId &&
+                    contribution.ContributionCycleId ==
+                        contributionCycleId)
+            .Select(
+                contribution =>
+                    new ContributionWithMemberResponse(
+                        contribution.Id,
+                        contribution.StokvelId,
+                        contribution.UserId,
+                        contribution.Member.User.Name,
+                        contribution.Member.User.Email,
+                        contribution.Member.Role,
+                        contribution.ContributionCycleId,
+                        contribution.Amount,
+                        contribution.RecordedAtUtc))
+            .ToListAsync();
     }
 
     public async Task AddAsync(

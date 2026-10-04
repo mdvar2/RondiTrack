@@ -28,23 +28,36 @@ public class PayoutTransactionTests
                 .UseNpgsql(connectionString)
                 .Options;
 
-        var stokvelId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
+        var user =
+            new User(
+                $"Payout User {Guid.NewGuid()}",
+                $"{Guid.NewGuid()}@example.com");
+
+        var stokvel =
+            new Stokvel(
+                $"Payout Stokvel {Guid.NewGuid()}",
+                1000m);
 
         var cycle =
             new ContributionCycle(
-                stokvelId,
+                stokvel.Id,
                 "2026-10",
                 1000m);
 
         var member =
             new StokvelMember(
-                stokvelId,
-                userId);
+                stokvel.Id,
+                user.Id);
 
         await using (var setupContext =
             new RondiTrackDbContext(options))
         {
+            await setupContext.Users.AddAsync(
+                user);
+
+            await setupContext.Stokvels.AddAsync(
+                stokvel);
+
             await setupContext.ContributionCycles.AddAsync(
                 cycle);
 
@@ -62,7 +75,7 @@ public class PayoutTransactionTests
                 new PayoutService(actContext);
 
             await service.CreatePayoutAsync(
-                stokvelId,
+                stokvel.Id,
                 cycle.Id,
                 1000m);
         }
@@ -90,8 +103,12 @@ public class PayoutTransactionTests
         Assert.NotNull(persistedPayout);
 
         Assert.Equal(
-            member.Id,
-            persistedPayout.StokvelMemberId);
+            member.UserId,
+            persistedPayout.RecipientUserId);
+
+        Assert.Equal(
+            member.StokvelId,
+            persistedPayout.StokvelId);
 
         Assert.Equal(
             1000m,
@@ -124,23 +141,36 @@ public class PayoutTransactionTests
                 .UseNpgsql(connectionString)
                 .Options;
 
-        var stokvelId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
+        var user =
+            new User(
+                $"Rollback User {Guid.NewGuid()}",
+                $"{Guid.NewGuid()}@example.com");
+
+        var stokvel =
+            new Stokvel(
+                $"Rollback Stokvel {Guid.NewGuid()}",
+                1500m);
 
         var cycle =
             new ContributionCycle(
-                stokvelId,
+                stokvel.Id,
                 "2026-11",
                 1500m);
 
         var member =
             new StokvelMember(
-                stokvelId,
-                userId);
+                stokvel.Id,
+                user.Id);
 
         await using (var setupContext =
             new RondiTrackDbContext(options))
         {
+            await setupContext.Users.AddAsync(
+                user);
+
+            await setupContext.Stokvels.AddAsync(
+                stokvel);
+
             await setupContext.ContributionCycles.AddAsync(
                 cycle);
 
@@ -162,8 +192,8 @@ public class PayoutTransactionTests
             {
                 var payout =
                     new Payout(
-                        stokvelId,
-                        member.Id,
+                        stokvel.Id,
+                        member.UserId,
                         cycle.Id,
                         1500m);
 
