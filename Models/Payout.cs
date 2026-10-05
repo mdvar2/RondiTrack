@@ -4,6 +4,8 @@ public class Payout
 {
     public Guid Id { get; private set; }
 
+    public uint Version { get; private set; }
+
     public Guid StokvelId { get; private set; }
 
     public Guid RecipientUserId { get; private set; }
@@ -46,5 +48,16 @@ public class Payout
         ContributionCycleId = contributionCycleId;
         Amount = amount;
         PaidAtUtc = DateTime.UtcNow;
+    }
+
+    public void UpdateAmount(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentException(
+                "Payout amount must be greater than zero.");
+        }
+
+        Amount = amount;
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RondiTrack.Common;
 using RondiTrack.DTOs.ContributionCycles;
 using RondiTrack.DTOs.Contributions;
 using RondiTrack.Exceptions;
@@ -91,6 +92,8 @@ public class ContributionCyclesController : ControllerBase
             throw new NotFoundException(
                 "Contribution cycle not found.");
 
+        Response.Headers.ETag = $"\"{cycle.Version}\"";
+
         return Ok(
             ContributionCycleResponse.FromEntity(cycle));
     }
@@ -110,10 +113,18 @@ public class ContributionCyclesController : ControllerBase
         typeof(ProblemDetails),
         StatusCodes.Status404NotFound)]
     [HttpGet("{cycleId:guid}/contributions")]
-    public async Task<ActionResult<IEnumerable<ContributionWithMemberResponse>>>
+    public async Task<ActionResult<PagedResult<ContributionWithMemberResponse>>>
         GetContributions(
             Guid stokvelId,
-            Guid cycleId)
+            Guid cycleId,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? pageToken = null,
+            [FromQuery] string sortBy = "recordedAtUtc",
+            [FromQuery] string sortDirection = "desc",
+            [FromQuery] Guid? userId = null,
+            [FromQuery] string? role = null,
+            [FromQuery] decimal? minAmount = null,
+            [FromQuery] decimal? maxAmount = null)
     {
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -128,10 +139,28 @@ public class ContributionCyclesController : ControllerBase
             throw new NotFoundException(
                 "Contribution cycle not found.");
 
+        if (pageSize < 0)
+        {
+            throw new RequestValidationException(
+                "Page size cannot be negative.");
+        }
+
+        var safePageSize = Math.Min(
+            pageSize <= 0 ? 25 : pageSize,
+            100);
+
         var response =
-            await _contributionRepository.GetByCycleProjectedAsync(
+            await _contributionRepository.GetByCyclePagedAsync(
                 stokvelId,
-                cycleId);
+                cycleId,
+                safePageSize,
+                pageToken,
+                sortBy,
+                sortDirection,
+                userId,
+                role,
+                minAmount,
+                maxAmount);
 
         return Ok(response);
     }
@@ -206,7 +235,8 @@ public class ContributionCyclesController : ControllerBase
     public async Task<IActionResult> Update(
         Guid stokvelId,
         Guid cycleId,
-        UpdateContributionCycleRequest request)
+        UpdateContributionCycleRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch)
     {
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -220,6 +250,19 @@ public class ContributionCyclesController : ControllerBase
         if (cycle is null || cycle.StokvelId != stokvelId)
             throw new NotFoundException(
                 "Contribution cycle not found.");
+
+        if (string.IsNullOrWhiteSpace(ifMatch))
+        {
+            throw new RequestValidationException(
+                "If-Match header is required.");
+        }
+
+        var providedVersion = ParseIfMatch(ifMatch);
+        if (providedVersion != cycle.Version)
+        {
+            throw new PreconditionFailedException(
+                "The contribution cycle has changed. Refetch it and retry with the current ETag.");
+        }
 
         cycle.UpdateDetails(
             request.Period,
@@ -264,5 +307,32 @@ public class ContributionCyclesController : ControllerBase
         await _cycleRepository.DeleteAsync(cycleId);
 
         return NoContent();
+    }
+
+    private static uint ParseIfMatch(string ifMatch)
+    {
+        var normalized = ifMatch.Trim();
+        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        {
+            normalized = normalized.Trim('"');
+        }
+
+        if (normalized.StartsWith("W/", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Substring(2).Trim();
+        }
+
+        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        {
+            normalized = normalized.Trim('"');
+        }
+
+        if (uint.TryParse(normalized, out var version))
+        {
+            return version;
+        }
+
+        throw new RequestValidationException(
+            "If-Match header must contain a valid ETag value.");
     }
 }

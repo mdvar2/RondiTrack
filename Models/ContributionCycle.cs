@@ -6,6 +6,8 @@ public class ContributionCycle
 
     public Guid Id { get; private set; }
 
+    public uint Version { get; private set; }
+
     public Guid StokvelId { get; private set; }
 
     public string Period { get; private set; }

@@ -61,6 +61,8 @@ public class UsersController : ControllerBase
         if (user is null)
             throw new NotFoundException("User not found.");
 
+        Response.Headers.ETag = $"\"{user.Version}\"";
+
         return Ok(UserResponse.FromEntity(user));
     }
 
@@ -116,13 +118,27 @@ public class UsersController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
-        UpdateUserRequest request)
+        UpdateUserRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch)
     {
         var user =
             await _userRepository.GetByIdAsync(id);
 
         if (user is null)
             throw new NotFoundException("User not found.");
+
+        if (string.IsNullOrWhiteSpace(ifMatch))
+        {
+            throw new RequestValidationException(
+                "If-Match header is required.");
+        }
+
+        var providedVersion = ParseIfMatch(ifMatch);
+        if (providedVersion != user.Version)
+        {
+            throw new PreconditionFailedException(
+                "The user has changed. Refetch it and retry with the current ETag.");
+        }
 
         user.UpdateDetails(
             request.Name,
@@ -155,5 +171,32 @@ public class UsersController : ControllerBase
             throw new NotFoundException("User not found.");
 
         return NoContent();
+    }
+
+    private static uint ParseIfMatch(string ifMatch)
+    {
+        var normalized = ifMatch.Trim();
+        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        {
+            normalized = normalized.Trim('"');
+        }
+
+        if (normalized.StartsWith("W/", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Substring(2).Trim();
+        }
+
+        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        {
+            normalized = normalized.Trim('"');
+        }
+
+        if (uint.TryParse(normalized, out var version))
+        {
+            return version;
+        }
+
+        throw new RequestValidationException(
+            "If-Match header must contain a valid ETag value.");
     }
 }

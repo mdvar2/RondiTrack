@@ -8,6 +8,8 @@ public class Stokvel
 
     public Guid Id { get; private set; }
 
+    public uint Version { get; private set; }
+
     public string Name { get; private set; }
 
     public decimal ContributionAmount { get; private set; }

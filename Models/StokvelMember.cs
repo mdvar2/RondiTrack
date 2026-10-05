@@ -6,6 +6,8 @@ public class StokvelMember
 
     public Guid UserId { get; private set; }
 
+    public uint Version { get; private set; }
+
     public string Role { get; private set; }
 
     public DateTime JoinedAtUtc { get; private set; }

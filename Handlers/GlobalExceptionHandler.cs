@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RondiTrack.Exceptions;
 
 namespace RondiTrack.Handlers;
@@ -30,7 +31,17 @@ public class GlobalExceptionHandler : IExceptionHandler
             NotFoundException =>
                 (StatusCodes.Status404NotFound, "Not Found"),
 
+            PreconditionFailedException =>
+                (StatusCodes.Status412PreconditionFailed,
+                    "Precondition Failed"),
+
             BusinessRuleException =>
+                (StatusCodes.Status409Conflict, "Conflict"),
+
+            DbUpdateConcurrencyException =>
+                (StatusCodes.Status409Conflict, "Conflict"),
+
+            DbUpdateException dbException when IsUniqueConstraintViolation(dbException) =>
                 (StatusCodes.Status409Conflict, "Conflict"),
 
             _ =>
@@ -50,7 +61,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             Status = statusCode,
             Detail = exception is RondiTrackException
                 ? exception.Message
-                : "An unexpected error occurred.",
+                : exception is DbUpdateException && IsUniqueConstraintViolation((DbUpdateException)exception)
+                    ? "A database constraint was violated."
+                    : "An unexpected error occurred.",
             Instance = httpContext.Request.Path
         };
 
@@ -67,5 +80,25 @@ public class GlobalExceptionHandler : IExceptionHandler
             cancellationToken: cancellationToken);
 
         return true;
+    }
+
+    private static bool IsUniqueConstraintViolation(
+        DbUpdateException exception)
+    {
+        var inner = exception.InnerException;
+
+        while (inner is not null)
+        {
+            var message = inner.Message ?? string.Empty;
+            if (message.Contains("23505", StringComparison.Ordinal) ||
+                message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            inner = inner.InnerException;
+        }
+
+        return false;
     }
 }

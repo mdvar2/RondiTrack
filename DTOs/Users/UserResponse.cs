@@ -5,7 +5,8 @@ namespace RondiTrack.DTOs.Users;
 public record UserResponse(
     Guid Id,
     string Name,
-    string Email
+    string Email,
+    uint Version
 )
 {
     public static UserResponse FromEntity(User user)
@@ -13,7 +14,8 @@ public record UserResponse(
         return new UserResponse(
             user.Id,
             user.Name,
-            user.Email
+            user.Email,
+            user.Version
         );
     }
 }

@@ -8,7 +8,8 @@ public record PayoutResponse(
     Guid RecipientUserId,
     Guid ContributionCycleId,
     decimal Amount,
-    DateTime PaidAtUtc)
+    DateTime PaidAtUtc,
+    uint Version)
 {
     public static PayoutResponse FromEntity(
         Payout payout)
@@ -19,6 +20,7 @@ public record PayoutResponse(
             payout.RecipientUserId,
             payout.ContributionCycleId,
             payout.Amount,
-            payout.PaidAtUtc);
+            payout.PaidAtUtc,
+            payout.Version);
     }
 }

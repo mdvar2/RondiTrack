@@ -6,6 +6,8 @@ public class User
 
     public Guid Id { get; private set; }
 
+    public uint Version { get; private set; }
+
     public string Name { get; private set; }
 
     public string Email { get; private set; }
