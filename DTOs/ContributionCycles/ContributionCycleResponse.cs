@@ -6,7 +6,8 @@ public record ContributionCycleResponse(
     Guid Id,
     Guid StokvelId,
     string Period,
-    decimal TargetAmount)
+    decimal TargetAmount,
+    uint Version)
 {
     public static ContributionCycleResponse FromEntity(
         ContributionCycle cycle)
@@ -15,6 +16,7 @@ public record ContributionCycleResponse(
             cycle.Id,
             cycle.StokvelId,
             cycle.Period,
-            cycle.TargetAmount);
+            cycle.TargetAmount,
+            cycle.Version);
     }
 }

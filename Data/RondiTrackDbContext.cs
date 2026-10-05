@@ -26,6 +26,30 @@ public class RondiTrackDbContext : DbContext
         modelBuilder.Entity<Stokvel>()
             .Ignore(stokvel => stokvel.Members);
 
+        modelBuilder.Entity<User>()
+            .Property(user => user.Version)
+            .IsRowVersion();
+
+        modelBuilder.Entity<Stokvel>()
+            .Property(stokvel => stokvel.Version)
+            .IsRowVersion();
+
+        modelBuilder.Entity<ContributionCycle>()
+            .Property(cycle => cycle.Version)
+            .IsRowVersion();
+
+        modelBuilder.Entity<Contribution>()
+            .Property(contribution => contribution.Version)
+            .IsRowVersion();
+
+        modelBuilder.Entity<Payout>()
+            .Property(payout => payout.Version)
+            .IsRowVersion();
+
+        modelBuilder.Entity<StokvelMember>()
+            .Property(member => member.Version)
+            .IsRowVersion();
+
         modelBuilder.Entity<StokvelMember>()
             .HasKey(member => new
             {
@@ -73,6 +97,14 @@ public class RondiTrackDbContext : DbContext
                 contribution.StokvelId,
                 contribution.UserId,
                 contribution.ContributionCycleId
+            })
+            .IsUnique();
+
+        modelBuilder.Entity<Payout>()
+            .HasIndex(payout => new
+            {
+                payout.StokvelId,
+                payout.ContributionCycleId
             })
             .IsUnique();
 

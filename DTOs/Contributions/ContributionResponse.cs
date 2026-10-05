@@ -8,7 +8,8 @@ public record ContributionResponse(
     Guid UserId,
     Guid ContributionCycleId,
     decimal Amount,
-    DateTime RecordedAtUtc)
+    DateTime RecordedAtUtc,
+    uint Version)
 {
     public static ContributionResponse FromEntity(
         Contribution contribution)
@@ -19,6 +20,7 @@ public record ContributionResponse(
             contribution.UserId,
             contribution.ContributionCycleId,
             contribution.Amount,
-            contribution.RecordedAtUtc);
+            contribution.RecordedAtUtc,
+            contribution.Version);
     }
 }

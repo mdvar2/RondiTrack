@@ -352,12 +352,12 @@ For detailed output:
 dotnet test .\RondiTrack.Tests\RondiTrack.Tests.csproj --logger "console;verbosity=detailed"
 ```
 
-The final Assignment 5.2 regression run produced:
+The current regression run produced:
 
 ``` text
-Total: 21
+Total: 23
 Failed: 0
-Succeeded: 21
+Succeeded: 23
 Skipped: 0
 
 Build succeeded
@@ -1104,6 +1104,65 @@ remains open. The forced rollback currently tests the EF transaction
 mechanism directly rather than injecting a failure through
 `PayoutService`; service-level failure injection remains a possible
 future improvement.
+
+------------------------------------------------------------------------
+
+# Database Defense, Pagination, and Concurrency
+
+The current implementation enforces the assignment's database-safety
+concerns at both the application and persistence layers.
+
+## Database-enforced uniqueness and business-rule guards
+
+The EF Core model configures the key uniqueness rules that are already
+required by the application business logic:
+
+-   `StokvelMember` uses the composite natural key `(UserId, StokvelId)`;
+-   `Contribution` enforces uniqueness for `(StokvelId, UserId, ContributionCycleId)`;
+-   `Payout` enforces uniqueness for `(StokvelId, ContributionCycleId)`;
+-   PostgreSQL row-version metadata is mapped for all mutable entities using
+    `.IsRowVersion()` on the `Version` property.
+
+This means a duplicate member, a duplicate contribution for a member and
+cycle, or a second payout for the same cycle cannot silently pass the
+service layer and be inserted as a database row. `GlobalExceptionHandler`
+classifies duplicate-key and update-conflict exceptions as RFC 9457
+problem responses rather than generic server errors.
+
+## Optimistic concurrency via PostgreSQL row versions
+
+RondiTrack exposes `Version` on domain entities and maps the column to a
+PostgreSQL row-version using the EF Core row-version pattern. The API
+then uses the standard HTTP `ETag` and `If-Match` pattern so stale writes
+are rejected:
+
+-   read endpoints set `Response.Headers.ETag = $"\"{entity.Version}\""`;
+-   update endpoints require an `If-Match` header;
+-   a mismatch raises `PreconditionFailedException` with HTTP 412;
+-   a database update conflict is mapped to HTTP 409.
+
+This prevents a stale client request from overwriting current state after
+another user or process has already modified the same row.
+
+## Pagination contract
+
+The assignment also pushes list behavior into the database instead of
+returning unbounded in-memory collections.
+
+The paged endpoints use an opaque `pageToken` and server-enforced
+page-size limits:
+
+-   default page size: `25`;
+-   maximum page size: `100`;
+-   `sortBy` and `sortDirection` are validated against an allow-list;
+-   `pageToken` is base64-encoded and validated to ensure it matches the
+    current sort/filter state;
+-   the repository applies the `ApplyToken` filter before ordering and
+    taking `pageSize + 1` rows to determine whether a next page exists.
+
+This is implemented for the cycle contributions endpoint and the
+stokvel-members endpoint, with `PagedResult<T>` carrying the items, the
+next token, and the effective page size.
 
 ------------------------------------------------------------------------
 

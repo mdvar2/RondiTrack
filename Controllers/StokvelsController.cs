@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RondiTrack.Common;
 using RondiTrack.DTOs.Contributions;
 using RondiTrack.DTOs.Stokvels;
 using RondiTrack.Exceptions;
@@ -13,15 +14,18 @@ namespace RondiTrack.Controllers;
 public class StokvelsController : ControllerBase
 {
     private readonly IStokvelRepository _stokvelRepository;
+    private readonly IStokvelMemberRepository _stokvelMemberRepository;
     private readonly MembershipService _membershipService;
     private readonly ContributionService _contributionService;
 
     public StokvelsController(
         IStokvelRepository stokvelRepository,
+        IStokvelMemberRepository stokvelMemberRepository,
         MembershipService membershipService,
         ContributionService contributionService)
     {
         _stokvelRepository = stokvelRepository;
+        _stokvelMemberRepository = stokvelMemberRepository;
         _membershipService = membershipService;
         _contributionService = contributionService;
     }
@@ -70,7 +74,54 @@ public class StokvelsController : ControllerBase
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
 
+        Response.Headers.ETag = $"\"{stokvel.Version}\"";
+
         return Ok(StokvelResponse.FromEntity(stokvel));
+    }
+
+    [ProducesResponseType(
+        typeof(PagedResult<StokvelMemberResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
+    [HttpGet("{stokvelId:guid}/members")]
+    public async Task<ActionResult<PagedResult<StokvelMemberResponse>>> GetMembers(
+        Guid stokvelId,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string? pageToken = null,
+        [FromQuery] string sortBy = "joinedAtUtc",
+        [FromQuery] string sortDirection = "desc",
+        [FromQuery] string? role = null)
+    {
+        var stokvel =
+            await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
+
+        if (stokvel is null)
+            throw new NotFoundException("Stokvel not found.");
+
+        if (pageSize < 0)
+        {
+            throw new RequestValidationException(
+                "Page size cannot be negative.");
+        }
+
+        var safePageSize = Math.Min(
+            pageSize <= 0 ? 25 : pageSize,
+            100);
+
+        var results = await _stokvelMemberRepository.GetByStokvelPagedAsync(
+            stokvelId,
+            safePageSize,
+            pageToken,
+            sortBy,
+            sortDirection,
+            role);
+
+        return Ok(results);
     }
 
     /// <summary>
@@ -125,13 +176,27 @@ public class StokvelsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
-        UpdateStokvelRequest request)
+        UpdateStokvelRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch)
     {
         var stokvel =
             await _stokvelRepository.GetByIdAsync(id);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
+
+        if (string.IsNullOrWhiteSpace(ifMatch))
+        {
+            throw new RequestValidationException(
+                "If-Match header is required.");
+        }
+
+        var providedVersion = ParseIfMatch(ifMatch);
+        if (providedVersion != stokvel.Version)
+        {
+            throw new PreconditionFailedException(
+                "The stokvel has changed. Refetch it and retry with the current ETag.");
+        }
 
         stokvel.UpdateDetails(
             request.Name,
@@ -267,5 +332,32 @@ public class StokvelsController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             response);
+    }
+
+    private static uint ParseIfMatch(string ifMatch)
+    {
+        var normalized = ifMatch.Trim();
+        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        {
+            normalized = normalized.Trim('"');
+        }
+
+        if (normalized.StartsWith("W/", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Substring(2).Trim();
+        }
+
+        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        {
+            normalized = normalized.Trim('"');
+        }
+
+        if (uint.TryParse(normalized, out var version))
+        {
+            return version;
+        }
+
+        throw new RequestValidationException(
+            "If-Match header must contain a valid ETag value.");
     }
 }

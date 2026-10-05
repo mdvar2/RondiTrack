@@ -11,7 +11,8 @@ public record ContributionWithMemberResponse(
     string MemberRole,
     Guid ContributionCycleId,
     decimal Amount,
-    DateTime RecordedAtUtc)
+    DateTime RecordedAtUtc,
+    uint Version)
 {
     public static ContributionWithMemberResponse FromEntity(
         Contribution contribution)
@@ -25,6 +26,7 @@ public record ContributionWithMemberResponse(
             contribution.Member.Role,
             contribution.ContributionCycleId,
             contribution.Amount,
-            contribution.RecordedAtUtc);
+            contribution.RecordedAtUtc,
+            contribution.Version);
     }
 }

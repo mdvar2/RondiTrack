@@ -6,7 +6,8 @@ public record StokvelResponse(
     Guid Id,
     string Name,
     decimal ContributionAmount,
-    int MemberCount
+    int MemberCount,
+    uint Version
 )
 {
     public static StokvelResponse FromEntity(Stokvel stokvel)
@@ -15,7 +16,8 @@ public record StokvelResponse(
             stokvel.Id,
             stokvel.Name,
             stokvel.ContributionAmount,
-            stokvel.Members.Count
+            stokvel.Members.Count,
+            stokvel.Version
         );
     }
 }
