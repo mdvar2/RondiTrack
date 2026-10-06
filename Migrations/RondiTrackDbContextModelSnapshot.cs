@@ -58,6 +58,10 @@ namespace RondiTrack.Migrations
                     b.HasIndex("StokvelId", "UserId", "ContributionCycleId")
                         .IsUnique();
 
+                    b.HasIndex("StokvelId", "ContributionCycleId", "RecordedAtUtc", "Id")
+                        .IsDescending(false, false, true, true)
+                        .HasDatabaseName("IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id");
+
                     b.ToTable("Contributions");
                 });
 

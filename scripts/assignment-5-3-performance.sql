@@ -1,86 +1,102 @@
 -- Assignment 5.3 performance experiment
 --
--- Run this against a disposable/local RondiTrack database only.
--- It creates an isolated stokvel/cycle and 10,000 valid members and
--- contributions so EXPLAIN ANALYZE measures a realistic table volume.
+-- Run against a disposable/local RondiTrack database only.
+-- This psql script seeds 10,000 contributions, runs the logged endpoint SQL
+-- before the performance index, creates the index, then runs the same SQL
+-- again. It leaves the isolated seed data in the database for inspection.
 --
--- IMPORTANT: Run section A first and save the EXPLAIN ANALYZE output.
--- Then run section B, run ANALYZE, and run the same EXPLAIN ANALYZE again.
--- Record the actual PostgreSQL output in the README; do not invent timings.
+-- The SELECT shape below is copied from the EF Core Database.Command log for
+-- GET /api/stokvels/{stokvelId}/cycles/{cycleId}/contributions?pageSize=26.
+-- Only bound parameters are substituted; LIMIT 27 is pageSize + 1.
 
--- A. Seed 10,000 contributions
-DO $$
-DECLARE
-    v_stokvel uuid := gen_random_uuid();
-    v_cycle uuid := gen_random_uuid();
-BEGIN
-    INSERT INTO "Stokvels" ("Id", "Name", "ContributionAmount")
-    VALUES (v_stokvel, 'Assignment 5.3 Performance Stokvel', 1000);
+\set ON_ERROR_STOP on
 
-    INSERT INTO "ContributionCycles" ("Id", "StokvelId", "Period", "TargetAmount", "Status")
-    VALUES (v_cycle, v_stokvel, 'PERF-5.3', 10000000, 'Open');
+BEGIN;
 
-    CREATE TEMP TABLE perf_members (
-        user_id uuid PRIMARY KEY,
-        sequence_no integer NOT NULL
-    ) ON COMMIT DROP;
+SELECT gen_random_uuid()::text AS stokvel_id \gset
+SELECT gen_random_uuid()::text AS cycle_id \gset
+\echo Performance stokvel id: :stokvel_id
+\echo Performance cycle id: :cycle_id
 
-    INSERT INTO perf_members (user_id, sequence_no)
-    SELECT gen_random_uuid(), n
-    FROM generate_series(1, 10000) AS n;
+INSERT INTO "Stokvels" ("Id", "Name", "ContributionAmount")
+VALUES (:'stokvel_id'::uuid, 'Assignment 5.3 Performance Stokvel', 1000);
 
-    INSERT INTO "Users" ("Id", "Name", "Email")
-    SELECT user_id,
-           'Performance User ' || sequence_no,
-           'perf-' || user_id || '@example.com'
-    FROM perf_members;
+INSERT INTO "ContributionCycles"
+    ("Id", "StokvelId", "Period", "TargetAmount", "Status")
+VALUES (:'cycle_id'::uuid, :'stokvel_id'::uuid, 'PERF-5.3', 10000000, 'Open');
 
-    INSERT INTO "StokvelMembers" ("UserId", "StokvelId", "Role", "JoinedAtUtc")
-    SELECT user_id,
-           v_stokvel,
-           'Member',
-           TIMESTAMPTZ '2026-01-01 00:00:00+00'
-               + (sequence_no * INTERVAL '1 second')
-    FROM perf_members;
+CREATE TEMP TABLE perf_members (
+    user_id uuid PRIMARY KEY,
+    sequence_no integer NOT NULL
+);
 
-    INSERT INTO "Contributions"
-        ("Id", "StokvelId", "UserId", "ContributionCycleId", "Amount", "RecordedAtUtc")
-    SELECT gen_random_uuid(),
-           v_stokvel,
-           user_id,
-           v_cycle,
-           1000,
-           TIMESTAMPTZ '2026-01-01 00:00:00+00'
-               + (sequence_no * INTERVAL '1 second')
-    FROM perf_members;
+INSERT INTO perf_members (user_id, sequence_no)
+SELECT gen_random_uuid(), n
+FROM generate_series(1, 10000) AS n;
 
-    RAISE NOTICE 'Performance StokvelId: %, CycleId: %', v_stokvel, v_cycle;
-END $$;
+INSERT INTO "Users" ("Id", "Name", "Email")
+SELECT user_id,
+       'Performance User ' || sequence_no,
+       'perf-' || user_id || '@example.com'
+FROM perf_members;
 
+INSERT INTO "StokvelMembers" ("UserId", "StokvelId", "Role", "JoinedAtUtc")
+SELECT user_id,
+       :'stokvel_id'::uuid,
+       'Member',
+       TIMESTAMPTZ '2026-01-01 00:00:00+00'
+           + (sequence_no * INTERVAL '1 second')
+FROM perf_members;
+
+INSERT INTO "Contributions"
+    ("Id", "StokvelId", "UserId", "ContributionCycleId", "Amount", "RecordedAtUtc")
+SELECT gen_random_uuid(),
+       :'stokvel_id'::uuid,
+       user_id,
+       :'cycle_id'::uuid,
+       1000,
+       TIMESTAMPTZ '2026-01-01 00:00:00+00'
+           + (sequence_no * INTERVAL '1 second')
+FROM perf_members;
+
+-- Ensure the baseline excludes the index even if its EF migration has
+-- already been applied to this local database.
+DROP INDEX IF EXISTS
+    "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id";
 ANALYZE "Contributions";
 
--- Replace the two UUID placeholders below with the IDs printed by the NOTICE.
+-- Before index: SQL shape captured from the actual paged endpoint log.
 EXPLAIN (ANALYZE, BUFFERS)
-SELECT c."Id",
-       c."StokvelId",
-       c."UserId",
-       c."ContributionCycleId",
-       c."Amount",
-       c."RecordedAtUtc"
-FROM "Contributions" AS c
-WHERE c."StokvelId" = 'REPLACE_STOKVEL_ID'::uuid
-  AND c."ContributionCycleId" = 'REPLACE_CYCLE_ID'::uuid
-ORDER BY c."RecordedAtUtc" DESC, c."Id" DESC
-LIMIT 26;
+SELECT c0."Id", c0."StokvelId", c0."UserId", u."Name", u."Email", s."Role", c0."ContributionCycleId", c0."Amount", c0."RecordedAtUtc", c0.xmin AS "Version"
+FROM (
+    SELECT c."Id", c."Amount", c."ContributionCycleId", c."RecordedAtUtc", c."StokvelId", c."UserId", c.xmin
+    FROM "Contributions" AS c
+    WHERE c."StokvelId" = :'stokvel_id'::uuid AND c."ContributionCycleId" = :'cycle_id'::uuid
+    ORDER BY c."RecordedAtUtc" DESC, c."Id" DESC
+    LIMIT 27
+) AS c0
+INNER JOIN "StokvelMembers" AS s ON c0."UserId" = s."UserId" AND c0."StokvelId" = s."StokvelId"
+INNER JOIN "Users" AS u ON s."UserId" = u."Id"
+ORDER BY c0."RecordedAtUtc" DESC, c0."Id" DESC;
 
--- B. Add the index that matches the equality filters followed by the
--- deterministic keyset-pagination ordering columns.
-CREATE INDEX IF NOT EXISTS "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id"
+CREATE INDEX
+    "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id"
 ON "Contributions"
     ("StokvelId", "ContributionCycleId", "RecordedAtUtc" DESC, "Id" DESC);
-
 ANALYZE "Contributions";
 
--- Run the exact same EXPLAIN (ANALYZE, BUFFERS) query from section A again.
--- Compare scan type, execution time, estimated/actual rows, and rows removed
--- by filter (where PostgreSQL reports it).
+-- After index: same endpoint SQL and parameter values.
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT c0."Id", c0."StokvelId", c0."UserId", u."Name", u."Email", s."Role", c0."ContributionCycleId", c0."Amount", c0."RecordedAtUtc", c0.xmin AS "Version"
+FROM (
+    SELECT c."Id", c."Amount", c."ContributionCycleId", c."RecordedAtUtc", c."StokvelId", c."UserId", c.xmin
+    FROM "Contributions" AS c
+    WHERE c."StokvelId" = :'stokvel_id'::uuid AND c."ContributionCycleId" = :'cycle_id'::uuid
+    ORDER BY c."RecordedAtUtc" DESC, c."Id" DESC
+    LIMIT 27
+) AS c0
+INNER JOIN "StokvelMembers" AS s ON c0."UserId" = s."UserId" AND c0."StokvelId" = s."StokvelId"
+INNER JOIN "Users" AS u ON s."UserId" = u."Id"
+ORDER BY c0."RecordedAtUtc" DESC, c0."Id" DESC;
+
+COMMIT;
