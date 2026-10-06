@@ -100,6 +100,18 @@ public class RondiTrackDbContext : DbContext
             })
             .IsUnique();
 
+        modelBuilder.Entity<Contribution>()
+            .HasIndex(contribution => new
+            {
+                contribution.StokvelId,
+                contribution.ContributionCycleId,
+                contribution.RecordedAtUtc,
+                contribution.Id
+            })
+            .IsDescending(false, false, true, true)
+            .HasDatabaseName(
+                "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id");
+
         modelBuilder.Entity<Payout>()
             .HasIndex(payout => new
             {
