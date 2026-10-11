@@ -1,41 +1,30 @@
+using RondiTrack.Tests.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using RondiTrack.Infrastructure.Data;
 using RondiTrack.Domain.Entities;
 
 namespace RondiTrack.Tests;
 
+[Collection(PostgresCollection.Name)]
 public class ConcurrencyProtectionTests
-    : IClassFixture<WebApplicationFactory<Program>>
 {
+    private readonly PostgresApiFactory _factory;
+
     private readonly HttpClient _client;
 
     public ConcurrencyProtectionTests(
-        WebApplicationFactory<Program> factory)
+        PostgresApiFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
     [Fact]
     public async Task SaveChanges_WhenTwoContextsModifySamePayout_ThrowsDbUpdateConcurrencyException()
     {
-        var configuration =
-            new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .Build();
-
-        var connectionString =
-            configuration.GetConnectionString("RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        var options =
-            new DbContextOptionsBuilder<RondiTrackDbContext>()
-                .UseNpgsql(connectionString)
-                .Options;
+        var options = _factory.CreateDbContextOptions();
 
         var user = new User(
             $"Concurrency User {Guid.NewGuid()}",

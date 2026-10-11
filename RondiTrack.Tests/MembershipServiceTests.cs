@@ -1,6 +1,6 @@
+using RondiTrack.Tests.TestSupport;
 using RondiTrack.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using RondiTrack.Infrastructure.Data;
 using RondiTrack.Domain.Exceptions;
 using RondiTrack.Domain.Entities;
@@ -9,27 +9,18 @@ using RondiTrack.Services;
 
 namespace RondiTrack.Tests;
 
+[Collection(PostgresCollection.Name)]
 public class MembershipServiceTests
 {
+    private readonly PostgresApiFactory _factory;
+
+    public MembershipServiceTests(PostgresApiFactory factory) => _factory = factory;
+
     [Fact]
     public async Task AddMemberAsync_WhenUserAlreadyMember_ThrowsBusinessRuleException()
     {
         // Arrange
-        var configuration =
-            new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .Build();
-
-        var connectionString =
-            configuration.GetConnectionString(
-                "RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        var options =
-            new DbContextOptionsBuilder<RondiTrackDbContext>()
-                .UseNpgsql(connectionString)
-                .Options;
+        var options = _factory.CreateDbContextOptions();
 
         await using var dbContext =
             new RondiTrackDbContext(options);

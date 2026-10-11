@@ -1,32 +1,23 @@
+using RondiTrack.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using RondiTrack.Infrastructure.Data;
 using RondiTrack.Domain.Entities;
 using RondiTrack.Services;
 
 namespace RondiTrack.Tests;
 
+[Collection(PostgresCollection.Name)]
 public class PayoutTransactionTests
 {
+    private readonly PostgresApiFactory _factory;
+
+    public PayoutTransactionTests(PostgresApiFactory factory) => _factory = factory;
+
     [Fact]
     public async Task CreatePayoutAsync_PersistsPayoutAndMarksCyclePaidOut()
     {
         // Arrange
-        var configuration =
-            new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .Build();
-
-        var connectionString =
-            configuration.GetConnectionString(
-                "RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        var options =
-            new DbContextOptionsBuilder<RondiTrackDbContext>()
-                .UseNpgsql(connectionString)
-                .Options;
+        var options = _factory.CreateDbContextOptions();
 
         var user =
             new User(
@@ -125,21 +116,7 @@ public class PayoutTransactionTests
     public async Task PayoutTransaction_WhenFailureOccursPartway_RollsBackAllChanges()
     {
         // Arrange
-        var configuration =
-            new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .Build();
-
-        var connectionString =
-            configuration.GetConnectionString(
-                "RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        var options =
-            new DbContextOptionsBuilder<RondiTrackDbContext>()
-                .UseNpgsql(connectionString)
-                .Options;
+        var options = _factory.CreateDbContextOptions();
 
         var user =
             new User(
