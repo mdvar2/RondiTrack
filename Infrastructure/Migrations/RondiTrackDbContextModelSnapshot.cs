@@ -133,6 +133,67 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.ToTable("Payouts");
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("UsedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.RefreshTokenFamily", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokenFamilies");
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.Stokvel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -250,6 +311,24 @@ namespace RondiTrack.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("RecipientMember");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("RondiTrack.Domain.Entities.RefreshTokenFamily", null)
+                        .WithMany()
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.RefreshTokenFamily", b =>
+                {
+                    b.HasOne("RondiTrack.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RondiTrack.Domain.Entities.StokvelMember", b =>
