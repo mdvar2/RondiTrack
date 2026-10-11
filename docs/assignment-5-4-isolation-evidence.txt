@@ -1,0 +1,8 @@
+DEVELOPMENT_DATABASE_UNAVAILABLE: ronditrack rejected a real connection (ALLOW_CONNECTIONS=false); PostgreSQL service remains running.
+TEST_DATABASE container=632f839607492c16ecae30b443766c4e8e56f3a39e0317a95b197e37cb419d6d host=127.0.0.1 port=8623 database=ronditrack_test migrations=4
+[testcontainers.org 00:00:10.29] Delete Docker container 632f83960749
+Test Run Successful.
+Total tests: 25
+     Passed: 25
+ Total time: 12,2869 Seconds
+DEVELOPMENT_DATABASE_RESTORED: ronditrack accepts connections again.
