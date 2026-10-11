@@ -1592,9 +1592,11 @@ dotnet build RondiTrack.sln -m:1
 dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --no-build --logger "console;verbosity=detailed"
 ```
 
-Phase 5 interim verification: the converted solution builds with 0 warnings and
-0 errors, and test discovery still finds all 25 tests. Container execution failed
-25/25 during shared fixture construction because no Docker engine was available.
-Docker Desktop installation was attempted with user authorization, but the
-installer failed before completion. The development-database-unavailable proof
-remains pending. This is not Assignment 5.4 completion evidence.
+Phase 5 verification: the converted solution builds with 0 warnings and 0 errors,
+and all 25 existing tests pass against the disposable PostgreSQL 17 container.
+The initial attempt failed all 25 tests during fixture construction while Docker
+was absent. Docker Desktop 4.94.0 was then installed per-user using its documented
+`--user` option; the all-users installation attempts had failed at Windows UAC.
+Docker Engine 29.8.2 now runs Linux containers on the existing WSL 2 installation.
+The successful run applied all four preserved migrations and disposed its
+container. The development-database-unavailable proof follows in Phase 6.

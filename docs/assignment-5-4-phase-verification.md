@@ -143,3 +143,7 @@ A	RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
 A	RondiTrack.Tests/TestSupport/PostgresCollection.cs
 M	docs/assignment-5-4-phase-verification.md
 ```
+
+### Phase 5 runtime verification completed
+
+Status: Completed. Docker Desktop 4.94.0 installed successfully per-user (installer exit 0); Docker Engine 29.8.2 reports Linux containers. All 25 tests passed against PostgreSQL 17, total time 1.3598 minutes including first image pulls. The fixture applied four migrations and logged the sanitized container endpoint; Testcontainers deleted the database container at disposal. The initial Docker-blocked attempt above is retained as historical evidence. Modified README.md and this report to record actual results. Repository credential-pattern scans found no candidates across 278 unique historical text blobs and across the current scanned text files; this is a heuristic, not a guarantee. Outstanding: Phase 6 proof with development PostgreSQL unavailable.
