@@ -100,3 +100,9 @@ A	Domain/Queries/StokvelMemberDetails.cs
 A	Infrastructure/Infrastructure.csproj
 A	docs/assignment-5-4-phase-verification.md
 ```
+
+## Phase 3 ? EF Core compatibility
+
+Status: Completed. Modified API/RondiTrack.csproj, API/Program.cs and this report. API explicitly pins EF Core and Relational 10.0.4 to match Infrastructure; EF Core Design remains 10.0.4 with PrivateAssets=all. Program.cs explicitly selects the Infrastructure migrations assembly. No CS1705 occurred, because the versions were aligned before testing.
+
+Navigation: API/RondiTrack.csproj/PackageReference; API/Program.cs/UseNpgsql; Infrastructure/Migrations. Verification: dotnet build RondiTrack.sln -m:1 succeeded, 0 warnings/errors; dotnet ef migrations list --project Infrastructure --startup-project API --no-build listed all four existing migrations as applied; dotnet ef migrations has-pending-model-changes --project Infrastructure --startup-project API --no-build reported no model changes. No migration history or database data was recreated. Regression suite last passed 25/25 in Phase 2; no application behavior changed in this phase. Outstanding: container verification in Phases 5?6.
