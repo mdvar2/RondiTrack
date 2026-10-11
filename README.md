@@ -1600,3 +1600,51 @@ was absent. Docker Desktop 4.94.0 was then installed per-user using its document
 Docker Engine 29.8.2 now runs Linux containers on the existing WSL 2 installation.
 The successful run applied all four preserved migrations and disposed its
 container. The development-database-unavailable proof follows in Phase 6.
+
+
+## Assignment 5.4 completion proof ? 11 October 2026
+
+The development server is a local PostgreSQL Windows service, not a Docker
+container. To avoid stopping a shared service, the isolation proof temporarily
+set `ALTER DATABASE ronditrack ALLOW_CONNECTIONS false` after checking that no
+sessions were connected. A real `psql` connection was refused with "database is
+not currently accepting connections" before tests ran. The full suite then
+passed on a fresh Testcontainers database. The script restored
+`ALLOW_CONNECTIONS true` in `finally`, and a real connection succeeded afterward.
+No schema or data was changed by this proof. The PostgreSQL Windows service
+remained running; the development database was unavailable to clients.
+
+Run the same proof with development API/database sessions closed:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-5-4-isolation.ps1
+```
+
+The execution-policy override applies only to that child process. The script
+reads the existing development User Secret without printing it, passes the
+password privately to psql, and removes it before invoking dotnet test.
+It refuses remote or differently named databases and never terminates sessions.
+
+Actual test summary with the development database unavailable:
+
+```text
+Test Run Successful.
+Total tests: 25
+     Passed: 25
+ Total time: 12,2869 Seconds
+```
+
+No tests failed or were skipped. The fixture proved the API connection used
+`127.0.0.1:8623/ronditrack_test`, applied all four migrations, and disposed the
+container. This port is assigned dynamically and will differ between runs.
+Sanitized evidence is in
+[docs/assignment-5-4-isolation-evidence.txt](docs/assignment-5-4-isolation-evidence.txt).
+The completion checklist, code navigation, commits, preserved migrations, and
+phase reports are in
+[docs/assignment-5-4-verification-report.md](docs/assignment-5-4-verification-report.md).
+
+Two local proof-script issues were resolved before the successful run: Windows
+PowerShell blocked script execution, so a child-process-only override was used;
+its IDictionary adaptation of DbConnectionStringBuilder required calling
+`set_ConnectionString` explicitly. An expected psql refusal is captured without
+aborting the test run, and restoration always runs in `finally`.
