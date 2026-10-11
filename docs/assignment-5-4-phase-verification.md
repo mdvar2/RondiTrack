@@ -110,3 +110,36 @@ Navigation: API/RondiTrack.csproj/PackageReference; API/Program.cs/UseNpgsql; In
 ## Phase 4 ? Dependency injection
 
 Status: Completed. Modified README.md and this report. No registrations were changed: DbContext, five repositories and three services are already Scoped. Singleton IdempotencyStore and GlobalExceptionHandler have no DbContext dependency. README documents application, validator and framework registration lifetimes, plus updated API project and EF CLI paths. Navigation: API/Program.cs/AddScoped and AddSingleton; API/Idempotency/IdempotencyStore.cs; README.md/Dependency-injection lifetime audit. Phase 3 build passed 0 warnings/errors; Phase 2 tests passed 25/25. This phase changes documentation only, so no repeat build/test was necessary. Outstanding: Docker installation and container verification.
+
+## Phase 5 ? PostgreSQL Testcontainers
+
+Status: Partially completed (implemented and compiled; runtime verification blocked on Docker). Added Testcontainers.PostgreSql 4.15.0 as the only new library. Created RondiTrack.Tests/TestSupport/PostgresApiFactory.cs and PostgresCollection.cs. Converted all 11 test classes, including direct-DbContext service, transaction, constraint and concurrency tests, to the shared collection. Removed development User Secrets reads from tests. No assertion statement changed; verified against baseline 6e3bfa1.
+
+Navigation: PostgresApiFactory/ConfigureWebHost uses the exact early-read key ConnectionStrings:RondiTrackDb with UseSetting; InitializeAsync starts PostgreSQL 17, resolves the API's real context, validates its endpoint and applies the preserved migrations; CreateDbContextOptions supplies direct test contexts; explicit IAsyncLifetime.DisposeAsync disposes the host and container. PostgresCollection serializes database classes; existing GUID-based setup isolates records. README documents prerequisites, lifecycle and isolation.
+
+Verification: dotnet build RondiTrack.sln --no-restore -m:1 succeeded, 0 warnings/errors. dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --no-build --no-restore --list-tests discovered all 25 tests. Assertion statement comparison passed. dotnet list Domain/Domain.csproj reference found no references; dotnet list Domain/Domain.csproj package --no-restore found no packages. git diff --check passed. Container test execution attempted with no Docker engine: failed 25, passed 0, skipped 0; all failures occurred during shared fixture construction, before assertions.
+
+Environment: Docker Desktop 4.94.0 installer downloaded and hash verified through winget, with user authorization. Initial installation failed (exit 4294967291); installer log says administrator elevation was canceled. One authorized retry is pending its Windows UAC prompt. Development PostgreSQL remains running. Isolation preflight found only postgres and ronditrack non-template databases, and no other active client sessions. No service was stopped while Docker was unavailable.
+
+Outstanding: complete Docker installation/startup, execute tests successfully against the container, then perform Phase 6 with development PostgreSQL unavailable and restore its original state. Assignment 5.4 is not complete; Assignment 6.1 has not started.
+
+Exact Phase 5 files (M = modified, A = created):
+
+```text
+M	README.md
+M	RondiTrack.Tests/ConcurrencyProtectionTests.cs
+M	RondiTrack.Tests/ContributionBusinessRuleTests.cs
+M	RondiTrack.Tests/ContributionServiceTests.cs
+M	RondiTrack.Tests/DatabaseConstraintTests.cs
+M	RondiTrack.Tests/EdgeCaseTests.cs
+M	RondiTrack.Tests/HappyPathTests.cs
+M	RondiTrack.Tests/IdempotencyTests.cs
+M	RondiTrack.Tests/MembershipBusinessRuleTests.cs
+M	RondiTrack.Tests/MembershipServiceTests.cs
+M	RondiTrack.Tests/NegativePathTests.cs
+M	RondiTrack.Tests/PayoutTransactionTests.cs
+M	RondiTrack.Tests/RondiTrack.Tests.csproj
+A	RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+A	RondiTrack.Tests/TestSupport/PostgresCollection.cs
+M	docs/assignment-5-4-phase-verification.md
+```

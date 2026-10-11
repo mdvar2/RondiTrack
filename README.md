@@ -74,7 +74,8 @@ solution.
 
 ## 3. Install PostgreSQL 17
 
-RondiTrack uses a local PostgreSQL installation rather than Docker.
+Development uses a local PostgreSQL installation. Integration tests use a
+disposable PostgreSQL 17 Docker container through Testcontainers.
 
 PostgreSQL can be installed using the official Windows installer or
 Windows Package Manager. With `winget`:
@@ -339,8 +340,10 @@ Build succeeded
 
 ## 14. Run the automated tests
 
-The integration tests require the local PostgreSQL service and the
-configured RondiTrack connection string.
+The integration tests now require a running Docker engine with Linux containers.
+They start PostgreSQL 17 automatically and apply the preserved migrations.
+They do not require development PostgreSQL or a development connection string.
+See the Assignment 5.4 verification section below.
 
 ``` powershell
 dotnet test .\RondiTrack.Tests\RondiTrack.Tests.csproj
@@ -1552,3 +1555,46 @@ No CS1705 or missing EF Design error remained with the explicit version pins.
 The detailed audit, exact moved-file manifest, navigation, and phase verification
 are in [docs/assignment-5-4-phase-1-audit.md](docs/assignment-5-4-phase-1-audit.md)
 and [docs/assignment-5-4-phase-verification.md](docs/assignment-5-4-phase-verification.md).
+
+
+## Self-contained PostgreSQL tests
+
+Install Docker Desktop (Linux containers / WSL 2) or configure a compatible Docker
+engine, start it, and verify `docker info` succeeds. Docker is a test prerequisite;
+development may continue using the existing local PostgreSQL service.
+
+The test project adds only Testcontainers.PostgreSql 4.15.0. Its shared
+`RondiTrack.Tests/TestSupport/PostgresApiFactory.cs` implements
+`WebApplicationFactory<Program>` and xUnit `IAsyncLifetime`. Initialization starts
+`postgres:17`, then applies the four existing migrations using the API's real scoped
+DbContext. Disposal shuts down the API host before disposing the container.
+
+`ConfigureWebHost` uses
+`builder.UseSetting("ConnectionStrings:RondiTrackDb", ...)`: this is the exact key
+read immediately by API/Program.cs. `ConfigureAppConfiguration` would be too late
+for this early read. All HTTP and direct-DbContext tests use the same disposable
+database; none reads development User Secrets directly. `CreateDbContextOptions`
+provides independent contexts for transaction and concurrency tests.
+
+`PostgresCollection` serializes all 11 database test classes. Existing tests create
+unique GUID-based records, stokvels, memberships and idempotency keys; each run
+starts a fresh database. No existing assertions have changed. Test-only logging
+uses Console, avoiding Windows Event Log permissions. Fixture initialization checks
+the configured connection, the API context connection, and `current_database()`
+against the container, and emits only a sanitized `TEST_DATABASE` line containing
+container ID, host, mapped port, database name, and applied-migration count.
+Credentials and complete connection strings are never printed.
+
+Run from the repository root:
+
+```powershell
+dotnet build RondiTrack.sln -m:1
+dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --no-build --logger "console;verbosity=detailed"
+```
+
+Phase 5 interim verification: the converted solution builds with 0 warnings and
+0 errors, and test discovery still finds all 25 tests. Container execution failed
+25/25 during shared fixture construction because no Docker engine was available.
+Docker Desktop installation was attempted with user authorization, but the
+installer failed before completion. The development-database-unavailable proof
+remains pending. This is not Assignment 5.4 completion evidence.

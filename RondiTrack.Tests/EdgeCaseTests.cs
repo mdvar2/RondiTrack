@@ -1,17 +1,17 @@
+using RondiTrack.Tests.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace RondiTrack.Tests;
 
+[Collection(PostgresCollection.Name)]
 public class EdgeCaseTests
-    : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
     public EdgeCaseTests(
-        WebApplicationFactory<Program> factory)
+        PostgresApiFactory factory)
     {
         _client = factory.CreateClient();
     }
