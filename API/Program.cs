@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using RondiTrack.Auth;
 using RondiTrack.Domain.Entities;
@@ -14,6 +15,17 @@ using RondiTrack.Domain.Repositories;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var jwtOptions = JwtOptions.Load(builder.Configuration);
+builder.Services.AddSingleton(jwtOptions);
+builder.Services.AddSingleton<TokenService>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = jwtOptions.ValidationParameters;
+        options.IncludeErrorDetails = false;
+    });
 
 builder.Services.AddOpenApi();
 
@@ -93,6 +105,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.MapControllers();
 

@@ -12,6 +12,8 @@ namespace RondiTrack.Tests.TestSupport;
 
 public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    private readonly string _testSigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17")
         .WithDatabase("ronditrack_test")
         .WithUsername("postgres")
@@ -28,6 +30,7 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         // Program.cs reads this immediately. ConfigureAppConfiguration is too late.
         builder.UseSetting("ConnectionStrings:RondiTrackDb", _container.GetConnectionString());
+        builder.UseSetting("Jwt:SigningKey", _testSigningKey);
         // Test logging should not require permission to write the Windows Event Log.
         builder.ConfigureLogging(logging => logging.ClearProviders().AddConsole());
     }

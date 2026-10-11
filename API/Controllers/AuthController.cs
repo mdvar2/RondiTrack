@@ -11,6 +11,11 @@ namespace RondiTrack.Controllers;
 public class AuthController(AuthService authService) : ControllerBase
 {
     [AllowAnonymous]
+    [HttpPost("login")]
+    public async Task<ActionResult<AccessTokenResponse>> Login(LoginRequest request) =>
+        Ok(await authService.LoginAsync(request));
+
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
