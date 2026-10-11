@@ -13,7 +13,7 @@ public class HappyPathTests
     public HappyPathTests(
         PostgresApiFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

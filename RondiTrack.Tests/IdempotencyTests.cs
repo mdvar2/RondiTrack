@@ -13,7 +13,7 @@ public class IdempotencyTests
     public IdempotencyTests(
         PostgresApiFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

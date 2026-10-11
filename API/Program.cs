@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using RondiTrack.Auth;
@@ -26,6 +27,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = jwtOptions.ValidationParameters;
         options.IncludeErrorDetails = false;
     });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+});
 
 builder.Services.AddOpenApi();
 
@@ -99,16 +105,32 @@ builder.Services.AddScoped<PayoutService>();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseStatusCodePages(async statusContext =>
+{
+    var http = statusContext.HttpContext;
+    if (http.Response.StatusCode is not (401 or 403)) return;
+    var problem = new ProblemDetails
+    {
+        Type = "about:blank", Status = http.Response.StatusCode,
+        Title = http.Response.StatusCode == 401 ? "Unauthorized" : "Forbidden",
+        Detail = http.Response.StatusCode == 401 ? "Authentication is required." : "You do not have permission for this operation.",
+        Instance = http.Request.Path
+    };
+    problem.Extensions["correlationId"] = http.TraceIdentifier;
+    await http.Response.WriteAsJsonAsync(problem, options: null,
+        contentType: "application/problem+json");
+});
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference().AllowAnonymous();
 }
 
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
