@@ -105,3 +105,40 @@ Exact files:
 ?? RondiTrack.Tests/SecureDefaultsTests.cs
 M  docs/assignment-6-1-phase-verification.md
 ```
+
+## Phase 11 — Resource authorization
+
+Completed. Every stokvel route invokes StokvelAuthorization.EnsureAsync and the scoped StokvelAccessHandler, which queries current membership and role from PostgreSQL. Views allow members; management requires Treasurer or Chairperson; ordinary members can record their own contributions. Nonmembers receive 404, insufficient permissions 403. Creating a stokvel atomically creates its creator's Chairperson membership. Platform administrators have no scoped membership bypass. Exactly one plain role attribute guards the global stokvel list; other controller authorization uses policies. PlatformRoleClaimsTransformation loads the platform role from the database on each authenticated request, so neither scoped nor platform permissions depend on stale JWT role claims. Deleted users become unauthenticated.
+
+Navigate in VS Code to API/Auth/Policies.cs, StokvelAccessHandler.cs, StokvelAuthorization.cs and PlatformRoleClaimsTransformation.cs; the three stokvel controllers call the helper at the start of each scoped action. Domain/Entities/Roles.cs centralizes names. Migration 20261011175640_AddPlatformRole adds a default ordinary platform role without promoting existing users.
+
+Verification: build succeeded with zero warnings/errors; 45 tests passed, zero failed/skipped (6 seconds). Tests cover all four permission outcomes, own contributions, live demotion/removal, per-stokvel roles, creator membership and the platform list. Outstanding: final route matrix and development-database isolation run in Phase 12. Development preflight found seven duplicate normalized-email groups; no development data or migrations were changed. The unique-email upgrade requires an explicit cleanup decision.
+
+Exact files created or modified (no files moved):
+
+```text
+API/Controllers/ContributionCyclesController.cs
+API/Controllers/PayoutsController.cs
+API/Controllers/StokvelsController.cs
+API/Controllers/UsersController.cs
+API/Handlers/GlobalExceptionHandler.cs
+API/Program.cs
+Domain/Entities/StokvelMember.cs
+Domain/Entities/User.cs
+Domain/Repositories/IStokvelRepository.cs
+Infrastructure/Data/RondiTrackDbContext.cs
+Infrastructure/Migrations/RondiTrackDbContextModelSnapshot.cs
+Infrastructure/Repositories/StokvelRepository.cs
+RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+API/Auth/PlatformRoleClaimsTransformation.cs
+API/Auth/Policies.cs
+API/Auth/StokvelAccessHandler.cs
+API/Auth/StokvelAuthorization.cs
+Domain/Entities/Roles.cs
+Domain/Exceptions/ForbiddenException.cs
+Infrastructure/Migrations/20261011175640_AddPlatformRole.Designer.cs
+Infrastructure/Migrations/20261011175640_AddPlatformRole.cs
+RondiTrack.Tests/StokvelAuthorizationTests.cs
+RondiTrack.Tests/TestSupport/AuthScenario.cs
+docs/assignment-6-1-phase-verification.md
+```

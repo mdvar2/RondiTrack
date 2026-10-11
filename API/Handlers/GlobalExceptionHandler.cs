@@ -25,6 +25,9 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var (statusCode, title) = exception switch
         {
+            ForbiddenException =>
+                (StatusCodes.Status403Forbidden, "Forbidden"),
+
             AuthenticationFailedException =>
                 (StatusCodes.Status401Unauthorized, "Unauthorized"),
 

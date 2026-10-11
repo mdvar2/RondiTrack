@@ -12,6 +12,13 @@ public class StokvelMember
 
     public DateTime JoinedAtUtc { get; private set; }
 
+    public void ChangeRole(string role)
+    {
+        if (role is not (Roles.Member or Roles.Treasurer or Roles.Chairperson))
+            throw new ArgumentException("Unknown stokvel role.");
+        Role = role;
+    }
+
     // Navigation properties for the real relationships.
     public Stokvel Stokvel { get; private set; } = null!;
 
@@ -25,7 +32,7 @@ public class StokvelMember
     public StokvelMember(
         Guid stokvelId,
         Guid userId,
-        string role = "Member")
+        string role = Roles.Member)
     {
         if (stokvelId == Guid.Empty)
             throw new ArgumentException(

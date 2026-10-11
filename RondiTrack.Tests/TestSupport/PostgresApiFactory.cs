@@ -31,10 +31,12 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             .UseNpgsql(_container.GetConnectionString())
             .Options;
 
-    public HttpClient CreateAuthenticatedClient()
+    public HttpClient CreateAuthenticatedClient() => CreateClientFor(_regressionUser);
+
+    public HttpClient CreateClientFor(User user)
     {
         var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
-        var token = Services.GetRequiredService<TokenService>().CreateAccessToken(_regressionUser);
+        var token = Services.GetRequiredService<TokenService>().CreateAccessToken(user);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
         return client;
     }
@@ -70,6 +72,7 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             // Apply the preserved migration chain rather than bypassing it with EnsureCreated.
             await context.Database.MigrateAsync();
+            _regressionUser.SetPlatformRole(Roles.PlatformAdmin);
             context.Users.Add(_regressionUser);
             await context.SaveChangesAsync();
             await context.Database.OpenConnectionAsync();

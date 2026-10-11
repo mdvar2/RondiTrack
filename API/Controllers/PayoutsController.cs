@@ -1,19 +1,26 @@
+using Microsoft.AspNetCore.Authorization;
+using RondiTrack.Auth;
 using Microsoft.AspNetCore.Mvc;
 using RondiTrack.DTOs.Payouts;
 using RondiTrack.Services;
 
 namespace RondiTrack.Controllers;
 
+[Authorize(Policy = Policies.SignedIn)]
 [ApiController]
 [Route(
     "api/stokvels/{stokvelId:guid}/cycles/{cycleId:guid}/payouts")]
 public class PayoutsController : ControllerBase
 {
+    private readonly StokvelAuthorization _stokvelAuthorization;
+
     private readonly PayoutService _payoutService;
 
     public PayoutsController(
-        PayoutService payoutService)
+        PayoutService payoutService,
+        StokvelAuthorization stokvelAuthorization)
     {
+        _stokvelAuthorization = stokvelAuthorization;
         _payoutService = payoutService;
     }
 
@@ -40,6 +47,8 @@ public class PayoutsController : ControllerBase
         Guid cycleId,
         CreatePayoutRequest request)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+
         var payout =
             await _payoutService.CreatePayoutAsync(
                 stokvelId,
