@@ -55,3 +55,29 @@ Exact files (excluding the private User Secrets file, intentionally never commit
 ?? RondiTrack.Tests/JwtLoginTests.cs
 M  docs/assignment-6-1-phase-verification.md
 ```
+
+## Phase 9 ? Refresh tokens and logout
+
+Status: Completed. Login creates a PostgreSQL login family and 64-byte cryptographically random refresh token; only a SHA-256 hash is stored. RefreshTokenFamilies tracks family revocation and a 30-day absolute limit; individual tokens expire after seven days, with successor database expiry capped by the family limit. Every refresh rotates the token. EfRefreshTokenRepository.RotateAsync locks the family row (FOR UPDATE), marks the old token spent and inserts its successor in one transaction. All family mutations, including logout, acquire the same lock. Concurrent reuse gets 401 and commits whole-family revocation before returning, making even the winning successor unusable. Revocation persists through repository/database calls, not memory.
+
+POST /api/auth/refresh and logout are anonymous so expired access tokens do not prevent session renewal/revocation. Cookie __Secure-ronditrack_refresh is HttpOnly (JavaScript cannot read it), Secure (HTTPS only), SameSite=Strict (limits cross-site cookie requests), Path=/api/auth (limits delivery), host-only (no Domain). Refresh tokens never appear in response bodies. Logout revokes the family and deletes the cookie with matching flags/path; repeat logout remains 204. Access tokens should stay in frontend memory. Putting either token in localStorage exposes it to script/XSS; a stolen refresh token also loses HttpOnly protection and can prolong account compromise until replay revocation. Family reuse requires the legitimate user to sign in again. Already-issued access JWTs remain valid for at most five minutes plus ClockSkew after logout; stokvel permission checks remain live in Phase 11.
+
+Navigation: Domain/Entities/RefreshToken.cs and RefreshTokenFamily.cs; IRefreshTokenRepository; Infrastructure/Repositories/EfRefreshTokenRepository.cs/StartSessionAsync, RotateAsync, RevokeSessionAsync; API/Auth/AuthService.cs/RefreshAsync and LogoutAsync; AuthController.cs/RefreshCookieOptions, Refresh and Logout. Migration: 20261011174943_AddRefreshTokenSessions (source, designer and updated snapshot). Verification: build passed 0 warnings/errors; all 36 tests passed, failed 0, skipped 0 (5 s), including rotation/hash-at-rest, replay/successor rejection, simultaneous refresh, logout idempotence and unrelated family survival. Initial SQL string quoting compile errors were fixed using C# interpolated raw strings; SQL parameters remain parameterized. Outstanding: fallback and resource authorization in Phases 10?11.
+
+Exact files:
+
+```text
+ M API/Auth/AuthService.cs
+ M API/Controllers/AuthController.cs
+ M API/Program.cs
+ M Infrastructure/Data/RondiTrackDbContext.cs
+ M Infrastructure/Migrations/RondiTrackDbContextModelSnapshot.cs
+?? Domain/Entities/RefreshToken.cs
+?? Domain/Entities/RefreshTokenFamily.cs
+?? Domain/Repositories/IRefreshTokenRepository.cs
+?? Infrastructure/Migrations/20261011174943_AddRefreshTokenSessions.Designer.cs
+?? Infrastructure/Migrations/20261011174943_AddRefreshTokenSessions.cs
+?? Infrastructure/Repositories/EfRefreshTokenRepository.cs
+?? RondiTrack.Tests/RefreshSessionTests.cs
+M  docs/assignment-6-1-phase-verification.md
+```

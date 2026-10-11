@@ -11,6 +11,9 @@ public class RondiTrackDbContext : DbContext
     {
     }
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<RefreshTokenFamily> RefreshTokenFamilies => Set<RefreshTokenFamily>();
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Stokvel> Stokvels => Set<Stokvel>();
     public DbSet<StokvelMember> StokvelMembers => Set<StokvelMember>();
@@ -22,6 +25,13 @@ public class RondiTrackDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<RefreshTokenFamily>()
+            .HasOne<User>().WithMany().HasForeignKey(family => family.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<RefreshToken>()
+            .HasOne<RefreshTokenFamily>().WithMany().HasForeignKey(token => token.FamilyId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<RefreshToken>().Property(token => token.TokenHash).HasMaxLength(64);
+        modelBuilder.Entity<RefreshToken>().HasIndex(token => token.TokenHash).IsUnique();
 
         modelBuilder.Entity<Stokvel>()
             .Ignore(stokvel => stokvel.Members);

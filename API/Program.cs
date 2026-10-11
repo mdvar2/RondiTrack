@@ -87,6 +87,8 @@ builder.Services.AddSingleton<
     IIdempotencyStore,
     IdempotencyStore>();
 
+builder.Services.AddScoped<RondiTrack.Domain.Repositories.IRefreshTokenRepository, EfRefreshTokenRepository>();
+
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<AuthService>();
 
