@@ -1,0 +1,102 @@
+# Assignment 5.4 phase verification
+
+## Phase 2 ? Clean Architecture split
+
+Status: Completed. API references Domain and Infrastructure; Infrastructure references Domain; Domain has no package or project references. Tests reference API and Infrastructure. Existing files moved with git mv; namespaces/imports updated. Domain query records replace API DTO dependencies in repository contracts; controllers map them to the original response shapes. Existing migration IDs and operations are preserved. No schema migration was created.
+
+Navigation: Domain/Entities/User.cs; Domain/Repositories/IContributionRepository.cs; Domain/Queries/ContributionWithMember.cs; Infrastructure/Data/RondiTrackDbContext.cs; Infrastructure/Repositories/ContributionRepository.cs/GetByCyclePagedAsync; API/Controllers/ContributionCyclesController.cs/GetContributions; API/DTOs/Contributions/ContributionWithMemberResponse.cs/FromQuery; API/Program.cs.
+
+Verification: dotnet restore RondiTrack.sln --disable-parallel (outside sandbox) succeeded; dotnet build RondiTrack.sln --no-restore -m:1 succeeded, 0 warnings/errors; dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --no-restore -m:1 passed 25, failed 0, skipped 0, duration 4 s (development database still running). Assertion statement comparison against 6e3bfa1 passed for every existing test. Domain dependency checks passed.
+
+Errors: sandbox NuGet restore failed NU1301/NU1900 because network access was refused; unrestricted restore resolved it. Initial sandbox parallel build returned failure without compiler errors; serial build succeeded. Outstanding: container tests belong to Phases 5?6; Docker installation is authorized and in progress.
+
+Exact Phase 2 file manifest (R = moved, M = modified, A = created):
+
+```text
+R096	Controllers/ContributionCyclesController.cs	API/Controllers/ContributionCyclesController.cs
+R100	Controllers/PayoutsController.cs	API/Controllers/PayoutsController.cs
+R097	Controllers/StokvelsController.cs	API/Controllers/StokvelsController.cs
+R098	Controllers/UsersController.cs	API/Controllers/UsersController.cs
+R093	DTOs/ContributionCycles/ContributionCycleResponse.cs	API/DTOs/ContributionCycles/ContributionCycleResponse.cs
+R100	DTOs/ContributionCycles/CreateContributionCycleRequest.cs	API/DTOs/ContributionCycles/CreateContributionCycleRequest.cs
+R100	DTOs/ContributionCycles/UpdateContributionCycleRequest.cs	API/DTOs/ContributionCycles/UpdateContributionCycleRequest.cs
+R094	DTOs/Contributions/ContributionResponse.cs	API/DTOs/Contributions/ContributionResponse.cs
+R072	DTOs/Contributions/ContributionWithMemberResponse.cs	API/DTOs/Contributions/ContributionWithMemberResponse.cs
+R100	DTOs/Contributions/RecordContributionRequest.cs	API/DTOs/Contributions/RecordContributionRequest.cs
+R100	DTOs/Payouts/CreatePayoutRequest.cs	API/DTOs/Payouts/CreatePayoutRequest.cs
+R094	DTOs/Payouts/PayoutResponse.cs	API/DTOs/Payouts/PayoutResponse.cs
+R100	DTOs/Stokvels/CreateStokvelRequest.cs	API/DTOs/Stokvels/CreateStokvelRequest.cs
+R069	DTOs/Stokvels/StokvelMemberResponse.cs	API/DTOs/Stokvels/StokvelMemberResponse.cs
+R092	DTOs/Stokvels/StokvelResponse.cs	API/DTOs/Stokvels/StokvelResponse.cs
+R100	DTOs/Stokvels/UpdateStokvelRequest.cs	API/DTOs/Stokvels/UpdateStokvelRequest.cs
+R100	DTOs/Users/CreateUserRequest.cs	API/DTOs/Users/CreateUserRequest.cs
+R100	DTOs/Users/UpdateUserRequest.cs	API/DTOs/Users/UpdateUserRequest.cs
+R090	DTOs/Users/UserResponse.cs	API/DTOs/Users/UserResponse.cs
+R098	Filters/ValidationFilter.cs	API/Filters/ValidationFilter.cs
+R098	Handlers/GlobalExceptionHandler.cs	API/Handlers/GlobalExceptionHandler.cs
+R100	Idempotency/IIdempotencyStore.cs	API/Idempotency/IIdempotencyStore.cs
+R100	Idempotency/IdempotencyRecord.cs	API/Idempotency/IdempotencyRecord.cs
+R100	Idempotency/IdempotencyStore.cs	API/Idempotency/IdempotencyStore.cs
+R094	Program.cs	API/Program.cs
+R100	Properties/launchSettings.json	API/Properties/launchSettings.json
+R078	RondiTrack.csproj	API/RondiTrack.csproj
+R100	RondiTrack.http	API/RondiTrack.http
+R097	Services/ContributionService.cs	API/Services/ContributionService.cs
+R095	Services/MembershipService.cs	API/Services/MembershipService.cs
+R097	Services/PayoutService.cs	API/Services/PayoutService.cs
+R100	Validators/CreateContributionCycleRequestValidator.cs	API/Validators/CreateContributionCycleRequestValidator.cs
+R100	Validators/CreateStokvelRequestValidator.cs	API/Validators/CreateStokvelRequestValidator.cs
+R100	Validators/CreateUserRequestValidator.cs	API/Validators/CreateUserRequestValidator.cs
+R100	Validators/RecordContributionRequestValidator.cs	API/Validators/RecordContributionRequestValidator.cs
+R100	Validators/UpdateContributionCycleRequestValidator.cs	API/Validators/UpdateContributionCycleRequestValidator.cs
+R100	Validators/UpdateStokvelRequestValidator.cs	API/Validators/UpdateStokvelRequestValidator.cs
+R100	Validators/UpdateUserRequestValidator.cs	API/Validators/UpdateUserRequestValidator.cs
+R100	appsettings.Development.json	API/appsettings.Development.json
+R100	appsettings.json	API/appsettings.json
+R082	Common/PagedResult.cs	Domain/Common/PagedResult.cs
+R097	Models/Contribution.cs	Domain/Entities/Contribution.cs
+R097	Models/ContributionCycle.cs	Domain/Entities/ContributionCycle.cs
+R097	Models/Payout.cs	Domain/Entities/Payout.cs
+R098	Models/Stokvel.cs	Domain/Entities/Stokvel.cs
+R096	Models/StokvelMember.cs	Domain/Entities/StokvelMember.cs
+R096	Models/User.cs	Domain/Entities/User.cs
+R078	Exceptions/BusinessRuleException.cs	Domain/Exceptions/BusinessRuleException.cs
+R077	Exceptions/NotFoundException.cs	Domain/Exceptions/NotFoundException.cs
+R079	Exceptions/PreconditionFailedException.cs	Domain/Exceptions/PreconditionFailedException.cs
+R080	Exceptions/RequestValidationException.cs	Domain/Exceptions/RequestValidationException.cs
+R078	Exceptions/RondiTrackException.cs	Domain/Exceptions/RondiTrackException.cs
+R085	Repositories/IContributionCycleRepository.cs	Domain/Repositories/IContributionCycleRepository.cs
+R075	Repositories/IContributionRepository.cs	Domain/Repositories/IContributionRepository.cs
+R073	Repositories/IStokvelMemberRepository.cs	Domain/Repositories/IStokvelMemberRepository.cs
+R079	Repositories/IStokvelRepository.cs	Domain/Repositories/IStokvelRepository.cs
+R078	Repositories/IUserRepository.cs	Domain/Repositories/IUserRepository.cs
+R098	Data/RondiTrackDbContext.cs	Infrastructure/Data/RondiTrackDbContext.cs
+R089	Migrations/20261001040953_InitialCreate.Designer.cs	Infrastructure/Migrations/20261001040953_InitialCreate.Designer.cs
+R098	Migrations/20261001040953_InitialCreate.cs	Infrastructure/Migrations/20261001040953_InitialCreate.cs
+R082	Migrations/20261004202213_ConfigureRelationshipsAndQueryModel.Designer.cs	Infrastructure/Migrations/20261004202213_ConfigureRelationshipsAndQueryModel.Designer.cs
+R099	Migrations/20261004202213_ConfigureRelationshipsAndQueryModel.cs	Infrastructure/Migrations/20261004202213_ConfigureRelationshipsAndQueryModel.cs
+R085	Migrations/20261005211608_AddDatabaseDefenseConstraints.Designer.cs	Infrastructure/Migrations/20261005211608_AddDatabaseDefenseConstraints.Designer.cs
+R088	Migrations/20261005211608_AddDatabaseDefenseConstraints.cs	Infrastructure/Migrations/20261005211608_AddDatabaseDefenseConstraints.cs
+R085	Migrations/20261006014557_AddContributionPaginationIndex.Designer.cs	Infrastructure/Migrations/20261006014557_AddContributionPaginationIndex.Designer.cs
+R090	Migrations/20261006014557_AddContributionPaginationIndex.cs	Infrastructure/Migrations/20261006014557_AddContributionPaginationIndex.cs
+R085	Migrations/RondiTrackDbContextModelSnapshot.cs	Infrastructure/Migrations/RondiTrackDbContextModelSnapshot.cs
+R092	Repositories/ContributionCycleRepository.cs	Infrastructure/Repositories/ContributionCycleRepository.cs
+R095	Repositories/ContributionRepository.cs	Infrastructure/Repositories/ContributionRepository.cs
+R092	Repositories/EfContributionCycleRepository.cs	Infrastructure/Repositories/EfContributionCycleRepository.cs
+R094	Repositories/EfStokvelMemberRepository.cs	Infrastructure/Repositories/EfStokvelMemberRepository.cs
+R090	Repositories/StokvelRepository.cs	Infrastructure/Repositories/StokvelRepository.cs
+R090	Repositories/UserRepository.cs	Infrastructure/Repositories/UserRepository.cs
+M	RondiTrack.Tests/ConcurrencyProtectionTests.cs
+M	RondiTrack.Tests/ContributionServiceTests.cs
+M	RondiTrack.Tests/DatabaseConstraintTests.cs
+M	RondiTrack.Tests/MembershipServiceTests.cs
+M	RondiTrack.Tests/PayoutTransactionTests.cs
+M	RondiTrack.Tests/RondiTrack.Tests.csproj
+M	RondiTrack.Tests/TestContributionRepository.cs
+M	RondiTrack.sln
+A	Domain/Domain.csproj
+A	Domain/Queries/ContributionWithMember.cs
+A	Domain/Queries/StokvelMemberDetails.cs
+A	Infrastructure/Infrastructure.csproj
+A	docs/assignment-5-4-phase-verification.md
+```

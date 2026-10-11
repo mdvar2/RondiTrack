@@ -1,9 +1,10 @@
+using RondiTrack.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using RondiTrack.Data;
-using RondiTrack.Exceptions;
-using RondiTrack.Models;
-using RondiTrack.Repositories;
+using RondiTrack.Infrastructure.Data;
+using RondiTrack.Domain.Exceptions;
+using RondiTrack.Domain.Entities;
+using RondiTrack.Domain.Repositories;
 using RondiTrack.Services;
 
 namespace RondiTrack.Tests;
