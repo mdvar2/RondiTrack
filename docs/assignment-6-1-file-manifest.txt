@@ -1,0 +1,101 @@
+Commit dca4979 Add password hash to User and validated registration endpoint
+
+A	API/Auth/AuthService.cs
+A	API/Controllers/AuthController.cs
+A	API/DTOs/Auth/RegisterRequest.cs
+M	API/Program.cs
+A	API/Validators/RegisterRequestValidator.cs
+M	Domain/Entities/User.cs
+M	Domain/Repositories/IUserRepository.cs
+M	Infrastructure/Data/RondiTrackDbContext.cs
+A	Infrastructure/Migrations/20261011174110_AddUserAuthentication.Designer.cs
+A	Infrastructure/Migrations/20261011174110_AddUserAuthentication.cs
+M	Infrastructure/Migrations/RondiTrackDbContextModelSnapshot.cs
+M	Infrastructure/Repositories/UserRepository.cs
+A	RondiTrack.Tests/RegistrationTests.cs
+A	docs/assignment-6-1-phase-verification.md
+Commit 4a08eb2 Add JWT issuing validation and indistinguishable login failures
+
+M	API/Auth/AuthService.cs
+A	API/Auth/JwtOptions.cs
+A	API/Auth/TokenService.cs
+M	API/Controllers/AuthController.cs
+A	API/DTOs/Auth/LoginRequest.cs
+M	API/Handlers/GlobalExceptionHandler.cs
+M	API/Program.cs
+M	API/RondiTrack.csproj
+A	API/Validators/LoginRequestValidator.cs
+M	API/appsettings.json
+A	Domain/Exceptions/AuthenticationFailedException.cs
+A	RondiTrack.Tests/JwtLoginTests.cs
+M	RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+M	docs/assignment-6-1-phase-verification.md
+Commit 961903d Add hashed refresh sessions with atomic rotation reuse detection and logout
+
+M	API/Auth/AuthService.cs
+M	API/Controllers/AuthController.cs
+M	API/Program.cs
+A	Domain/Entities/RefreshToken.cs
+A	Domain/Entities/RefreshTokenFamily.cs
+A	Domain/Repositories/IRefreshTokenRepository.cs
+M	Infrastructure/Data/RondiTrackDbContext.cs
+A	Infrastructure/Migrations/20261011174943_AddRefreshTokenSessions.Designer.cs
+A	Infrastructure/Migrations/20261011174943_AddRefreshTokenSessions.cs
+M	Infrastructure/Migrations/RondiTrackDbContextModelSnapshot.cs
+A	Infrastructure/Repositories/EfRefreshTokenRepository.cs
+A	RondiTrack.Tests/RefreshSessionTests.cs
+M	docs/assignment-6-1-phase-verification.md
+Commit fa8b64d Require authentication by default and preserve anonymous API documentation
+
+M	API/Program.cs
+M	RondiTrack.Tests/ConcurrencyProtectionTests.cs
+M	RondiTrack.Tests/ContributionBusinessRuleTests.cs
+M	RondiTrack.Tests/EdgeCaseTests.cs
+M	RondiTrack.Tests/HappyPathTests.cs
+M	RondiTrack.Tests/IdempotencyTests.cs
+M	RondiTrack.Tests/MembershipBusinessRuleTests.cs
+M	RondiTrack.Tests/NegativePathTests.cs
+A	RondiTrack.Tests/SecureDefaultsTests.cs
+M	RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+M	docs/assignment-6-1-phase-verification.md
+Commit 96ac6bf Enforce live stokvel resource permissions and platform policies
+
+A	API/Auth/PlatformRoleClaimsTransformation.cs
+A	API/Auth/Policies.cs
+A	API/Auth/StokvelAccessHandler.cs
+A	API/Auth/StokvelAuthorization.cs
+M	API/Controllers/ContributionCyclesController.cs
+M	API/Controllers/PayoutsController.cs
+M	API/Controllers/StokvelsController.cs
+M	API/Controllers/UsersController.cs
+M	API/Handlers/GlobalExceptionHandler.cs
+M	API/Program.cs
+A	Domain/Entities/Roles.cs
+M	Domain/Entities/StokvelMember.cs
+M	Domain/Entities/User.cs
+A	Domain/Exceptions/ForbiddenException.cs
+M	Domain/Repositories/IStokvelRepository.cs
+M	Infrastructure/Data/RondiTrackDbContext.cs
+A	Infrastructure/Migrations/20261011175640_AddPlatformRole.Designer.cs
+A	Infrastructure/Migrations/20261011175640_AddPlatformRole.cs
+M	Infrastructure/Migrations/RondiTrackDbContextModelSnapshot.cs
+M	Infrastructure/Repositories/StokvelRepository.cs
+A	RondiTrack.Tests/StokvelAuthorizationTests.cs
+A	RondiTrack.Tests/TestSupport/AuthScenario.cs
+M	RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+M	docs/assignment-6-1-phase-verification.md
+Commit 2bcdffb Verify every scoped route and reject tokens for deleted users
+
+M	API/Program.cs
+A	RondiTrack.Tests/AuthorizationMatrixTests.cs
+A	docs/assignment-6-1-isolation-evidence.txt
+M	docs/assignment-6-1-phase-verification.md
+Phase 13 documentation (created/modified, no moves):
+M README.md
+M docs/assignment-5-4-verification-report.md
+M docs/assignment-6-1-phase-verification.md
+A docs/assignment-6-1-verification-report.md
+A docs/assignment-6-1-file-manifest.txt
+A docs/development-migration-status.md
+M .gitignore
+A docs/safe-push-verification.md

@@ -1,7 +1,7 @@
-using RondiTrack.Common;
-using RondiTrack.DTOs.Contributions;
-using RondiTrack.Models;
-using RondiTrack.Repositories;
+using RondiTrack.Domain.Common;
+using RondiTrack.Domain.Queries;
+using RondiTrack.Domain.Entities;
+using RondiTrack.Domain.Repositories;
 
 namespace RondiTrack.Tests;
 
@@ -32,7 +32,7 @@ public class TestContributionRepository
         return Task.FromResult(contribution);
     }
 
-    public Task<PagedResult<ContributionWithMemberResponse>> GetByCyclePagedAsync(
+    public Task<PagedResult<ContributionWithMember>> GetByCyclePagedAsync(
         Guid stokvelId,
         Guid contributionCycleId,
         int pageSize,
@@ -45,18 +45,18 @@ public class TestContributionRepository
         decimal? maxAmount)
     {
         return Task.FromResult(
-            new PagedResult<ContributionWithMemberResponse>(
-                new List<ContributionWithMemberResponse>(),
+            new PagedResult<ContributionWithMember>(
+                new List<ContributionWithMember>(),
                 string.Empty,
                 pageSize));
     }
 
-    public Task<IEnumerable<ContributionWithMemberResponse>> GetByCycleProjectedAsync(
+    public Task<IEnumerable<ContributionWithMember>> GetByCycleProjectedAsync(
         Guid stokvelId,
         Guid contributionCycleId)
     {
-        return Task.FromResult<IEnumerable<ContributionWithMemberResponse>>(
-            new List<ContributionWithMemberResponse>());
+        return Task.FromResult<IEnumerable<ContributionWithMember>>(
+            new List<ContributionWithMember>());
     }
 
     public Task AddAsync(

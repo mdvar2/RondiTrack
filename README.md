@@ -74,7 +74,8 @@ solution.
 
 ## 3. Install PostgreSQL 17
 
-RondiTrack uses a local PostgreSQL installation rather than Docker.
+Development uses a local PostgreSQL installation. Integration tests use a
+disposable PostgreSQL 17 Docker container through Testcontainers.
 
 PostgreSQL can be installed using the official Windows installer or
 Windows Package Manager. With `winget`:
@@ -214,7 +215,7 @@ development.
 From the RondiTrack project directory:
 
 ``` powershell
-dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+dotnet user-secrets --project API set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
 ```
 
 Replace `YOUR_LOCAL_PASSWORD` with the password configured during
@@ -226,7 +227,7 @@ Do not paste the real password into source code, `appsettings.json`,
 Verify that the secret key exists:
 
 ``` powershell
-dotnet user-secrets list
+dotnet user-secrets --project API list
 ```
 
 The connection-string key should appear. Treat the displayed connection
@@ -260,7 +261,7 @@ immediately recognized.
 List the migrations:
 
 ``` powershell
-dotnet ef migrations list
+dotnet ef migrations list --project Infrastructure --startup-project API
 ```
 
 RondiTrack commits migration files to Git so that another developer can
@@ -273,7 +274,7 @@ automatically be assumed safe.
 ## 11. Apply the migrations
 
 ``` powershell
-dotnet ef database update
+dotnet ef database update --project Infrastructure --startup-project API
 ```
 
 This applies the committed EF Core migrations to the local `ronditrack`
@@ -339,8 +340,10 @@ Build succeeded
 
 ## 14. Run the automated tests
 
-The integration tests require the local PostgreSQL service and the
-configured RondiTrack connection string.
+The integration tests now require a running Docker engine with Linux containers.
+They start PostgreSQL 17 automatically and apply the preserved migrations.
+They do not require development PostgreSQL or a development connection string.
+See the Assignment 5.4 verification section below.
 
 ``` powershell
 dotnet test .\RondiTrack.Tests\RondiTrack.Tests.csproj
@@ -366,7 +369,7 @@ Build succeeded
 ## 15. Run the API
 
 ``` powershell
-dotnet run
+dotnet run --project API
 ```
 
 During development the application normally runs at:
@@ -420,7 +423,7 @@ CREATE DATABASE ronditrack;
 Run the User Secrets command in the RondiTrack project directory:
 
 ``` powershell
-dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+dotnet user-secrets --project API set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
 ```
 
 ### `dotnet ef` is not recognized
@@ -626,7 +629,7 @@ PostgreSQL. It introduced real relational navigation, key design,
 foreign keys, measured query behaviour, and explicit read-only query
 decisions.
 
-## User ↔ Stokvel many-to-many relationship
+## User â†” Stokvel many-to-many relationship
 
 `User` and `Stokvel` have a real many-to-many relationship through the
 explicit `StokvelMember` join entity.
@@ -671,7 +674,7 @@ For `Contribution`:
 
 ``` text
 (UserId, StokvelId)
-    ↓
+    â†“
 StokvelMember(UserId, StokvelId)
 ```
 
@@ -679,7 +682,7 @@ For `Payout`:
 
 ``` text
 (RecipientUserId, StokvelId)
-    ↓
+    â†“
 StokvelMember(UserId, StokvelId)
 ```
 
@@ -721,7 +724,7 @@ GetByStokvelAndUserAsync(...)
 
 when a tracked membership entity is required for removal.
 
-## ContributionCycle → Contribution relationship
+## ContributionCycle â†’ Contribution relationship
 
 Assignment 5.2 wires the real one-to-many relationship:
 
@@ -739,7 +742,7 @@ Contribution
 This relationship was chosen because the required Assignment 5.2 query
 is specifically "get contributions for a cycle".
 
-A `Stokvel → ContributionCycle` navigation was not added in this
+A `Stokvel â†’ ContributionCycle` navigation was not added in this
 iteration. `ContributionCycle` still contains `StokvelId`, but that
 additional navigation is deliberately left as not yet implemented rather
 than being claimed as complete.
@@ -890,7 +893,7 @@ Measured query count:
 This reduced the request from:
 
 ``` text
-23 → 3 queries
+23 â†’ 3 queries
 ```
 
 The joined entity query selected **13 columns** across `Contribution`,
@@ -987,12 +990,12 @@ Examples:
 
 ``` text
 GetByIdReadOnlyAsync
-    → read-only
-    → AsNoTracking
+    â†’ read-only
+    â†’ AsNoTracking
 
 GetByIdAsync
-    → tracked
-    → used where the entity will be changed
+    â†’ tracked
+    â†’ used where the entity will be changed
 ```
 
 This distinction is important for operations such as updating a
@@ -1002,10 +1005,10 @@ For membership:
 
 ``` text
 ExistsAsync
-    → existence-only read
+    â†’ existence-only read
 
 GetByStokvelAndUserAsync
-    → tracked lookup when membership will be removed
+    â†’ tracked lookup when membership will be removed
 ```
 
 `ContributionService` uses read-only stokvel/user/cycle lookups and an
@@ -1025,7 +1028,7 @@ committed.
 RondiTrack uses .NET User Secrets:
 
 ``` powershell
-dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+dotnet user-secrets --project API set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
 ```
 
 No real PostgreSQL password belongs in the repository.
@@ -1061,10 +1064,10 @@ Idempotency-Key
 
 Behaviour:
 
--   new key + valid request → create contribution;
--   same key + same request → return the original result;
--   same key + different request → `409 Conflict`;
--   new key + duplicate member/cycle contribution → `409 Conflict`.
+-   new key + valid request â†’ create contribution;
+-   same key + same request â†’ return the original result;
+-   same key + different request â†’ `409 Conflict`;
+-   new key + duplicate member/cycle contribution â†’ `409 Conflict`.
 
 Idempotency and duplicate-contribution protection solve different
 problems.
@@ -1390,25 +1393,25 @@ Assignment 5.2 extends the Definition of Done with:
   API area /      Documented   Guard /        Automated         PostgreSQL / Relationship       N+1
   endpoint                     validation     coverage          EF Core      modeled            measured/fixed
   --------------- ------------ -------------- ----------------- ------------ ------------------ ----------------
-  Users CRUD      Yes          Validation +   Happy/not-found   Yes          User → memberships N/A
+  Users CRUD      Yes          Validation +   Happy/not-found   Yes          User â†’ memberships N/A
                                existence      coverage                                          
 
-  Stokvels CRUD   Yes          Validation +   Happy/not-found   Yes          Stokvel →          N/A
+  Stokvels CRUD   Yes          Validation +   Happy/not-found   Yes          Stokvel â†’          N/A
                                existence      coverage                       memberships        
 
   Add/remove      Yes          Existence +    Unit +            Yes          Composite join     N/A
   membership                   membership     integration                    entity             
                                rules                                                            
 
-  Contribution    Yes          Existence +    Existing suite    Yes          Cycle →            N/A
+  Contribution    Yes          Existence +    Existing suite    Yes          Cycle â†’            N/A
   cycles                       ownership                                     contributions      
 
-  Record          Yes          Membership +   Unit +            Yes          Contribution →     N/A
+  Record          Yes          Membership +   Unit +            Yes          Contribution â†’     N/A
   contribution                 cycle +        integration                    membership/cycle   
                                duplicate +                                                      
                                idempotency                                                      
 
-  Get cycle       Yes          Stokvel +      Regression        Yes          Member → User      Yes: 23 → 3
+  Get cycle       Yes          Stokvel +      Regression        Yes          Member â†’ User      Yes: 23 â†’ 3
   contributions                cycle          suite + measured               graph / projection 
                                ownership      SQL run                                           
 
@@ -1441,13 +1444,13 @@ the source of truth for membership checks.
 A later refactor could remove the legacy representation once
 compatibility with earlier work is no longer required.
 
-## Stokvel → ContributionCycle navigation
+## Stokvel â†’ ContributionCycle navigation
 
 `ContributionCycle` has `StokvelId`, but a full
 `Stokvel.ContributionCycles` navigation was not added in Assignment 5.2.
 
 The required additional relationship was implemented as
-`ContributionCycle → Contribution`, which directly supports the required
+`ContributionCycle â†’ Contribution`, which directly supports the required
 cycle-contributions endpoint.
 
 ## Payout rotation
@@ -1479,3 +1482,329 @@ synchronously blocking on tasks.
 
 This is especially important now that database access introduces real
 I/O.
+
+
+# Assignment 5.4 ? Architecture and dependency injection
+
+The solution now contains API/RondiTrack.csproj, Domain/Domain.csproj,
+Infrastructure/Infrastructure.csproj, and RondiTrack.Tests/RondiTrack.Tests.csproj.
+API references Domain and Infrastructure; Infrastructure references Domain;
+Tests reference API and Infrastructure. Domain has no project or package dependencies.
+Entities are in Domain/Entities, exceptions in Domain/Exceptions, repository
+interfaces in Domain/Repositories, and query records in Domain/Queries.
+Infrastructure contains Data, Repositories, and the four preserved Migrations.
+Controllers, DTOs, validators, services, and Program.cs are in API.
+Only API/Program.cs selects concrete repository implementations.
+
+Repository projections return Domain query records; API maps them to the
+existing response DTOs. Filtering, pagination tokens, response JSON, concurrency,
+transaction behavior, and all existing test assertions are preserved.
+API and Infrastructure explicitly pin EF Core/Relational 10.0.4, compatible with
+the existing Npgsql provider 10.0.3. EF Core Design is private to each project.
+The split requires no new schema migration; the existing history stays intact.
+
+## Dependency-injection lifetime audit
+
+These application registrations are in API/Program.cs. No lifetime was changed:
+every DbContext holder and every service depending on one was already Scoped.
+The in-memory idempotency store remains Singleton to preserve behavior across requests.
+
+| Registration | Lifetime | Holds a DbContext? | Why this lifetime |
+|---|---|---|---|
+| RondiTrackDbContext (AddDbContext) | Scoped | Yes (is the context) | One EF unit of work per request; never shared across requests |
+| IUserRepository ? UserRepository | Scoped | Yes | Holds the request context |
+| IStokvelRepository ? StokvelRepository | Scoped | Yes | Holds the request context |
+| IContributionRepository ? ContributionRepository | Scoped | Yes | Holds the request context |
+| IContributionCycleRepository ? EfContributionCycleRepository | Scoped | Yes | Holds the request context |
+| IStokvelMemberRepository ? EfStokvelMemberRepository | Scoped | Yes | Holds the request context |
+| MembershipService | Scoped | Indirectly | Depends on scoped EF repositories |
+| ContributionService | Scoped | Indirectly | Depends on scoped EF repositories |
+| PayoutService | Scoped | Yes | Coordinates a transaction on the request context |
+| IIdempotencyStore ? IdempotencyStore | Singleton | No | In-memory records must survive between requests; has no scoped dependencies |
+| IValidator<CreateUserRequest> ? CreateUserRequestValidator | Scoped | No | FluentValidation assembly scanning defaults to Scoped |
+| IValidator<UpdateUserRequest> ? UpdateUserRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<CreateStokvelRequest> ? CreateStokvelRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<UpdateStokvelRequest> ? UpdateStokvelRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<CreateContributionCycleRequest> ? CreateContributionCycleRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<UpdateContributionCycleRequest> ? UpdateContributionCycleRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<RecordContributionRequest> ? RecordContributionRequestValidator | Scoped | No | Same assembly-scanning default |
+| IExceptionHandler ? GlobalExceptionHandler | Singleton | No | AddExceptionHandler default; holds only a logger |
+| IProblemDetailsService (AddProblemDetails) | Singleton | No | Framework response writer; no database dependency |
+| AddControllers / ValidationFilter | Framework-managed / per-request filter activation | No | MVC resolves validators from the request service provider |
+| Configure<ApiBehaviorOptions> | Singleton options configuration | No | Sets a static MVC option; captures no context |
+| AddOpenApi | Framework-managed | No | Document generation services; no application database dependency |
+
+ContributionCycleRepository is an unregistered legacy in-memory implementation
+retained for service tests. It is not used by the running API.
+
+## Split verification and errors
+
+On 11 October 2026, the split built with 0 warnings and 0 errors; all 25 existing
+tests passed against the development database. The four migrations listed as
+applied, and EF reported no pending model changes. This is interim evidence;
+it does not prove Testcontainers independence.
+
+The sandbox's parallel baseline build reported failure without compiler errors;
+serial builds with `-m:1` succeeded. Sandbox NuGet restores failed with
+NU1301/NU1900 due to restricted network access; unrestricted restore succeeded.
+Sandbox HTTP tests hit Windows Event Log access errors; the unrestricted baseline
+and split runs passed all 25 tests. Repository interfaces initially referenced API
+DTOs; Domain query records and explicit API mappings removed that dependency.
+No CS1705 or missing EF Design error remained with the explicit version pins.
+
+The detailed audit, exact moved-file manifest, navigation, and phase verification
+are in [docs/assignment-5-4-phase-1-audit.md](docs/assignment-5-4-phase-1-audit.md)
+and [docs/assignment-5-4-phase-verification.md](docs/assignment-5-4-phase-verification.md).
+
+
+## Self-contained PostgreSQL tests
+
+Install Docker Desktop (Linux containers / WSL 2) or configure a compatible Docker
+engine, start it, and verify `docker info` succeeds. Docker is a test prerequisite;
+development may continue using the existing local PostgreSQL service.
+
+The test project adds only Testcontainers.PostgreSql 4.15.0. Its shared
+`RondiTrack.Tests/TestSupport/PostgresApiFactory.cs` implements
+`WebApplicationFactory<Program>` and xUnit `IAsyncLifetime`. Initialization starts
+`postgres:17`, then applies the four existing migrations using the API's real scoped
+DbContext. Disposal shuts down the API host before disposing the container.
+
+`ConfigureWebHost` uses
+`builder.UseSetting("ConnectionStrings:RondiTrackDb", ...)`: this is the exact key
+read immediately by API/Program.cs. `ConfigureAppConfiguration` would be too late
+for this early read. All HTTP and direct-DbContext tests use the same disposable
+database; none reads development User Secrets directly. `CreateDbContextOptions`
+provides independent contexts for transaction and concurrency tests.
+
+`PostgresCollection` serializes all 11 database test classes. Existing tests create
+unique GUID-based records, stokvels, memberships and idempotency keys; each run
+starts a fresh database. No existing assertions have changed. Test-only logging
+uses Console, avoiding Windows Event Log permissions. Fixture initialization checks
+the configured connection, the API context connection, and `current_database()`
+against the container, and emits only a sanitized `TEST_DATABASE` line containing
+container ID, host, mapped port, database name, and applied-migration count.
+Credentials and complete connection strings are never printed.
+
+Run from the repository root:
+
+```powershell
+dotnet build RondiTrack.sln -m:1
+dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --no-build --logger "console;verbosity=detailed"
+```
+
+Phase 5 verification: the converted solution builds with 0 warnings and 0 errors,
+and all 25 existing tests pass against the disposable PostgreSQL 17 container.
+The initial attempt failed all 25 tests during fixture construction while Docker
+was absent. Docker Desktop 4.94.0 was then installed per-user using its documented
+`--user` option; the all-users installation attempts had failed at Windows UAC.
+Docker Engine 29.8.2 now runs Linux containers on the existing WSL 2 installation.
+The successful run applied all four preserved migrations and disposed its
+container. The development-database-unavailable proof follows in Phase 6.
+
+
+## Assignment 5.4 completion proof ? 11 October 2026
+
+The development server is a local PostgreSQL Windows service, not a Docker
+container. To avoid stopping a shared service, the isolation proof temporarily
+set `ALTER DATABASE ronditrack ALLOW_CONNECTIONS false` after checking that no
+sessions were connected. A real `psql` connection was refused with "database is
+not currently accepting connections" before tests ran. The full suite then
+passed on a fresh Testcontainers database. The script restored
+`ALLOW_CONNECTIONS true` in `finally`, and a real connection succeeded afterward.
+No schema or data was changed by this proof. The PostgreSQL Windows service
+remained running; the development database was unavailable to clients.
+
+Run the same proof with development API/database sessions closed:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-5-4-isolation.ps1
+```
+
+The execution-policy override applies only to that child process. The script
+reads the existing development User Secret without printing it, passes the
+password privately to psql, and removes it before invoking dotnet test.
+It refuses remote or differently named databases and never terminates sessions.
+
+Actual test summary with the development database unavailable:
+
+```text
+Test Run Successful.
+Total tests: 25
+     Passed: 25
+ Total time: 12,2869 Seconds
+```
+
+No tests failed or were skipped. The fixture proved the API connection used
+`127.0.0.1:8623/ronditrack_test`, applied all four migrations, and disposed the
+container. This port is assigned dynamically and will differ between runs.
+Sanitized evidence is in
+[docs/assignment-5-4-isolation-evidence.txt](docs/assignment-5-4-isolation-evidence.txt).
+The completion checklist, code navigation, commits, preserved migrations, and
+phase reports are in
+[docs/assignment-5-4-verification-report.md](docs/assignment-5-4-verification-report.md).
+
+Two local proof-script issues were resolved before the successful run: Windows
+PowerShell blocked script execution, so a child-process-only override was used;
+its IDictionary adaptation of DbConnectionStringBuilder required calling
+`set_ConnectionString` explicitly. An expected psql refusal is captured without
+aborting the test run, and restoration always runs in `finally`.
+
+## Assignment 6.1 — authentication and authorization
+
+Implementation and migration verification use disposable PostgreSQL 17. **The
+existing development database upgrade is blocked by duplicate normalized emails.**
+Development data is unchanged. Private cleanup records are stored outside this
+repository and are excluded from published history. See
+[the sanitized migration note](docs/development-migration-status.md). The new
+migrations require an approved resolution of those duplicates before authentication
+can work against the existing development schema.
+
+### Configuration and registration
+
+Keep `ConnectionStrings:RondiTrackDb` and `Jwt:SigningKey` in API User Secrets.
+The existing secrets ID is preserved. The signing key is base64-encoded
+cryptographically random bytes, at least 32 decoded bytes. Do not put it in
+appsettings, shell transcripts, screenshots or source control. A development key
+has already been generated privately in User Secrets. For a new machine, generate
+a key privately and set it using `dotnet user-secrets --project API set
+Jwt:SigningKey <BASE64_KEY>`; the placeholder is not a real key. Missing, malformed
+or short keys fail startup with this guidance. Non-secret issuer, audience,
+lifetimes and skew are in API/appsettings.json. After resolving legacy email
+duplicates, apply schema changes with:
+
+```powershell
+dotnet ef database update --project Infrastructure --startup-project API
+dotnet run --project API --launch-profile https
+```
+
+Use the HTTPS URL from API/Properties/launchSettings.json. The refresh cookie is
+Secure and will not work over ordinary HTTP. Registration requires Name, valid
+Email and Password of at least 12 characters (FluentValidation); invalid input is
+400 problem JSON. Existing User is extended, with ASP.NET Core PasswordHasher
+hashes, no second user table or Identity framework. Email lookup trims and lowers
+invariantly; PostgreSQL computes `lower(btrim("Email"))` and uniquely indexes it,
+protecting concurrent registrations and direct database writes. Duplicates are
+409. Legacy users retain nullable password hashes and cannot login until an
+operator implements an approved password setup process. Registration never
+accepts privileged roles. Platform administrator assignment is an operator
+decision, outside the public registration flow.
+
+### JWT and session lifecycle
+
+Login returns `{ accessToken, expiresAtUtc }`; unknown email and incorrect
+password return identical 401 problem bodies. Unknown users perform a dummy
+password verification. Only Microsoft.AspNetCore.Authentication.JwtBearer
+10.0.12 was added for authentication. The JWT uses HS256, five-minute expiry and
+explicit 30-second ClockSkew (maximum acceptance approximately five minutes and
+30 seconds). Signature, algorithm, issuer, audience, expiry and signed-token
+requirements are validated. Configuration enforces access lifetime 1–15 minutes.
+
+| Claim | Meaning and lifetime rationale |
+|---|---|
+| sub | Stable User.Id, no email or permission data; each request also rejects deleted users. |
+| jti | Unique immutable identifier for this issued token; not a session revocation lookup. |
+| iat | Immutable issuance time. |
+| nbf / exp | Fixed validity window checked with the explicit skew. |
+| iss / aud | Fixed issuing service and intended client from configuration. |
+
+Neither stokvel roles nor platform roles are embedded in the JWT. Current
+platform role is added to the authenticated principal from PostgreSQL by
+PlatformRoleClaimsTransformation. StokvelAccessHandler separately queries the
+specific stokvel membership on every relevant request; demotion/removal affects
+the same still-valid JWT immediately. Authentication validates identity;
+authorization decides the allowed operation. Policies and role names are
+centralized in API/Auth/Policies.cs and Domain/Entities/Roles.cs.
+
+Login creates a family with a 30-day absolute limit and a seven-day refresh token.
+Refresh values are 64 cryptographically random bytes, never JWTs; only SHA-256
+hashes are stored in PostgreSQL. Refresh sends a new access JWT and rotates the
+refresh cookie every time. EfRefreshTokenRepository.RotateAsync locks the family
+row with FOR UPDATE, updates the spent token and inserts its successor in one
+transaction. Logout uses the same lock. Reusing a spent token commits whole-family
+revocation and returns 401; the winning successor is then rejected too. Concurrent
+refreshes produce at most one success. Another login family is unaffected.
+Token expiry is capped by the family expiry even if cookie expiry is later.
+
+Cookie `__Secure-ronditrack_refresh`: HttpOnly=true prevents JavaScript access;
+Secure=true requires HTTPS; SameSite=Strict limits cross-site delivery;
+Path=/api/auth limits routing; no Domain makes it host-only. Refresh values appear
+exclusively in cookies, never JSON. Logout revokes the family, deletes the cookie
+with matching options, and returns 204 even when repeated or without a cookie.
+Issued access JWTs remain valid until their short expiry plus skew after logout.
+Keep access tokens in frontend memory, not localStorage. localStorage exposes
+tokens to XSS and loses the refresh cookie's HttpOnly protection. Strict cookies
+assume a same-site client; cross-site deployments need a deliberate CSRF/CORS
+design. No unrelated frontend or cross-origin configuration was introduced.
+
+### Endpoint authorization matrix
+
+S = `/api/stokvels/{stokvelId}` and C = `S/cycles/{cycleId}`.
+All 401/403 responses use `application/problem+json`. Resource failures use the
+same global problem handler. An authenticated nonmember receives 404 to conceal
+the resource; an existing member without the required permission receives 403.
+Success codes below assume valid payload, ETag/Idempotency-Key where required,
+and satisfied existing business rules; 400/404/409/412 remain possible otherwise.
+
+| Endpoint | Anonymous | Nonmember | Member | Treasurer / Chairperson |
+|---|---:|---:|---:|---:|
+| GET S; GET S/members; GET S/cycles; GET C; GET C/contributions | 401 | 404 | 200 | 200 |
+| POST S/members/{userId} | 401 | 404 | 403 | 204 |
+| PUT S; PUT C; DELETE S; DELETE S/members/{userId}; DELETE C | 401 | 404 | 403 | 204 |
+| POST S/cycles; POST C/payouts | 401 | 404 | 403 | 201 |
+| POST S/members/{ownUserId}/contributions | 401 | 404 | 201 | 201 |
+| POST S/members/{anotherUserId}/contributions | 401 | 404 | 403 | 201 |
+
+| Global endpoint | Anonymous | Ordinary signed-in user | PlatformAdmin |
+|---|---:|---:|---:|
+| GET /api/stokvels | 401 | 403 | 200 |
+| POST /api/stokvels | 401 | 201, creator becomes Chairperson | 201, creator becomes Chairperson |
+| /api/users CRUD | 401 | 403 | GET 200, POST 201, PUT/DELETE 204 |
+| POST /api/auth/register | Anonymous allowed; 201, validation 400, duplicate 409 | Same | Same |
+| POST /api/auth/login | Anonymous allowed; 200 or identical credential-failure 401 | Same | Same |
+| POST /api/auth/refresh | Cookie required; 200 or invalid/replayed session 401 | Same | Same |
+| POST /api/auth/logout | Anonymous allowed; always 204 absent infrastructure failure | Same | Same |
+| GET /openapi/v1.json; /scalar/v1 (Development) | 200 | 200 | 200 |
+
+PlatformAdmin has no stokvel bypass: without membership it receives 404; with
+membership its actual scoped role governs access. Exactly one plain
+`[Authorize(Roles = Roles.PlatformAdmin)]` attribute guards GET /api/stokvels.
+Other authorization uses named policies, including PlatformAdministration for
+user CRUD and resource policies for stokvels. A global role is appropriate for a
+platform list, while per-stokvel privileges require a resource and database lookup.
+Fallback requires authentication for otherwise unannotated routes; only auth and
+development documentation explicitly allow anonymous access. Middleware runs
+authentication before authorization. No authorization decisions occur in catches.
+
+### Additional dependency injection lifetimes
+
+| Registration | Lifetime | Reason |
+|---|---|---|
+| JwtOptions, TokenService | Singleton | Immutable configuration/signing operations, no scoped dependencies. |
+| AuthService, IPasswordHasher<User> | Scoped | One authentication operation per request, with scoped repositories. |
+| IRefreshTokenRepository → EfRefreshTokenRepository | Scoped | Uses the request DbContext and PostgreSQL transactions. |
+| IAuthorizationHandler → StokvelAccessHandler; StokvelAuthorization | Scoped | Current membership lookup through scoped repository. |
+| IClaimsTransformation → PlatformRoleClaimsTransformation | Scoped | Current platform role lookup through scoped user repository. |
+| RegisterRequestValidator, LoginRequestValidator | Scoped | Assembly registration via FluentValidation, consistent with existing validators. |
+
+### Verification and navigation
+
+The final suite includes the 25 original tests and 37 additional authentication,
+session and authorization cases. Original assertions in all 11 test files were
+compared against baseline commit 6e3bfa1 and remain unchanged. Tests use the real
+JWT middleware and actual PostgreSQL repositories; no mock authentication scheme
+replaces validation. The shared Testcontainers fixture applies all seven migrations
+to a fresh database and verifies the actual API connection. Build and isolation
+commands are the same as Assignment 5.4 above. Actual logs/results, per-phase
+files and commits appear in [the Assignment 6.1 report](docs/assignment-6-1-verification-report.md)
+and [phase record](docs/assignment-6-1-phase-verification.md).
+
+For demonstration, open AuthController.Register/Login/Refresh/Logout → AuthService
+RegisterAsync/LoginAsync/RefreshAsync/LogoutAsync → UserRepository or
+EfRefreshTokenRepository → RondiTrackDbContext → PostgreSQL. Login additionally
+calls TokenService.CreateAccessToken. A protected cycle request runs JWT middleware
+→ ContributionCyclesController.Create → StokvelAuthorization.EnsureAsync →
+StokvelAccessHandler.HandleRequirementAsync → EfStokvelMemberRepository → DbContext
+before using EfContributionCycleRepository.AddAsync. Contribution requests proceed
+through StokvelsController.RecordContribution → ContributionService →
+ContributionRepository. PayoutsController.Create calls PayoutService.CreatePayoutAsync,
+which intentionally uses DbContext directly for its existing multi-step transaction.

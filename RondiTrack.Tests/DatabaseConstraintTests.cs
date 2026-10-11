@@ -1,26 +1,20 @@
+using RondiTrack.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using RondiTrack.Data;
-using RondiTrack.Models;
+using RondiTrack.Infrastructure.Data;
+using RondiTrack.Domain.Entities;
 
 namespace RondiTrack.Tests;
 
+[Collection(PostgresCollection.Name)]
 public class DatabaseConstraintTests
 {
-    private static DbContextOptions<RondiTrackDbContext> CreateOptions()
+    private readonly PostgresApiFactory _factory;
+
+    public DatabaseConstraintTests(PostgresApiFactory factory) => _factory = factory;
+
+    private DbContextOptions<RondiTrackDbContext> CreateOptions()
     {
-        var configuration = new ConfigurationBuilder()
-            .AddUserSecrets<Program>()
-            .Build();
-
-        var connectionString =
-            configuration.GetConnectionString("RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        return new DbContextOptionsBuilder<RondiTrackDbContext>()
-            .UseNpgsql(connectionString)
-            .Options;
+        return _factory.CreateDbContextOptions();
     }
 
     [Fact]

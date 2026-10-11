@@ -480,3 +480,12 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Private development cleanup records and database backups
+/docs/development-duplicate-email-plan.csv
+/docs/development-duplicate-email-cleanup-plan.md
+/private/
+*.backup
+*.dump
+*.bak
+*.sql.gz

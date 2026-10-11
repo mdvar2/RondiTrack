@@ -1,0 +1,9 @@
+namespace RondiTrack.Domain.Exceptions;
+
+public class BusinessRuleException : RondiTrackException
+{
+    public BusinessRuleException(string message)
+        : base(message)
+    {
+    }
+}

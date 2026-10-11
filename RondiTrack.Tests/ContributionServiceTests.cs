@@ -1,36 +1,29 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using RondiTrack.Data;
+using RondiTrack.Tests.TestSupport;
 using RondiTrack.DTOs.Contributions;
-using RondiTrack.Exceptions;
+using RondiTrack.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using RondiTrack.Infrastructure.Data;
+using RondiTrack.Domain.Queries;
+using RondiTrack.Domain.Exceptions;
 using RondiTrack.Idempotency;
-using RondiTrack.Models;
-using RondiTrack.Repositories;
+using RondiTrack.Domain.Entities;
+using RondiTrack.Domain.Repositories;
 using RondiTrack.Services;
 
 namespace RondiTrack.Tests;
 
+[Collection(PostgresCollection.Name)]
 public class ContributionServiceTests
 {
+    private readonly PostgresApiFactory _factory;
+
+    public ContributionServiceTests(PostgresApiFactory factory) => _factory = factory;
+
     [Fact]
     public async Task RecordContributionAsync_WhenContributionAlreadyExistsForMemberAndCycle_ThrowsBusinessRuleException()
     {
         // Arrange
-        var configuration =
-            new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .Build();
-
-        var connectionString =
-            configuration.GetConnectionString(
-                "RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        var options =
-            new DbContextOptionsBuilder<RondiTrackDbContext>()
-                .UseNpgsql(connectionString)
-                .Options;
+        var options = _factory.CreateDbContextOptions();
 
         await using var dbContext =
             new RondiTrackDbContext(options);
@@ -121,21 +114,7 @@ public class ContributionServiceTests
     public async Task RecordContributionAsync_WhenSameIdempotencyKeyUsedWithDifferentRequest_ThrowsBusinessRuleException()
     {
         // Arrange
-        var configuration =
-            new ConfigurationBuilder()
-                .AddUserSecrets<Program>()
-                .Build();
-
-        var connectionString =
-            configuration.GetConnectionString(
-                "RondiTrackDb")
-            ?? throw new InvalidOperationException(
-                "Connection string 'RondiTrackDb' was not found.");
-
-        var options =
-            new DbContextOptionsBuilder<RondiTrackDbContext>()
-                .UseNpgsql(connectionString)
-                .Options;
+        var options = _factory.CreateDbContextOptions();
 
         await using var dbContext =
             new RondiTrackDbContext(options);

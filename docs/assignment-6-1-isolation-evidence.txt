@@ -1,0 +1,30 @@
+DEVELOPMENT_DATABASE_UNAVAILABLE: ronditrack rejected a real connection (ALLOW_CONNECTIONS=false); PostgreSQL service remains running.
+Applying migration '20261001040953_InitialCreate'.
+Applying migration '20261004202213_ConfigureRelationshipsAndQueryModel'.
+Applying migration '20261005211608_AddDatabaseDefenseConstraints'.
+Applying migration '20261006014557_AddContributionPaginationIndex'.
+Applying migration '20261011174110_AddUserAuthentication'.
+Applying migration '20261011174943_AddRefreshTokenSessions'.
+Applying migration '20261011175640_AddPlatformRole'.
+TEST_DATABASE container=3df9e0a77cf762afdfad1265f4d855a0f9bd7d922c1b03140b7765794901b090 host=127.0.0.1 port=27421 database=ronditrack_test migrations=7
+Login succeeded. UserId: 9500b8e7-56f6-499a-b1bc-16d62a18249b
+Refresh succeeded. UserId: 9500b8e7-56f6-499a-b1bc-16d62a18249b; FamilyId: ab4843cb-ba89-4170-b01f-2fbc6573451b
+Refresh reuse detected; login family revoked. FamilyId: ab4843cb-ba89-4170-b01f-2fbc6573451b
+Login succeeded. UserId: 6ea8c194-37b6-4e8b-89b9-db39ac923886
+Refresh succeeded. UserId: 6ea8c194-37b6-4e8b-89b9-db39ac923886; FamilyId: 3c4669cf-c984-4258-92f8-08b4c796ab71
+Refresh reuse detected; login family revoked. FamilyId: 3c4669cf-c984-4258-92f8-08b4c796ab71
+Login succeeded. UserId: 2e17b833-2472-44c5-aa40-cc286a72dd23
+Logout completed.
+Logout completed.
+Logout completed.
+Login succeeded. UserId: 8a8ee6e9-d8e6-412c-9827-fafaba9716d9
+Login succeeded. UserId: a6773946-1bf0-4447-aada-970ebbc800c0
+Refresh succeeded. UserId: 8a8ee6e9-d8e6-412c-9827-fafaba9716d9; FamilyId: 308ae8ea-0ae8-4902-8598-4dbe25fe19af
+Refresh reuse detected; login family revoked. FamilyId: 308ae8ea-0ae8-4902-8598-4dbe25fe19af
+Refresh succeeded. UserId: a6773946-1bf0-4447-aada-970ebbc800c0; FamilyId: df112f89-6e2f-4360-9b2f-4cb7ca4e4fc6
+Login succeeded. UserId: 110cf218-d71a-402a-abb6-cf497b0fb7e0
+Test Run Successful.
+Total tests: 62
+Passed: 62
+Total time: 19,7887 Seconds
+DEVELOPMENT_DATABASE_RESTORED: ronditrack accepts connections again.
