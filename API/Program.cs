@@ -40,6 +40,7 @@ builder.Services.AddDbContext<RondiTrackDbContext>(options =>
         connectionString,
         npgsqlOptions =>
         {
+            npgsqlOptions.MigrationsAssembly(typeof(RondiTrackDbContext).Assembly.GetName().Name);
             npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(2),
