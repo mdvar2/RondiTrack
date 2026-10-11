@@ -214,7 +214,7 @@ development.
 From the RondiTrack project directory:
 
 ``` powershell
-dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+dotnet user-secrets --project API set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
 ```
 
 Replace `YOUR_LOCAL_PASSWORD` with the password configured during
@@ -226,7 +226,7 @@ Do not paste the real password into source code, `appsettings.json`,
 Verify that the secret key exists:
 
 ``` powershell
-dotnet user-secrets list
+dotnet user-secrets --project API list
 ```
 
 The connection-string key should appear. Treat the displayed connection
@@ -260,7 +260,7 @@ immediately recognized.
 List the migrations:
 
 ``` powershell
-dotnet ef migrations list
+dotnet ef migrations list --project Infrastructure --startup-project API
 ```
 
 RondiTrack commits migration files to Git so that another developer can
@@ -273,7 +273,7 @@ automatically be assumed safe.
 ## 11. Apply the migrations
 
 ``` powershell
-dotnet ef database update
+dotnet ef database update --project Infrastructure --startup-project API
 ```
 
 This applies the committed EF Core migrations to the local `ronditrack`
@@ -366,7 +366,7 @@ Build succeeded
 ## 15. Run the API
 
 ``` powershell
-dotnet run
+dotnet run --project API
 ```
 
 During development the application normally runs at:
@@ -420,7 +420,7 @@ CREATE DATABASE ronditrack;
 Run the User Secrets command in the RondiTrack project directory:
 
 ``` powershell
-dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+dotnet user-secrets --project API set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
 ```
 
 ### `dotnet ef` is not recognized
@@ -626,7 +626,7 @@ PostgreSQL. It introduced real relational navigation, key design,
 foreign keys, measured query behaviour, and explicit read-only query
 decisions.
 
-## User ↔ Stokvel many-to-many relationship
+## User â†” Stokvel many-to-many relationship
 
 `User` and `Stokvel` have a real many-to-many relationship through the
 explicit `StokvelMember` join entity.
@@ -671,7 +671,7 @@ For `Contribution`:
 
 ``` text
 (UserId, StokvelId)
-    ↓
+    â†“
 StokvelMember(UserId, StokvelId)
 ```
 
@@ -679,7 +679,7 @@ For `Payout`:
 
 ``` text
 (RecipientUserId, StokvelId)
-    ↓
+    â†“
 StokvelMember(UserId, StokvelId)
 ```
 
@@ -721,7 +721,7 @@ GetByStokvelAndUserAsync(...)
 
 when a tracked membership entity is required for removal.
 
-## ContributionCycle → Contribution relationship
+## ContributionCycle â†’ Contribution relationship
 
 Assignment 5.2 wires the real one-to-many relationship:
 
@@ -739,7 +739,7 @@ Contribution
 This relationship was chosen because the required Assignment 5.2 query
 is specifically "get contributions for a cycle".
 
-A `Stokvel → ContributionCycle` navigation was not added in this
+A `Stokvel â†’ ContributionCycle` navigation was not added in this
 iteration. `ContributionCycle` still contains `StokvelId`, but that
 additional navigation is deliberately left as not yet implemented rather
 than being claimed as complete.
@@ -890,7 +890,7 @@ Measured query count:
 This reduced the request from:
 
 ``` text
-23 → 3 queries
+23 â†’ 3 queries
 ```
 
 The joined entity query selected **13 columns** across `Contribution`,
@@ -987,12 +987,12 @@ Examples:
 
 ``` text
 GetByIdReadOnlyAsync
-    → read-only
-    → AsNoTracking
+    â†’ read-only
+    â†’ AsNoTracking
 
 GetByIdAsync
-    → tracked
-    → used where the entity will be changed
+    â†’ tracked
+    â†’ used where the entity will be changed
 ```
 
 This distinction is important for operations such as updating a
@@ -1002,10 +1002,10 @@ For membership:
 
 ``` text
 ExistsAsync
-    → existence-only read
+    â†’ existence-only read
 
 GetByStokvelAndUserAsync
-    → tracked lookup when membership will be removed
+    â†’ tracked lookup when membership will be removed
 ```
 
 `ContributionService` uses read-only stokvel/user/cycle lookups and an
@@ -1025,7 +1025,7 @@ committed.
 RondiTrack uses .NET User Secrets:
 
 ``` powershell
-dotnet user-secrets set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
+dotnet user-secrets --project API set "ConnectionStrings:RondiTrackDb" "Host=localhost;Port=5432;Database=ronditrack;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
 ```
 
 No real PostgreSQL password belongs in the repository.
@@ -1061,10 +1061,10 @@ Idempotency-Key
 
 Behaviour:
 
--   new key + valid request → create contribution;
--   same key + same request → return the original result;
--   same key + different request → `409 Conflict`;
--   new key + duplicate member/cycle contribution → `409 Conflict`.
+-   new key + valid request â†’ create contribution;
+-   same key + same request â†’ return the original result;
+-   same key + different request â†’ `409 Conflict`;
+-   new key + duplicate member/cycle contribution â†’ `409 Conflict`.
 
 Idempotency and duplicate-contribution protection solve different
 problems.
@@ -1390,25 +1390,25 @@ Assignment 5.2 extends the Definition of Done with:
   API area /      Documented   Guard /        Automated         PostgreSQL / Relationship       N+1
   endpoint                     validation     coverage          EF Core      modeled            measured/fixed
   --------------- ------------ -------------- ----------------- ------------ ------------------ ----------------
-  Users CRUD      Yes          Validation +   Happy/not-found   Yes          User → memberships N/A
+  Users CRUD      Yes          Validation +   Happy/not-found   Yes          User â†’ memberships N/A
                                existence      coverage                                          
 
-  Stokvels CRUD   Yes          Validation +   Happy/not-found   Yes          Stokvel →          N/A
+  Stokvels CRUD   Yes          Validation +   Happy/not-found   Yes          Stokvel â†’          N/A
                                existence      coverage                       memberships        
 
   Add/remove      Yes          Existence +    Unit +            Yes          Composite join     N/A
   membership                   membership     integration                    entity             
                                rules                                                            
 
-  Contribution    Yes          Existence +    Existing suite    Yes          Cycle →            N/A
+  Contribution    Yes          Existence +    Existing suite    Yes          Cycle â†’            N/A
   cycles                       ownership                                     contributions      
 
-  Record          Yes          Membership +   Unit +            Yes          Contribution →     N/A
+  Record          Yes          Membership +   Unit +            Yes          Contribution â†’     N/A
   contribution                 cycle +        integration                    membership/cycle   
                                duplicate +                                                      
                                idempotency                                                      
 
-  Get cycle       Yes          Stokvel +      Regression        Yes          Member → User      Yes: 23 → 3
+  Get cycle       Yes          Stokvel +      Regression        Yes          Member â†’ User      Yes: 23 â†’ 3
   contributions                cycle          suite + measured               graph / projection 
                                ownership      SQL run                                           
 
@@ -1441,13 +1441,13 @@ the source of truth for membership checks.
 A later refactor could remove the legacy representation once
 compatibility with earlier work is no longer required.
 
-## Stokvel → ContributionCycle navigation
+## Stokvel â†’ ContributionCycle navigation
 
 `ContributionCycle` has `StokvelId`, but a full
 `Stokvel.ContributionCycles` navigation was not added in Assignment 5.2.
 
 The required additional relationship was implemented as
-`ContributionCycle → Contribution`, which directly supports the required
+`ContributionCycle â†’ Contribution`, which directly supports the required
 cycle-contributions endpoint.
 
 ## Payout rotation
@@ -1479,3 +1479,76 @@ synchronously blocking on tasks.
 
 This is especially important now that database access introduces real
 I/O.
+
+
+# Assignment 5.4 ? Architecture and dependency injection
+
+The solution now contains API/RondiTrack.csproj, Domain/Domain.csproj,
+Infrastructure/Infrastructure.csproj, and RondiTrack.Tests/RondiTrack.Tests.csproj.
+API references Domain and Infrastructure; Infrastructure references Domain;
+Tests reference API and Infrastructure. Domain has no project or package dependencies.
+Entities are in Domain/Entities, exceptions in Domain/Exceptions, repository
+interfaces in Domain/Repositories, and query records in Domain/Queries.
+Infrastructure contains Data, Repositories, and the four preserved Migrations.
+Controllers, DTOs, validators, services, and Program.cs are in API.
+Only API/Program.cs selects concrete repository implementations.
+
+Repository projections return Domain query records; API maps them to the
+existing response DTOs. Filtering, pagination tokens, response JSON, concurrency,
+transaction behavior, and all existing test assertions are preserved.
+API and Infrastructure explicitly pin EF Core/Relational 10.0.4, compatible with
+the existing Npgsql provider 10.0.3. EF Core Design is private to each project.
+The split requires no new schema migration; the existing history stays intact.
+
+## Dependency-injection lifetime audit
+
+These application registrations are in API/Program.cs. No lifetime was changed:
+every DbContext holder and every service depending on one was already Scoped.
+The in-memory idempotency store remains Singleton to preserve behavior across requests.
+
+| Registration | Lifetime | Holds a DbContext? | Why this lifetime |
+|---|---|---|---|
+| RondiTrackDbContext (AddDbContext) | Scoped | Yes (is the context) | One EF unit of work per request; never shared across requests |
+| IUserRepository ? UserRepository | Scoped | Yes | Holds the request context |
+| IStokvelRepository ? StokvelRepository | Scoped | Yes | Holds the request context |
+| IContributionRepository ? ContributionRepository | Scoped | Yes | Holds the request context |
+| IContributionCycleRepository ? EfContributionCycleRepository | Scoped | Yes | Holds the request context |
+| IStokvelMemberRepository ? EfStokvelMemberRepository | Scoped | Yes | Holds the request context |
+| MembershipService | Scoped | Indirectly | Depends on scoped EF repositories |
+| ContributionService | Scoped | Indirectly | Depends on scoped EF repositories |
+| PayoutService | Scoped | Yes | Coordinates a transaction on the request context |
+| IIdempotencyStore ? IdempotencyStore | Singleton | No | In-memory records must survive between requests; has no scoped dependencies |
+| IValidator<CreateUserRequest> ? CreateUserRequestValidator | Scoped | No | FluentValidation assembly scanning defaults to Scoped |
+| IValidator<UpdateUserRequest> ? UpdateUserRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<CreateStokvelRequest> ? CreateStokvelRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<UpdateStokvelRequest> ? UpdateStokvelRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<CreateContributionCycleRequest> ? CreateContributionCycleRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<UpdateContributionCycleRequest> ? UpdateContributionCycleRequestValidator | Scoped | No | Same assembly-scanning default |
+| IValidator<RecordContributionRequest> ? RecordContributionRequestValidator | Scoped | No | Same assembly-scanning default |
+| IExceptionHandler ? GlobalExceptionHandler | Singleton | No | AddExceptionHandler default; holds only a logger |
+| IProblemDetailsService (AddProblemDetails) | Singleton | No | Framework response writer; no database dependency |
+| AddControllers / ValidationFilter | Framework-managed / per-request filter activation | No | MVC resolves validators from the request service provider |
+| Configure<ApiBehaviorOptions> | Singleton options configuration | No | Sets a static MVC option; captures no context |
+| AddOpenApi | Framework-managed | No | Document generation services; no application database dependency |
+
+ContributionCycleRepository is an unregistered legacy in-memory implementation
+retained for service tests. It is not used by the running API.
+
+## Split verification and errors
+
+On 11 October 2026, the split built with 0 warnings and 0 errors; all 25 existing
+tests passed against the development database. The four migrations listed as
+applied, and EF reported no pending model changes. This is interim evidence;
+it does not prove Testcontainers independence.
+
+The sandbox's parallel baseline build reported failure without compiler errors;
+serial builds with `-m:1` succeeded. Sandbox NuGet restores failed with
+NU1301/NU1900 due to restricted network access; unrestricted restore succeeded.
+Sandbox HTTP tests hit Windows Event Log access errors; the unrestricted baseline
+and split runs passed all 25 tests. Repository interfaces initially referenced API
+DTOs; Domain query records and explicit API mappings removed that dependency.
+No CS1705 or missing EF Design error remained with the explicit version pins.
+
+The detailed audit, exact moved-file manifest, navigation, and phase verification
+are in [docs/assignment-5-4-phase-1-audit.md](docs/assignment-5-4-phase-1-audit.md)
+and [docs/assignment-5-4-phase-verification.md](docs/assignment-5-4-phase-verification.md).
