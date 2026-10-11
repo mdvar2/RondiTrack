@@ -142,3 +142,13 @@ RondiTrack.Tests/StokvelAuthorizationTests.cs
 RondiTrack.Tests/TestSupport/AuthScenario.cs
 docs/assignment-6-1-phase-verification.md
 ```
+
+## Phase 12 — Integration and regression verification
+
+Completed. Added AuthorizationMatrixTests to exercise all 14 scoped routes for anonymous callers (401), nonmembers including nonmember administrators (404), and ordinary members (200 for views, 403 for elevated operations). Treasurer/Chairperson tests prove recording another member's contribution and processing a payout. Platform-role demotion affects an existing JWT. A new deleted-user test initially exposed 403 instead of 401; Program's JwtBearer OnTokenValidated now rejects subjects whose users no longer exist, and the full suite passes.
+
+Exact files: modified API/Program.cs; created RondiTrack.Tests/AuthorizationMatrixTests.cs and docs/assignment-6-1-isolation-evidence.txt; modified this phase record. No files moved. Why: verifies real middleware, resource handler and PostgreSQL transactions without mocking authentication. Navigate to AuthorizationMatrixTests and existing RegistrationTests/JwtLoginTests/RefreshSessionTests/StokvelAuthorizationTests; API/Program.cs/OnTokenValidated is the discovered fix.
+
+Commands/results: dotnet build RondiTrack.sln -m:1 --no-restore: zero warnings/errors. powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-5-4-isolation.ps1: 62 passed, zero failed/skipped, 19.7887 seconds. A real development connection failed before tests; a fresh container at 127.0.0.1:22905/ronditrack_test applied all seven migrations; development connections restored afterward. See evidence for the actual assigned port (ports vary). Original assertions in all 11 original test files compared against 6e3bfa1: unchanged. dotnet ef migrations has-pending-model-changes --project Infrastructure --startup-project API --no-build: no model changes.
+
+Outstanding: development upgrade blocked by existing duplicate normalized emails. User reviewed the exact cleanup proposal and chose to preserve development data. This does not affect disposable-database verification. Phase 13 documents this limitation and the complete submission evidence.

@@ -27,6 +27,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.MapInboundClaims = false;
         options.TokenValidationParameters = jwtOptions.ValidationParameters;
         options.IncludeErrorDetails = false;
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var repository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                if (!Guid.TryParse(context.Principal?.FindFirst("sub")?.Value, out var userId)
+                    || await repository.GetByIdAsync(userId) is null)
+                    context.Fail("The authenticated user no longer exists.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization(Policies.Configure);
