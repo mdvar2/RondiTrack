@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using RondiTrack.Auth;
 using Microsoft.AspNetCore.Mvc;
 using RondiTrack.Domain.Common;
 using RondiTrack.DTOs.Contributions;
@@ -9,10 +11,13 @@ using RondiTrack.Services;
 
 namespace RondiTrack.Controllers;
 
+[Authorize(Policy = Policies.SignedIn)]
 [ApiController]
 [Route("api/stokvels")]
 public class StokvelsController : ControllerBase
 {
+    private readonly StokvelAuthorization _stokvelAuthorization;
+
     private readonly IStokvelRepository _stokvelRepository;
     private readonly IStokvelMemberRepository _stokvelMemberRepository;
     private readonly MembershipService _membershipService;
@@ -22,8 +27,10 @@ public class StokvelsController : ControllerBase
         IStokvelRepository stokvelRepository,
         IStokvelMemberRepository stokvelMemberRepository,
         MembershipService membershipService,
-        ContributionService contributionService)
+        ContributionService contributionService,
+        StokvelAuthorization stokvelAuthorization)
     {
+        _stokvelAuthorization = stokvelAuthorization;
         _stokvelRepository = stokvelRepository;
         _stokvelMemberRepository = stokvelMemberRepository;
         _membershipService = membershipService;
@@ -40,6 +47,7 @@ public class StokvelsController : ControllerBase
     [ProducesResponseType(
         typeof(IEnumerable<StokvelResponse>),
         StatusCodes.Status200OK)]
+    [Authorize(Roles = Roles.PlatformAdmin)]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<StokvelResponse>>> GetAll()
     {
@@ -68,6 +76,8 @@ public class StokvelsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<StokvelResponse>> GetById(Guid id)
     {
+        await _stokvelAuthorization.EnsureAsync(User, id, Policies.StokvelView);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(id);
 
@@ -97,6 +107,8 @@ public class StokvelsController : ControllerBase
         [FromQuery] string sortDirection = "desc",
         [FromQuery] string? role = null)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
@@ -148,7 +160,7 @@ public class StokvelsController : ControllerBase
                 request.Name,
                 request.ContributionAmount);
 
-        await _stokvelRepository.AddAsync(stokvel);
+        await _stokvelRepository.AddWithChairpersonAsync(stokvel, StokvelAuthorization.UserId(User));
 
         var response =
             StokvelResponse.FromEntity(stokvel);
@@ -181,6 +193,8 @@ public class StokvelsController : ControllerBase
         UpdateStokvelRequest request,
         [FromHeader(Name = "If-Match")] string? ifMatch)
     {
+        await _stokvelAuthorization.EnsureAsync(User, id, Policies.StokvelManage);
+
         var stokvel =
             await _stokvelRepository.GetByIdAsync(id);
 
@@ -224,6 +238,8 @@ public class StokvelsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
+        await _stokvelAuthorization.EnsureAsync(User, id, Policies.StokvelManage);
+
         var deleted =
             await _stokvelRepository.DeleteAsync(id);
 
@@ -254,6 +270,8 @@ public class StokvelsController : ControllerBase
         Guid stokvelId,
         Guid userId)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+
         await _membershipService.AddMemberAsync(
             stokvelId,
             userId);
@@ -282,6 +300,8 @@ public class StokvelsController : ControllerBase
         Guid stokvelId,
         Guid userId)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+
         await _membershipService.RemoveMemberAsync(
             stokvelId,
             userId);
@@ -324,6 +344,8 @@ public class StokvelsController : ControllerBase
         string? idempotencyKey,
         RecordContributionRequest request)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.RecordContribution, userId);
+
         var response =
             await _contributionService.RecordContributionAsync(
                 stokvelId,

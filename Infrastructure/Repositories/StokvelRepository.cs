@@ -37,6 +37,13 @@ public class StokvelRepository : IStokvelRepository
                 stokvel => stokvel.Id == id);
     }
 
+    public async Task AddWithChairpersonAsync(Stokvel stokvel, Guid userId)
+    {
+        _dbContext.Stokvels.Add(stokvel);
+        _dbContext.StokvelMembers.Add(new StokvelMember(stokvel.Id, userId, Roles.Chairperson));
+        await _dbContext.SaveChangesAsync();
+    }
+
     public async Task AddAsync(Stokvel stokvel)
     {
         await _dbContext.Stokvels.AddAsync(stokvel);

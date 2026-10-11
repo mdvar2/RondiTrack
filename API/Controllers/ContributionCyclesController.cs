@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using RondiTrack.Auth;
 using Microsoft.AspNetCore.Mvc;
 using RondiTrack.Domain.Common;
 using RondiTrack.DTOs.ContributionCycles;
@@ -8,10 +10,13 @@ using RondiTrack.Domain.Repositories;
 
 namespace RondiTrack.Controllers;
 
+[Authorize(Policy = Policies.SignedIn)]
 [ApiController]
 [Route("api/stokvels/{stokvelId:guid}/cycles")]
 public class ContributionCyclesController : ControllerBase
 {
+    private readonly StokvelAuthorization _stokvelAuthorization;
+
     private readonly IContributionCycleRepository _cycleRepository;
     private readonly IStokvelRepository _stokvelRepository;
     private readonly IContributionRepository _contributionRepository;
@@ -19,8 +24,10 @@ public class ContributionCyclesController : ControllerBase
     public ContributionCyclesController(
         IContributionCycleRepository cycleRepository,
         IStokvelRepository stokvelRepository,
-        IContributionRepository contributionRepository)
+        IContributionRepository contributionRepository,
+        StokvelAuthorization stokvelAuthorization)
     {
+        _stokvelAuthorization = stokvelAuthorization;
         _cycleRepository = cycleRepository;
         _stokvelRepository = stokvelRepository;
         _contributionRepository = contributionRepository;
@@ -44,6 +51,8 @@ public class ContributionCyclesController : ControllerBase
     public async Task<ActionResult<IEnumerable<ContributionCycleResponse>>> GetAll(
         Guid stokvelId)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
@@ -79,6 +88,8 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId,
         Guid cycleId)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
@@ -126,6 +137,8 @@ public class ContributionCyclesController : ControllerBase
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
@@ -189,6 +202,8 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId,
         CreateContributionCycleRequest request)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
@@ -240,6 +255,8 @@ public class ContributionCyclesController : ControllerBase
         UpdateContributionCycleRequest request,
         [FromHeader(Name = "If-Match")] string? ifMatch)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 
@@ -293,6 +310,8 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId,
         Guid cycleId)
     {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
 

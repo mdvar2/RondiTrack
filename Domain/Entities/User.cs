@@ -15,6 +15,15 @@ public class User
     public string NormalizedEmail { get; private set; }
 
     // Existing users remain intact and cannot log in until assigned a password hash.
+    public string PlatformRole { get; private set; } = Roles.PlatformUser;
+
+    public void SetPlatformRole(string role)
+    {
+        if (role is not (Roles.PlatformUser or Roles.PlatformAdmin))
+            throw new ArgumentException("Unknown platform role.");
+        PlatformRole = role;
+    }
+
     public string? PasswordHash { get; private set; }
 
     public void SetPasswordHash(string passwordHash)

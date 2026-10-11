@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -28,10 +29,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.IncludeErrorDetails = false;
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
-});
+builder.Services.AddAuthorization(Policies.Configure);
+builder.Services.AddScoped<IAuthorizationHandler, StokvelAccessHandler>();
+builder.Services.AddScoped<IClaimsTransformation, PlatformRoleClaimsTransformation>();
+builder.Services.AddScoped<StokvelAuthorization>();
 
 builder.Services.AddOpenApi();
 

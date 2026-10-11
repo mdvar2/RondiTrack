@@ -12,6 +12,8 @@ public interface IStokvelRepository
 
     Task AddAsync(Stokvel stokvel);
 
+    Task AddWithChairpersonAsync(Stokvel stokvel, Guid userId);
+
     Task UpdateAsync(Stokvel stokvel);
 
     Task<bool> DeleteAsync(Guid id);

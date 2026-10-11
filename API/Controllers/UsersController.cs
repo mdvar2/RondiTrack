@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using RondiTrack.Auth;
 using Microsoft.AspNetCore.Mvc;
 using RondiTrack.DTOs.Users;
 using RondiTrack.Domain.Exceptions;
@@ -6,6 +8,7 @@ using RondiTrack.Domain.Repositories;
 
 namespace RondiTrack.Controllers;
 
+[Authorize(Policy = Policies.PlatformAdministration)]
 [ApiController]
 [Route("api/users")]
 public class UsersController : ControllerBase

@@ -36,6 +36,9 @@ public class RondiTrackDbContext : DbContext
         modelBuilder.Entity<Stokvel>()
             .Ignore(stokvel => stokvel.Members);
 
+        modelBuilder.Entity<User>().Property(user => user.PlatformRole)
+            .HasMaxLength(32).HasDefaultValue(Roles.PlatformUser);
+
         modelBuilder.Entity<User>()
             .Property(user => user.NormalizedEmail)
             .HasComputedColumnSql("lower(btrim(\"Email\"))", stored: true);
