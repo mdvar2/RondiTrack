@@ -106,13 +106,13 @@ Exact files:
 M  docs/assignment-6-1-phase-verification.md
 ```
 
-## Phase 11 — Resource authorization
+## Phase 11 â€” Resource authorization
 
 Completed. Every stokvel route invokes StokvelAuthorization.EnsureAsync and the scoped StokvelAccessHandler, which queries current membership and role from PostgreSQL. Views allow members; management requires Treasurer or Chairperson; ordinary members can record their own contributions. Nonmembers receive 404, insufficient permissions 403. Creating a stokvel atomically creates its creator's Chairperson membership. Platform administrators have no scoped membership bypass. Exactly one plain role attribute guards the global stokvel list; other controller authorization uses policies. PlatformRoleClaimsTransformation loads the platform role from the database on each authenticated request, so neither scoped nor platform permissions depend on stale JWT role claims. Deleted users become unauthenticated.
 
 Navigate in VS Code to API/Auth/Policies.cs, StokvelAccessHandler.cs, StokvelAuthorization.cs and PlatformRoleClaimsTransformation.cs; the three stokvel controllers call the helper at the start of each scoped action. Domain/Entities/Roles.cs centralizes names. Migration 20261011175640_AddPlatformRole adds a default ordinary platform role without promoting existing users.
 
-Verification: build succeeded with zero warnings/errors; 45 tests passed, zero failed/skipped (6 seconds). Tests cover all four permission outcomes, own contributions, live demotion/removal, per-stokvel roles, creator membership and the platform list. Outstanding: final route matrix and development-database isolation run in Phase 12. Development preflight found seven duplicate normalized-email groups; no development data or migrations were changed. The unique-email upgrade requires an explicit cleanup decision.
+Verification: build succeeded with zero warnings/errors; 45 tests passed, zero failed/skipped (6 seconds). Tests cover all four permission outcomes, own contributions, live demotion/removal, per-stokvel roles, creator membership and the platform list. Outstanding: final route matrix and development-database isolation run in Phase 12. Development preflight found duplicate normalized-email groups; no development data or migrations were changed. The unique-email upgrade requires an explicit cleanup decision.
 
 Exact files created or modified (no files moved):
 
@@ -143,12 +143,25 @@ RondiTrack.Tests/TestSupport/AuthScenario.cs
 docs/assignment-6-1-phase-verification.md
 ```
 
-## Phase 12 — Integration and regression verification
+## Phase 12 â€” Integration and regression verification
 
 Completed. Added AuthorizationMatrixTests to exercise all 14 scoped routes for anonymous callers (401), nonmembers including nonmember administrators (404), and ordinary members (200 for views, 403 for elevated operations). Treasurer/Chairperson tests prove recording another member's contribution and processing a payout. Platform-role demotion affects an existing JWT. A new deleted-user test initially exposed 403 instead of 401; Program's JwtBearer OnTokenValidated now rejects subjects whose users no longer exist, and the full suite passes.
 
 Exact files: modified API/Program.cs; created RondiTrack.Tests/AuthorizationMatrixTests.cs and docs/assignment-6-1-isolation-evidence.txt; modified this phase record. No files moved. Why: verifies real middleware, resource handler and PostgreSQL transactions without mocking authentication. Navigate to AuthorizationMatrixTests and existing RegistrationTests/JwtLoginTests/RefreshSessionTests/StokvelAuthorizationTests; API/Program.cs/OnTokenValidated is the discovered fix.
 
-Commands/results: dotnet build RondiTrack.sln -m:1 --no-restore: zero warnings/errors. powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-5-4-isolation.ps1: 62 passed, zero failed/skipped, 19.7887 seconds. A real development connection failed before tests; a fresh container at 127.0.0.1:22905/ronditrack_test applied all seven migrations; development connections restored afterward. See evidence for the actual assigned port (ports vary). Original assertions in all 11 original test files compared against 6e3bfa1: unchanged. dotnet ef migrations has-pending-model-changes --project Infrastructure --startup-project API --no-build: no model changes.
+Commands/results: dotnet build RondiTrack.sln -m:1 --no-restore: zero warnings/errors. powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-5-4-isolation.ps1: 62 passed, zero failed/skipped, 19.7887 seconds. A real development connection failed before tests; a fresh container at 127.0.0.1:27421/ronditrack_test applied all seven migrations; development connections restored afterward. See evidence for the actual assigned port (ports vary). Original assertions in all 11 original test files compared against 6e3bfa1: unchanged. dotnet ef migrations has-pending-model-changes --project Infrastructure --startup-project API --no-build: no model changes.
 
 Outstanding: development upgrade blocked by existing duplicate normalized emails. User reviewed the exact cleanup proposal and chose to preserve development data. This does not affect disposable-database verification. Phase 13 documents this limitation and the complete submission evidence.
+
+
+## Phase 13 — Documentation and submission readiness
+
+Completed for source and disposable-database verification; development deployment remains blocked by explicit user decision. README now documents every authentication requirement, stable claims, five-minute JWT/30-second skew, seven-day refresh/30-day family, cookie flags, storage/CSRF assumptions, atomic replay handling, full endpoint/status matrix, role versus resource policies, additional DI lifetimes and actual request-flow navigation. Created a separate Assignment 6.1 checklist/report and exact commit file manifest. The Assignment 5.4 report now records its completion-gate commit explicitly.
+
+Exact files: modified README.md, docs/assignment-5-4-verification-report.md and docs/assignment-6-1-phase-verification.md; created docs/assignment-6-1-verification-report.md, docs/assignment-6-1-file-manifest.txt, docs/development-migration-status.md. No files moved. Private cleanup documents were removed from unpublished history and preserved outside the repository. Development data is unchanged.
+
+Verification: final build zero warnings/errors; final isolation run 62 passed, zero failed/skipped, 19.7887 seconds; no pending model changes. All seven migrations applied in a fresh container. Container disposal verified: Docker reports no running containers after the test. Documentation status codes checked against actual controllers (adding membership is 204). Credential-pattern scan reviewed 371 historical text blobs: 12 candidate blobs were documentation placeholders, password-variable assignments and synthetic test inputs; current candidates have the same explanations. Private comparison found zero actual JWT signing-key or complete development connection-string matches in history; no values displayed. Generic password-word substring matches were false positives in prose/identifier names, not embedded credentials. These checks are heuristic, not a guarantee of exhaustive secret detection. No secrets were committed.
+
+Outstanding: three new migrations remain unapplied to development because normalized emails collide. The user selected keeping development data unchanged; this prevents auth against the old development schema. See the sanitized migration note; private cleanup documents are not published. Password setup for legacy users and frontend deployment remain outside the requested scope. Assignment 6.1 implementation and tests are verified; report does not claim development upgrade completion.
+
+Commits for Phases 7–12: dca4979, 4a08eb2, 961903d, fa8b64d, 96ac6bf, 2bcdffb. Phase 13 documentation commit is recorded in Git history and final delivery. Use git show --name-status <SHA> for exact per-commit paths; the file manifest includes them for every source phase.

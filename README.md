@@ -1648,3 +1648,163 @@ PowerShell blocked script execution, so a child-process-only override was used;
 its IDictionary adaptation of DbConnectionStringBuilder required calling
 `set_ConnectionString` explicitly. An expected psql refusal is captured without
 aborting the test run, and restoration always runs in `finally`.
+
+## Assignment 6.1 — authentication and authorization
+
+Implementation and migration verification use disposable PostgreSQL 17. **The
+existing development database upgrade is blocked by duplicate normalized emails.**
+Development data is unchanged. Private cleanup records are stored outside this
+repository and are excluded from published history. See
+[the sanitized migration note](docs/development-migration-status.md). The new
+migrations require an approved resolution of those duplicates before authentication
+can work against the existing development schema.
+
+### Configuration and registration
+
+Keep `ConnectionStrings:RondiTrackDb` and `Jwt:SigningKey` in API User Secrets.
+The existing secrets ID is preserved. The signing key is base64-encoded
+cryptographically random bytes, at least 32 decoded bytes. Do not put it in
+appsettings, shell transcripts, screenshots or source control. A development key
+has already been generated privately in User Secrets. For a new machine, generate
+a key privately and set it using `dotnet user-secrets --project API set
+Jwt:SigningKey <BASE64_KEY>`; the placeholder is not a real key. Missing, malformed
+or short keys fail startup with this guidance. Non-secret issuer, audience,
+lifetimes and skew are in API/appsettings.json. After resolving legacy email
+duplicates, apply schema changes with:
+
+```powershell
+dotnet ef database update --project Infrastructure --startup-project API
+dotnet run --project API --launch-profile https
+```
+
+Use the HTTPS URL from API/Properties/launchSettings.json. The refresh cookie is
+Secure and will not work over ordinary HTTP. Registration requires Name, valid
+Email and Password of at least 12 characters (FluentValidation); invalid input is
+400 problem JSON. Existing User is extended, with ASP.NET Core PasswordHasher
+hashes, no second user table or Identity framework. Email lookup trims and lowers
+invariantly; PostgreSQL computes `lower(btrim("Email"))` and uniquely indexes it,
+protecting concurrent registrations and direct database writes. Duplicates are
+409. Legacy users retain nullable password hashes and cannot login until an
+operator implements an approved password setup process. Registration never
+accepts privileged roles. Platform administrator assignment is an operator
+decision, outside the public registration flow.
+
+### JWT and session lifecycle
+
+Login returns `{ accessToken, expiresAtUtc }`; unknown email and incorrect
+password return identical 401 problem bodies. Unknown users perform a dummy
+password verification. Only Microsoft.AspNetCore.Authentication.JwtBearer
+10.0.12 was added for authentication. The JWT uses HS256, five-minute expiry and
+explicit 30-second ClockSkew (maximum acceptance approximately five minutes and
+30 seconds). Signature, algorithm, issuer, audience, expiry and signed-token
+requirements are validated. Configuration enforces access lifetime 1–15 minutes.
+
+| Claim | Meaning and lifetime rationale |
+|---|---|
+| sub | Stable User.Id, no email or permission data; each request also rejects deleted users. |
+| jti | Unique immutable identifier for this issued token; not a session revocation lookup. |
+| iat | Immutable issuance time. |
+| nbf / exp | Fixed validity window checked with the explicit skew. |
+| iss / aud | Fixed issuing service and intended client from configuration. |
+
+Neither stokvel roles nor platform roles are embedded in the JWT. Current
+platform role is added to the authenticated principal from PostgreSQL by
+PlatformRoleClaimsTransformation. StokvelAccessHandler separately queries the
+specific stokvel membership on every relevant request; demotion/removal affects
+the same still-valid JWT immediately. Authentication validates identity;
+authorization decides the allowed operation. Policies and role names are
+centralized in API/Auth/Policies.cs and Domain/Entities/Roles.cs.
+
+Login creates a family with a 30-day absolute limit and a seven-day refresh token.
+Refresh values are 64 cryptographically random bytes, never JWTs; only SHA-256
+hashes are stored in PostgreSQL. Refresh sends a new access JWT and rotates the
+refresh cookie every time. EfRefreshTokenRepository.RotateAsync locks the family
+row with FOR UPDATE, updates the spent token and inserts its successor in one
+transaction. Logout uses the same lock. Reusing a spent token commits whole-family
+revocation and returns 401; the winning successor is then rejected too. Concurrent
+refreshes produce at most one success. Another login family is unaffected.
+Token expiry is capped by the family expiry even if cookie expiry is later.
+
+Cookie `__Secure-ronditrack_refresh`: HttpOnly=true prevents JavaScript access;
+Secure=true requires HTTPS; SameSite=Strict limits cross-site delivery;
+Path=/api/auth limits routing; no Domain makes it host-only. Refresh values appear
+exclusively in cookies, never JSON. Logout revokes the family, deletes the cookie
+with matching options, and returns 204 even when repeated or without a cookie.
+Issued access JWTs remain valid until their short expiry plus skew after logout.
+Keep access tokens in frontend memory, not localStorage. localStorage exposes
+tokens to XSS and loses the refresh cookie's HttpOnly protection. Strict cookies
+assume a same-site client; cross-site deployments need a deliberate CSRF/CORS
+design. No unrelated frontend or cross-origin configuration was introduced.
+
+### Endpoint authorization matrix
+
+S = `/api/stokvels/{stokvelId}` and C = `S/cycles/{cycleId}`.
+All 401/403 responses use `application/problem+json`. Resource failures use the
+same global problem handler. An authenticated nonmember receives 404 to conceal
+the resource; an existing member without the required permission receives 403.
+Success codes below assume valid payload, ETag/Idempotency-Key where required,
+and satisfied existing business rules; 400/404/409/412 remain possible otherwise.
+
+| Endpoint | Anonymous | Nonmember | Member | Treasurer / Chairperson |
+|---|---:|---:|---:|---:|
+| GET S; GET S/members; GET S/cycles; GET C; GET C/contributions | 401 | 404 | 200 | 200 |
+| POST S/members/{userId} | 401 | 404 | 403 | 204 |
+| PUT S; PUT C; DELETE S; DELETE S/members/{userId}; DELETE C | 401 | 404 | 403 | 204 |
+| POST S/cycles; POST C/payouts | 401 | 404 | 403 | 201 |
+| POST S/members/{ownUserId}/contributions | 401 | 404 | 201 | 201 |
+| POST S/members/{anotherUserId}/contributions | 401 | 404 | 403 | 201 |
+
+| Global endpoint | Anonymous | Ordinary signed-in user | PlatformAdmin |
+|---|---:|---:|---:|
+| GET /api/stokvels | 401 | 403 | 200 |
+| POST /api/stokvels | 401 | 201, creator becomes Chairperson | 201, creator becomes Chairperson |
+| /api/users CRUD | 401 | 403 | GET 200, POST 201, PUT/DELETE 204 |
+| POST /api/auth/register | Anonymous allowed; 201, validation 400, duplicate 409 | Same | Same |
+| POST /api/auth/login | Anonymous allowed; 200 or identical credential-failure 401 | Same | Same |
+| POST /api/auth/refresh | Cookie required; 200 or invalid/replayed session 401 | Same | Same |
+| POST /api/auth/logout | Anonymous allowed; always 204 absent infrastructure failure | Same | Same |
+| GET /openapi/v1.json; /scalar/v1 (Development) | 200 | 200 | 200 |
+
+PlatformAdmin has no stokvel bypass: without membership it receives 404; with
+membership its actual scoped role governs access. Exactly one plain
+`[Authorize(Roles = Roles.PlatformAdmin)]` attribute guards GET /api/stokvels.
+Other authorization uses named policies, including PlatformAdministration for
+user CRUD and resource policies for stokvels. A global role is appropriate for a
+platform list, while per-stokvel privileges require a resource and database lookup.
+Fallback requires authentication for otherwise unannotated routes; only auth and
+development documentation explicitly allow anonymous access. Middleware runs
+authentication before authorization. No authorization decisions occur in catches.
+
+### Additional dependency injection lifetimes
+
+| Registration | Lifetime | Reason |
+|---|---|---|
+| JwtOptions, TokenService | Singleton | Immutable configuration/signing operations, no scoped dependencies. |
+| AuthService, IPasswordHasher<User> | Scoped | One authentication operation per request, with scoped repositories. |
+| IRefreshTokenRepository → EfRefreshTokenRepository | Scoped | Uses the request DbContext and PostgreSQL transactions. |
+| IAuthorizationHandler → StokvelAccessHandler; StokvelAuthorization | Scoped | Current membership lookup through scoped repository. |
+| IClaimsTransformation → PlatformRoleClaimsTransformation | Scoped | Current platform role lookup through scoped user repository. |
+| RegisterRequestValidator, LoginRequestValidator | Scoped | Assembly registration via FluentValidation, consistent with existing validators. |
+
+### Verification and navigation
+
+The final suite includes the 25 original tests and 37 additional authentication,
+session and authorization cases. Original assertions in all 11 test files were
+compared against baseline commit 6e3bfa1 and remain unchanged. Tests use the real
+JWT middleware and actual PostgreSQL repositories; no mock authentication scheme
+replaces validation. The shared Testcontainers fixture applies all seven migrations
+to a fresh database and verifies the actual API connection. Build and isolation
+commands are the same as Assignment 5.4 above. Actual logs/results, per-phase
+files and commits appear in [the Assignment 6.1 report](docs/assignment-6-1-verification-report.md)
+and [phase record](docs/assignment-6-1-phase-verification.md).
+
+For demonstration, open AuthController.Register/Login/Refresh/Logout → AuthService
+RegisterAsync/LoginAsync/RefreshAsync/LogoutAsync → UserRepository or
+EfRefreshTokenRepository → RondiTrackDbContext → PostgreSQL. Login additionally
+calls TokenService.CreateAccessToken. A protected cycle request runs JWT middleware
+→ ContributionCyclesController.Create → StokvelAuthorization.EnsureAsync →
+StokvelAccessHandler.HandleRequirementAsync → EfStokvelMemberRepository → DbContext
+before using EfContributionCycleRepository.AddAsync. Contribution requests proceed
+through StokvelsController.RecordContribution → ContributionService →
+ContributionRepository. PayoutsController.Create calls PayoutService.CreatePayoutAsync,
+which intentionally uses DbContext directly for its existing multi-step transaction.

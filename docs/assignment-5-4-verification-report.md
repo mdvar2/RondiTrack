@@ -93,7 +93,7 @@ was necessary, and no migration history was recreated.
 | 5 implementation | 6bdba5c | Move all database tests to shared PostgreSQL Testcontainers fixture |
 | 5 verification | b8a6c16 | Record passing PostgreSQL Testcontainers regression verification |
 
-The Phase 6 commit is recorded in Git history and in the final chat delivery.
+The Phase 6 commit is `8485f63` — Prove database independence and document Assignment 5.4 completion.
 Exact files created/moved/modified, reasons, navigation and phase results are in
 [assignment-5-4-phase-1-audit.md](assignment-5-4-phase-1-audit.md) and
 [assignment-5-4-phase-verification.md](assignment-5-4-phase-verification.md).
