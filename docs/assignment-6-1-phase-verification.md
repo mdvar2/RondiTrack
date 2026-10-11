@@ -81,3 +81,27 @@ Exact files:
 ?? RondiTrack.Tests/RefreshSessionTests.cs
 M  docs/assignment-6-1-phase-verification.md
 ```
+
+## Phase 10 ? Secure by default
+
+Status: Completed. API/Program.cs adds a fallback policy requiring authentication, orders UseAuthentication before UseAuthorization, and writes 401/403 status-page failures as application/problem+json. Auth actions have explicit AllowAnonymous; OpenAPI and Scalar endpoints have AllowAnonymous and still load in development. All existing non-auth controllers are covered by fallback. No forgotten route is anonymously accessible.
+
+Regression HTTP tests now use PostgresApiFactory.CreateAuthenticatedClient: the fixture seeds a real database user and mints a token with the application's real TokenService and runtime test signing key. This treats sign-in as a precondition for existing business/concurrency tests, preserving every assertion. Dedicated JwtLoginTests and RefreshSessionTests exercise actual anonymous registration/login/refresh/logout and real JWT validation instead of replacing authentication with a mock scheme.
+
+Navigation: API/Program.cs/AddAuthorization and middleware; RondiTrack.Tests/TestSupport/PostgresApiFactory.cs/CreateAuthenticatedClient; SecureDefaultsTests.cs. Verification: build succeeded, 0 warnings/errors; all 39 tests passed, failed 0, skipped 0 (5 s), including no-token 401 problem and both anonymous documentation routes. Outstanding: stokvel/user permission policies in Phase 11; the middleware and generic 403 writer are implemented, with resource-denial tests added there.
+
+Exact files:
+
+```text
+ M API/Program.cs
+ M RondiTrack.Tests/ConcurrencyProtectionTests.cs
+ M RondiTrack.Tests/ContributionBusinessRuleTests.cs
+ M RondiTrack.Tests/EdgeCaseTests.cs
+ M RondiTrack.Tests/HappyPathTests.cs
+ M RondiTrack.Tests/IdempotencyTests.cs
+ M RondiTrack.Tests/MembershipBusinessRuleTests.cs
+ M RondiTrack.Tests/NegativePathTests.cs
+ M RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+?? RondiTrack.Tests/SecureDefaultsTests.cs
+M  docs/assignment-6-1-phase-verification.md
+```

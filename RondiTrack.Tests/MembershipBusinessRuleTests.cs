@@ -13,7 +13,7 @@ public class MembershipBusinessRuleTests
     public MembershipBusinessRuleTests(
         PostgresApiFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

@@ -14,7 +14,7 @@ public class NegativePathTests
     public NegativePathTests(
         PostgresApiFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

@@ -13,7 +13,7 @@ public class ContributionBusinessRuleTests
     public ContributionBusinessRuleTests(
         PostgresApiFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

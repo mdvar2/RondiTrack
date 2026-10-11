@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using RondiTrack.Auth;
+using RondiTrack.Domain.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +15,8 @@ namespace RondiTrack.Tests.TestSupport;
 
 public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    private readonly User _regressionUser = new("Regression fixture user", $"regression-{Guid.NewGuid()}@tests.example");
+
     private readonly string _testSigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17")
@@ -25,6 +30,14 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         new DbContextOptionsBuilder<RondiTrackDbContext>()
             .UseNpgsql(_container.GetConnectionString())
             .Options;
+
+    public HttpClient CreateAuthenticatedClient()
+    {
+        var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
+        var token = Services.GetRequiredService<TokenService>().CreateAccessToken(_regressionUser);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+        return client;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -57,6 +70,8 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             // Apply the preserved migration chain rather than bypassing it with EnsureCreated.
             await context.Database.MigrateAsync();
+            context.Users.Add(_regressionUser);
+            await context.SaveChangesAsync();
             await context.Database.OpenConnectionAsync();
             using var command = context.Database.GetDbConnection().CreateCommand();
             command.CommandText = "SELECT current_database()";
