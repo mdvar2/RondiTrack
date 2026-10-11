@@ -25,6 +25,9 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var (statusCode, title) = exception switch
         {
+            AuthenticationFailedException =>
+                (StatusCodes.Status401Unauthorized, "Unauthorized"),
+
             RequestValidationException =>
                 (StatusCodes.Status400BadRequest, "Bad Request"),
 
@@ -49,10 +52,10 @@ public class GlobalExceptionHandler : IExceptionHandler
                     "Internal Server Error")
         };
 
-        _logger.LogError(
-            exception,
-            "Request failed. CorrelationId: {CorrelationId}",
-            correlationId);
+        if (exception is AuthenticationFailedException)
+            _logger.LogInformation("Authentication rejected. CorrelationId: {CorrelationId}", correlationId);
+        else
+            _logger.LogError(exception, "Request failed. CorrelationId: {CorrelationId}", correlationId);
 
         var problem = new ProblemDetails
         {
@@ -67,8 +70,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             Instance = httpContext.Request.Path
         };
 
-        problem.Extensions["correlationId"] =
-            correlationId;
+        // Login failures must be identical for unknown accounts and wrong passwords.
+        if (exception is not AuthenticationFailedException)
+            problem.Extensions["correlationId"] = correlationId;
 
         httpContext.Response.StatusCode =
             statusCode;

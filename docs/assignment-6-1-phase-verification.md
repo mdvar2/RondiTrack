@@ -28,3 +28,30 @@ Exact files:
 ?? RondiTrack.Tests/RegistrationTests.cs
 A  docs/assignment-6-1-phase-verification.md
 ```
+
+## Phase 8 ? JWT login
+
+Status: Completed. Added only Microsoft.AspNetCore.Authentication.JwtBearer 10.0.12, matching ASP.NET Core. AuthService.LoginAsync normalizes email, verifies PasswordHasher hashes (including a dummy hash for unknown/passwordless users), returns identical 401 problem bodies, and logs only user/correlation IDs. TokenService creates five-minute HS256 JWTs. JwtOptions.Load validates a base64 key of at least 32 random bytes and fails startup with a helpful User Secrets command. A random development key was configured in User Secrets outside Git; the fixture uses an independent runtime-generated test key via UseSetting. Signature, issuer, audience, algorithm and expiry are validated; ClockSkew is 30 seconds; MapInboundClaims=false.
+
+Claims: sub is the stable User.Id; jti identifies this token; iat, nbf and exp describe fixed issuance/validity timestamps; iss/aud identify this issuer and client application. These facts can safely remain fixed for the token lifetime. No email, membership or stokvel role is carried. The configured 30-second tolerance permits minor clock drift, so practical acceptance can last 5 minutes 30 seconds after issuance.
+
+Navigation: API/Auth/JwtOptions.cs/Load and ValidationParameters; TokenService.cs/CreateAccessToken; AuthService.cs/LoginAsync; AuthController.cs/Login; GlobalExceptionHandler.cs/TryHandleAsync. Verification: dotnet build RondiTrack.sln --no-restore -m:1 passed, 0 warnings/errors; all 32 tests passed, failed 0, skipped 0 (4 s), including signed-token validation, wrong signature/issuer/audience/expiry rejection, missing/invalid/short key failure and exact identical login failure bodies. Outstanding: refresh sessions in Phase 9; fallback/resource authorization in Phases 10?11.
+
+Exact files (excluding the private User Secrets file, intentionally never committed):
+
+```text
+ M API/Auth/AuthService.cs
+ M API/Controllers/AuthController.cs
+ M API/Handlers/GlobalExceptionHandler.cs
+ M API/Program.cs
+ M API/RondiTrack.csproj
+ M API/appsettings.json
+ M RondiTrack.Tests/TestSupport/PostgresApiFactory.cs
+?? API/Auth/JwtOptions.cs
+?? API/Auth/TokenService.cs
+?? API/DTOs/Auth/LoginRequest.cs
+?? API/Validators/LoginRequestValidator.cs
+?? Domain/Exceptions/AuthenticationFailedException.cs
+?? RondiTrack.Tests/JwtLoginTests.cs
+M  docs/assignment-6-1-phase-verification.md
+```
