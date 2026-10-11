@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using RondiTrack.Data;
-using RondiTrack.Models;
+using RondiTrack.Infrastructure.Data;
+using RondiTrack.Domain.Entities;
 
 namespace RondiTrack.Tests;
 

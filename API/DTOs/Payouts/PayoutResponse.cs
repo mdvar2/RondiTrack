@@ -1,0 +1,26 @@
+using RondiTrack.Domain.Entities;
+
+namespace RondiTrack.DTOs.Payouts;
+
+public record PayoutResponse(
+    Guid Id,
+    Guid StokvelId,
+    Guid RecipientUserId,
+    Guid ContributionCycleId,
+    decimal Amount,
+    DateTime PaidAtUtc,
+    uint Version)
+{
+    public static PayoutResponse FromEntity(
+        Payout payout)
+    {
+        return new PayoutResponse(
+            payout.Id,
+            payout.StokvelId,
+            payout.RecipientUserId,
+            payout.ContributionCycleId,
+            payout.Amount,
+            payout.PaidAtUtc,
+            payout.Version);
+    }
+}
