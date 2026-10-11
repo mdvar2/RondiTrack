@@ -4,6 +4,8 @@ namespace RondiTrack.Domain.Repositories;
 
 public interface IUserRepository
 {
+    Task<User?> GetByNormalizedEmailAsync(string normalizedEmail);
+
     Task<IEnumerable<User>> GetAllAsync();
 
     Task<User?> GetByIdAsync(Guid id);

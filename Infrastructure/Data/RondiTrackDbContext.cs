@@ -27,6 +27,14 @@ public class RondiTrackDbContext : DbContext
             .Ignore(stokvel => stokvel.Members);
 
         modelBuilder.Entity<User>()
+            .Property(user => user.NormalizedEmail)
+            .HasComputedColumnSql("lower(btrim(\"Email\"))", stored: true);
+
+        modelBuilder.Entity<User>()
+            .HasIndex(user => user.NormalizedEmail)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
             .Property(user => user.Version)
             .IsRowVersion();
 

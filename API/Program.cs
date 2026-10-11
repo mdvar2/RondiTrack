@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Identity;
+using RondiTrack.Auth;
+using RondiTrack.Domain.Entities;
 using RondiTrack.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -71,6 +74,9 @@ builder.Services.AddScoped<
 builder.Services.AddSingleton<
     IIdempotencyStore,
     IdempotencyStore>();
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddScoped<MembershipService>();
 builder.Services.AddScoped<ContributionService>();

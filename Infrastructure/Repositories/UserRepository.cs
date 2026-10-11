@@ -15,6 +15,9 @@ public class UserRepository : IUserRepository
         _dbContext = dbContext;
     }
 
+    public Task<User?> GetByNormalizedEmailAsync(string normalizedEmail) =>
+        _dbContext.Users.FirstOrDefaultAsync(user => user.NormalizedEmail == normalizedEmail);
+
     public async Task<IEnumerable<User>> GetAllAsync()
     {
         return await _dbContext.Users
