@@ -12,6 +12,20 @@ public class User
 
     public string Email { get; private set; }
 
+    public string NormalizedEmail { get; private set; }
+
+    // Existing users remain intact and cannot log in until assigned a password hash.
+    public string? PasswordHash { get; private set; }
+
+    public void SetPasswordHash(string passwordHash)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+            throw new ArgumentException("Password hash is required.");
+        PasswordHash = passwordHash;
+    }
+
+    public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
     public IReadOnlyCollection<StokvelMember> StokvelMemberships =>
         _stokvelMemberships.AsReadOnly();
 
@@ -26,6 +40,7 @@ public class User
         Id = Guid.NewGuid();
         Name = name.Trim();
         Email = email.Trim();
+        NormalizedEmail = NormalizeEmail(email);
     }
 
     public void UpdateDetails(string name, string email)
@@ -38,5 +53,6 @@ public class User
 
         Name = name.Trim();
         Email = email.Trim();
+        NormalizedEmail = NormalizeEmail(email);
     }
 }
