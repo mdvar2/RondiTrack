@@ -1,0 +1,5 @@
+﻿DEVELOPMENT_UNAVAILABLE: real connection rejected with ALLOW_CONNECTIONS=false; zero existing development sessions.
+ISOLATION_METHOD: connection admission disabled for development only; Windows PostgreSQL service remains running.
+OTLP_DISABLED: no exporter endpoint supplied; no Aspire dashboard required.
+FAULT_INJECTION: controlled exception after connection rejection; test process intentionally not started.
+DEVELOPMENT_RESTORED: real SELECT 1 succeeded; connection admission restored; no business records or migrations changed.

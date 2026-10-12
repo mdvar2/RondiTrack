@@ -1,5 +1,6 @@
 param(
-    [string]$PsqlPath = 'C:\Program Files\PostgreSQL\17\bin\psql.exe'
+    [string]$PsqlPath = 'C:\Program Files\PostgreSQL\17\bin\psql.exe',
+    [switch]$FailAfterIsolation
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,6 +64,10 @@ try {
     $env:OTEL_EXPORTER_OTLP_ENDPOINT = ''
     $env:RONDITRACK_HEALTH_EVIDENCE_DIR = $resultsPath
     Add-Evidence 'OTLP_DISABLED: no exporter endpoint supplied; no Aspire dashboard required.'
+    if ($FailAfterIsolation) {
+        Add-Evidence 'FAULT_INJECTION: controlled exception after connection rejection; test process intentionally not started.'
+        throw 'Synthetic post-isolation failure used to verify finally restoration.'
+    }
     Push-Location $repositoryRoot
     $previousPreference = $ErrorActionPreference
     try {

@@ -1,0 +1,11 @@
+{
+  "loginTrace": "dedc92c0ec68cfab9a111f982c129e4b",
+  "payoutTrace": "389fefdbb86b1e0efe3dc8bbb7915f39",
+  "refusalTrace": "bafaae4972b0b8bf5cecc0a82143153d",
+  "service": "ronditrack-api",
+  "payoutStatus": 201,
+  "refusalStatus": 404,
+  "sqlLogEvents": 8,
+  "dashboardLogsReceived": true,
+  "dashboardMetricsReceived": true
+}
