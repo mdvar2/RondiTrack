@@ -42,6 +42,9 @@ public class JwtLoginTests(PostgresApiFactory factory)
         var email = $"{Guid.NewGuid()}@example.com";
         var password = Guid.NewGuid().ToString("N");
         await client.PostAsJsonAsync("/api/auth/register", new { name = "User", email, password });
+        // Compare failures within one caller trace; all existing assertions remain intact.
+        client.DefaultRequestHeaders.Add("traceparent",
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
         var wrong = await client.PostAsJsonAsync("/api/auth/login", new { email, password = "incorrect-password" });
         var unknown = await client.PostAsJsonAsync("/api/auth/login", new { email = $"{Guid.NewGuid()}@example.com", password = "incorrect-password" });
         Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);

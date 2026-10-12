@@ -20,6 +20,7 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using RondiTrack.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,7 +80,23 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        Correlation.Apply(context.HttpContext, context.ProblemDetails);
+        // Retain one caller-facing ID rather than an additional span-specific traceId.
+        context.ProblemDetails.Extensions.Remove("traceId");
+        var status = context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode;
+        if (status >= 500)
+            context.ProblemDetails.Detail = "An unexpected error occurred.";
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("RondiTrack.ProblemDetails");
+        logger.Log(status >= 500 ? LogLevel.Error : LogLevel.Information,
+            "Request failed with {StatusCode}. CorrelationId: {CorrelationId}",
+            status, Correlation.GetId(context.HttpContext));
+    };
+});
 
 var connectionString =
     builder.Configuration.GetConnectionString("RondiTrackDb")
@@ -147,7 +164,11 @@ app.UseStatusCodePages(async statusContext =>
         Detail = http.Response.StatusCode == 401 ? "Authentication is required." : "You do not have permission for this operation.",
         Instance = http.Request.Path
     };
-    problem.Extensions["correlationId"] = http.TraceIdentifier;
+    // Preserve the existing JSON response even when Accept excludes JSON.
+    Correlation.Apply(http, problem);
+    http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RondiTrack.ProblemDetails")
+        .LogInformation("Request rejected with {StatusCode}. CorrelationId: {CorrelationId}",
+            http.Response.StatusCode, Correlation.GetId(http));
     await http.Response.WriteAsJsonAsync(problem, options: null,
         contentType: "application/problem+json");
 });

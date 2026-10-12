@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RondiTrack.Domain.Exceptions;
+using RondiTrack.Observability;
 
 namespace RondiTrack.Handlers;
 
@@ -21,7 +22,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         CancellationToken cancellationToken)
     {
         var correlationId =
-            httpContext.TraceIdentifier;
+            Correlation.GetId(httpContext);
 
         var (statusCode, title) = exception switch
         {
@@ -65,7 +66,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             Type = "about:blank",
             Title = title,
             Status = statusCode,
-            Detail = exception is RondiTrackException
+            Detail = statusCode >= 500
+                ? "An unexpected error occurred."
+                : exception is RondiTrackException
                 ? exception.Message
                 : exception is DbUpdateException && IsUniqueConstraintViolation((DbUpdateException)exception)
                     ? "A database constraint was violated."
@@ -73,9 +76,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             Instance = httpContext.Request.Path
         };
 
-        // Login failures must be identical for unknown accounts and wrong passwords.
-        if (exception is not AuthenticationFailedException)
-            problem.Extensions["correlationId"] = correlationId;
+        Correlation.Apply(httpContext, problem);
 
         httpContext.Response.StatusCode =
             statusCode;

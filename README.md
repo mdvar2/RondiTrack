@@ -16,13 +16,26 @@ cleanup records are excluded from published Git history.
 recorded implementation/publication results, not a new test run for this README
 edit. Earlier counts are historical; see [verification evidence](#verification-evidence).
 
-## Assignment 6.2 progress: Stage 2 telemetry pipeline
+## Assignment 6.2 progress: Stages 2–3
 
 The API collects OpenTelemetry traces, metrics and logs with service name
 `ronditrack-api`. ASP.NET Core request traces exclude `/health` and its child
 paths. Npgsql supplies database-command spans; ASP.NET Core and `System.Runtime`
-supply metrics. Business spans, counters, W3C error correlation and health probes
-are reserved for later stages.
+supply metrics. Business spans, counters and health probes are reserved for later
+stages.
+
+Stage 3 adds a shared W3C correlation helper: every existing problem-response
+path uses the HTTP request activity's 32-character trace ID, with the same value
+in a structured `CorrelationId` error-log property. Valid caller `traceparent`
+headers retain their trace ID; requests without one receive an ASP.NET Core
+generated ID. Login failures now include correlation IDs. Their existing equality
+test supplies one shared caller trace and retains every original assertion.
+Model-binding failures use a fixed detail to avoid echoing submitted values;
+500 responses remain generic.
+
+The Stage 3 full Testcontainers run passed **76 tests, 0 failed, 0 skipped**
+without a dashboard endpoint. See the [Stage 3 verification report](docs/assignment-6-2-stage-3-verification.md).
+The 62-test results above remain historical evidence.
 
 OTLP export is registered only when `OTEL_EXPORTER_OTLP_ENDPOINT` is nonblank.
 Leave it unset for tests and CI; no Aspire dashboard is required. No endpoint is
