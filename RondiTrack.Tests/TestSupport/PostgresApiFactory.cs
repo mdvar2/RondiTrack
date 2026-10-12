@@ -16,6 +16,7 @@ namespace RondiTrack.Tests.TestSupport;
 public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public CorrelationLogProvider CorrelationLogs { get; } = new();
+    public CapturedLogProvider CapturedLogs { get; } = new();
     private readonly User _regressionUser = new("Regression fixture user", $"regression-{Guid.NewGuid()}@tests.example");
 
     private readonly string _testSigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
@@ -48,7 +49,8 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:RondiTrackDb", _container.GetConnectionString());
         builder.UseSetting("Jwt:SigningKey", _testSigningKey);
         // Test logging should not require permission to write the Windows Event Log.
-        builder.ConfigureLogging(logging => logging.ClearProviders().AddConsole().AddProvider(CorrelationLogs));
+        builder.ConfigureLogging(logging => logging.ClearProviders().AddConsole()
+            .AddProvider(CorrelationLogs).AddProvider(CapturedLogs));
     }
 
     public async Task InitializeAsync()

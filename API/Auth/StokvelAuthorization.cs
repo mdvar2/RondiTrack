@@ -5,7 +5,8 @@ using RondiTrack.Observability;
 
 namespace RondiTrack.Auth;
 
-public class StokvelAuthorization(IAuthorizationService authorization, RondiTrackTelemetry telemetry)
+public class StokvelAuthorization(IAuthorizationService authorization, RondiTrackTelemetry telemetry,
+    ILogger<StokvelAuthorization> logger)
 {
     public async Task EnsureAsync(ClaimsPrincipal caller, Guid stokvelId, string policy, Guid? contributionUserId = null)
     {
@@ -15,9 +16,13 @@ public class StokvelAuthorization(IAuthorizationService authorization, RondiTrac
         if (result.Failure?.FailureReasons.Any(reason => reason.Message == Policies.NotMember) == true)
         {
             telemetry.AuthorizationRefused(notFound: true);
+            logger.LogInformation("Security event {EventType} with {Result}. CorrelationId: {CorrelationId}",
+                "stokvel_refusal", "not_found", SecurityEvents.CorrelationId);
             throw new NotFoundException("Stokvel not found.");
         }
         telemetry.AuthorizationRefused(notFound: false);
+        logger.LogInformation("Security event {EventType} with {Result}. CorrelationId: {CorrelationId}",
+            "stokvel_refusal", "forbidden", SecurityEvents.CorrelationId);
         throw new ForbiddenException("You do not have permission for this operation.");
     }
 
