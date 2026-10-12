@@ -21,6 +21,8 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using RondiTrack.Observability;
+using RondiTrack.Health;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<RondiTrackTelemetry>();
@@ -127,6 +129,15 @@ builder.Services.AddDbContext<RondiTrackDbContext>(options =>
         });
 });
 
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<RondiTrackDbContext>(HealthProbes.DatabaseCheckName, tags: ["ready"]);
+builder.Services.Configure<HealthCheckServiceOptions>(options =>
+{
+    foreach (var registration in options.Registrations)
+        if (registration.Name == HealthProbes.DatabaseCheckName)
+            registration.Timeout = HealthProbes.ReadinessTimeout;
+});
+
 builder.Services.AddScoped<
     IUserRepository,
     UserRepository>();
@@ -195,6 +206,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// Run these dependency probes before authentication, including when a token is supplied.
+app.MapHealthChecks("/health/live", HealthProbes.Options(readiness: false)).AllowAnonymous().ShortCircuit();
+app.MapHealthChecks("/health/ready", HealthProbes.Options(readiness: true)).AllowAnonymous().ShortCircuit();
 
 app.Run();
 

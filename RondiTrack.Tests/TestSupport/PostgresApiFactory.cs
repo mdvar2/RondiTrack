@@ -1,4 +1,6 @@
 using System.Net.Http.Headers;
+using System.Net;
+using System.Net.Sockets;
 using RondiTrack.Auth;
 using RondiTrack.Domain.Entities;
 using Microsoft.AspNetCore.Hosting;
@@ -17,16 +19,39 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public CorrelationLogProvider CorrelationLogs { get; } = new();
     public CapturedLogProvider CapturedLogs { get; } = new();
+
+    // Outage tests must call these only on their own separately created factory.
+    public Task StopDatabaseAsync() => _container.StopAsync();
+    public Task StartDatabaseAsync() => _container.StartAsync();
     private readonly User _regressionUser = new("Regression fixture user", $"regression-{Guid.NewGuid()}@tests.example");
 
     private readonly string _testSigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17")
-        .WithDatabase("ronditrack_test")
-        .WithUsername("postgres")
-        // Disposable test-container credential, never a development secret.
-        .WithPassword(Guid.NewGuid().ToString("N"))
-        .Build();
+    private readonly PostgreSqlContainer _container;
+
+    public PostgresApiFactory() : this(null) { }
+
+    private PostgresApiFactory(int? stablePort)
+    {
+        var container = new PostgreSqlBuilder("postgres:17")
+            .WithDatabase("ronditrack_test")
+            .WithUsername("postgres")
+            // Disposable test-container credential, never a development secret.
+            .WithPassword(Guid.NewGuid().ToString("N"));
+        if (stablePort is not null)
+            container = container.WithPortBinding(stablePort.Value, 5432);
+        _container = container.Build();
+    }
+
+    public static PostgresApiFactory CreateForOutage()
+    {
+        // Explicit mapping keeps the API's configured target stable across Docker restarts.
+        var reservation = new TcpListener(IPAddress.Loopback, 0);
+        reservation.Start();
+        var port = ((IPEndPoint)reservation.LocalEndpoint).Port;
+        reservation.Stop();
+        return new PostgresApiFactory(port);
+    }
 
     public DbContextOptions<RondiTrackDbContext> CreateDbContextOptions() =>
         new DbContextOptionsBuilder<RondiTrackDbContext>()

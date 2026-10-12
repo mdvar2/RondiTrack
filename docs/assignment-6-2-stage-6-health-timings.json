@@ -1,0 +1,11 @@
+{
+  "method": "Separate disposable PostgreSQL 17 container stopped and restarted; same API host remained running.",
+  "timeoutMilliseconds": 3000,
+  "maxRetryCount": 3,
+  "maxRetryDelayMilliseconds": 2000,
+  "beforeMilliseconds": 10.0566,
+  "outageMilliseconds": 3026.6431,
+  "livenessDuringOutageMilliseconds": 2.2974,
+  "uncappedOutageMilliseconds": 11280.96,
+  "recoveredMilliseconds": 17.4975
+}
