@@ -106,10 +106,17 @@ var connectionString =
     ?? throw new InvalidOperationException(
         "Connection string 'RondiTrackDb' was not found.");
 
+// Keep parameter values and PostgreSQL row details out of all diagnostic sinks.
+var diagnosticSafeConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
+{
+    LogParameters = false,
+    IncludeErrorDetail = false
+}.ConnectionString;
+
 builder.Services.AddDbContext<RondiTrackDbContext>(options =>
 {
     options.UseNpgsql(
-        connectionString,
+        diagnosticSafeConnectionString,
         npgsqlOptions =>
         {
             npgsqlOptions.MigrationsAssembly(typeof(RondiTrackDbContext).Assembly.GetName().Name);

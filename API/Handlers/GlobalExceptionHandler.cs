@@ -56,10 +56,13 @@ public class GlobalExceptionHandler : IExceptionHandler
                     "Internal Server Error")
         };
 
-        if (exception is AuthenticationFailedException)
-            _logger.LogInformation("Authentication rejected. CorrelationId: {CorrelationId}", correlationId);
+        if (statusCode >= 500)
+            _logger.LogError(exception,
+                "Request failed with {StatusCode}. CorrelationId: {CorrelationId}", statusCode, correlationId);
         else
-            _logger.LogError(exception, "Request failed. CorrelationId: {CorrelationId}", correlationId);
+            _logger.LogInformation(
+                "Request rejected with {StatusCode} ({ExceptionType}). CorrelationId: {CorrelationId}",
+                statusCode, exception.GetType().Name, correlationId);
 
         var problem = new ProblemDetails
         {

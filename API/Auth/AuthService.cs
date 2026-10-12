@@ -4,6 +4,7 @@ using RondiTrack.Domain.Exceptions;
 using RondiTrack.Domain.Repositories;
 using RondiTrack.DTOs.Auth;
 using RondiTrack.DTOs.Users;
+using RondiTrack.Observability;
 
 namespace RondiTrack.Auth;
 
@@ -20,7 +21,11 @@ public class AuthService(IUserRepository users, IPasswordHasher<User> passwordHa
         var verification = passwordHasher.VerifyHashedPassword(user ?? DummyUser,
             user?.PasswordHash ?? DummyHash, request.Password);
         if (user?.PasswordHash is null || verification == PasswordVerificationResult.Failed)
+        {
+            logger.LogInformation("Security event {EventType} with {Outcome}. CorrelationId: {CorrelationId}",
+                "sign_in", "failure", SecurityEvents.CorrelationId);
             throw new AuthenticationFailedException("Email or password is incorrect.");
+        }
         if (verification == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.SetPasswordHash(passwordHasher.HashPassword(user, request.Password));
@@ -30,7 +35,8 @@ public class AuthService(IUserRepository users, IPasswordHasher<User> passwordHa
         var refreshToken = CreateRefreshToken();
         var expires = now.AddDays(options.RefreshTokenDays);
         await refreshTokens.StartSessionAsync(user.Id, HashRefreshToken(refreshToken), now, expires);
-        logger.LogInformation("Login succeeded. UserId: {UserId}", user.Id);
+        logger.LogInformation("Security event {EventType} with {Outcome}. CorrelationId: {CorrelationId}",
+            "sign_in", "success", SecurityEvents.CorrelationId);
         return new(tokens.CreateAccessToken(user), refreshToken, expires);
     }
 
@@ -44,12 +50,14 @@ public class AuthService(IUserRepository users, IPasswordHasher<User> passwordHa
         if (result.UserId is null)
         {
             if (result.ReuseDetected)
-                logger.LogWarning("Refresh reuse detected; login family revoked. FamilyId: {FamilyId}", result.FamilyId);
+                logger.LogWarning("Security event {EventType}; session revoked. CorrelationId: {CorrelationId}",
+                    "refresh_reuse", SecurityEvents.CorrelationId);
             throw InvalidRefresh();
         }
         var user = await users.GetByIdReadOnlyAsync(result.UserId.Value);
         if (user is null) throw InvalidRefresh();
-        logger.LogInformation("Refresh succeeded. UserId: {UserId}; FamilyId: {FamilyId}", user.Id, result.FamilyId);
+        logger.LogInformation("Security event {EventType} with {Outcome}. CorrelationId: {CorrelationId}",
+            "refresh", "success", SecurityEvents.CorrelationId);
         return new(tokens.CreateAccessToken(user), successor, expires);
     }
 
@@ -57,7 +65,8 @@ public class AuthService(IUserRepository users, IPasswordHasher<User> passwordHa
     {
         if (!string.IsNullOrEmpty(refreshToken))
             await refreshTokens.RevokeSessionAsync(HashRefreshToken(refreshToken), DateTime.UtcNow);
-        logger.LogInformation("Logout completed.");
+        logger.LogInformation("Security event {EventType} completed. CorrelationId: {CorrelationId}",
+            "logout", SecurityEvents.CorrelationId);
     }
 
     private static string CreateRefreshToken() => Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(64));
