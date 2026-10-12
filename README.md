@@ -16,12 +16,12 @@ cleanup records are excluded from published Git history.
 recorded implementation/publication results, not a new test run for this README
 edit. Earlier counts are historical; see [verification evidence](#verification-evidence).
 
-## Assignment 6.2 progress: Stages 2–5
+## Assignment 6.2 progress: Stages 2–6
 
 The API collects OpenTelemetry traces, metrics and logs with service name
 `ronditrack-api`. ASP.NET Core request traces exclude `/health` and its child
 paths. Npgsql supplies database-command spans; ASP.NET Core and `System.Runtime`
-supply metrics. Health probes remain reserved for Stage 6.
+supply metrics. Stage 6 adds anonymous liveness and database readiness probes.
 
 Stage 5 minimizes security-event fields, logs expected application 4xx exceptions
 at Information without their messages/objects, and retains full 5xx exceptions
@@ -104,9 +104,65 @@ and an enabled OTLP destination can each receive the same structured event;
 that is separate delivery, not duplicate EF command instrumentation. SQL parameter
 values remain disabled.
 
-The health-check package is installed at EF-compatible version 10.0.4, but health
-checks are not registered until Stage 6. Existing database records and migrations
+The health-check package is installed at EF-compatible version 10.0.4 and is now
+registered for PostgreSQL readiness. Existing database records and migrations
 are unchanged.
+
+### Stage 6: liveness and readiness
+
+| Endpoint | Access / checks | Healthy response | Database unavailable |
+|---|---|---|---|
+| GET /health/live | Anonymous; no registered checks execute. | 200, exact body `Healthy` | Still 200 `Healthy` |
+| GET /health/ready | Anonymous; EF DbContext connectivity check tagged ready. | 200, exact body `Healthy` | 503, exact body `Unhealthy` |
+
+Responses are plain text with no newline, dependency names, diagnostic objects,
+connection strings or exception messages. Both routes short-circuit before JWT
+authentication and authorization middleware, so even a supplied bearer token
+cannot introduce an authentication database query into liveness. Other routes
+retain their existing policies. The existing `/health` trace filter remains;
+tests verify these HTTP activities are unrecorded while ordinary requests remain
+recorded.
+
+Readiness uses `AddDbContextCheck<RondiTrackDbContext>` and its default
+`Database.CanConnectAsync(cancellationToken)` against the API's configured
+PostgreSQL target. Only its registration has a **3-second timeout**, propagated
+as cancellation. EF's existing retry-on-failure configuration remains **3 retries
+after the first attempt**, with a **maximum retry delay of 2 seconds** per delay.
+Provider connection/command timeout settings are unchanged. The health timeout
+bounds the overall check instead of letting connection attempts and retry delays
+accumulate. Cancellation is cooperative; scheduling/response overhead can add a
+small amount to the configured deadline.
+
+Liveness answers whether the server can respond. Readiness answers whether its
+database is reachable. A database outage should remove this instance from traffic,
+not trigger repeated API restarts that cannot repair PostgreSQL. Connectivity
+readiness does not verify schema upgrades or business data; the existing duplicate
+email migration blocker remains unresolved even if connectivity is Healthy.
+
+Actual measurements on **13 October 2026**, using a separate disposable
+PostgreSQL 17 container and the same running API test host throughout:
+
+| Measurement | Status / exact body | Duration |
+|---|---|---:|
+| Readiness before outage | 200 Healthy | 10.06 ms |
+| Readiness during outage, 3-second cap | 503 Unhealthy | 3,026.64 ms |
+| Liveness during outage | 200 Healthy | 2.30 ms |
+| Readiness during outage, test-local cap removed | 503 Unhealthy | 11,280.96 ms |
+| Readiness after container restart | 200 Healthy | 17.50 ms |
+
+The container was stopped and restarted; the development database and the shared
+suite database were not stopped. The isolated container uses an explicit free
+host-port mapping so its configured endpoint stays stable across restart. The
+uncapped comparison temporarily changed only that test host's registration and
+restored the 3-second cap before recovery. Measurements were ordered healthy,
+outage liveness, capped outage, uncapped outage, recovery. They are single samples
+from TestServer HTTP calls with real Docker/PostgreSQL connectivity, excluding
+external network/TLS and container start/stop time. They are not a production
+latency benchmark or a measurement with Windows development PostgreSQL stopped.
+
+The final full suite passed **99 tests, 0 failed, 0 skipped**. See the
+[Stage 6 report](docs/assignment-6-2-stage-6-verification.md) and
+[sanitized timing artifact](docs/assignment-6-2-stage-6-health-timings.json).
 
 ## Architecture and dependencies
 
