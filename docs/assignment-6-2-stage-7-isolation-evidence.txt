@@ -1,0 +1,6 @@
+﻿DEVELOPMENT_UNAVAILABLE: real connection rejected with ALLOW_CONNECTIONS=false; zero existing development sessions.
+ISOLATION_METHOD: connection admission disabled for development only; Windows PostgreSQL service remains running.
+OTLP_DISABLED: no exporter endpoint supplied; no Aspire dashboard required.
+TEST_EXIT_CODE=0
+TEST_RESULT total=101 passed=101 failed=0 skipped=0
+DEVELOPMENT_RESTORED: real SELECT 1 succeeded; connection admission restored; no business records or migrations changed.

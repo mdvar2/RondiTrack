@@ -16,12 +16,20 @@ cleanup records are excluded from published Git history.
 recorded implementation/publication results, not a new test run for this README
 edit. Earlier counts are historical; see [verification evidence](#verification-evidence).
 
-## Assignment 6.2 progress: Stages 2–6
+## Assignment 6.2 progress: Stages 2–7
 
 The API collects OpenTelemetry traces, metrics and logs with service name
 `ronditrack-api`. ASP.NET Core request traces exclude `/health` and its child
 paths. Npgsql supplies database-command spans; ASP.NET Core and `System.Runtime`
 supply metrics. Stage 6 adds anonymous liveness and database readiness probes.
+
+Stage 7's final isolated suite passed **101 tests, 0 failed, 0 skipped** with
+development connection admission disabled and OTLP explicitly disabled. A real
+development connection was rejected before the run and a restoration query
+succeeded afterward. The Windows PostgreSQL service remained running. No business
+records, schema or migrations changed. See the
+[Stage 7 verification report](docs/assignment-6-2-stage-7-verification.md) and
+[sanitized isolation evidence](docs/assignment-6-2-stage-7-isolation-evidence.txt).
 
 Stage 5 minimizes security-event fields, logs expected application 4xx exceptions
 at Information without their messages/objects, and retains full 5xx exceptions
@@ -842,5 +850,67 @@ transport, retention and incident response are still required for real sinks.
 No actual identities, amounts or tokens are included in these examples. Historical
 assignment evidence is preserved and predates the current minimization policy.
 
-The complete registration/login/refresh/contribution/duplicate-registration
-end-to-end leak scenario remains Stage 7. Dashboard evidence remains Stage 8.
+The combined registration/login/refresh/contribution/duplicate-registration
+leak scenario is now verified in Stage 7. Dashboard evidence remains Stage 8.
+
+### Stage 7: comprehensive verification
+
+The end-to-end test registers a fresh user, logs in, refreshes and captures both
+generations of access/refresh tokens, creates a stokvel and cycle through authorized
+API requests, persists the assignment's distinctive contribution fixture amount,
+and verifies duplicate registration returns 409. It checks formatted messages,
+structured properties (including nested values), exception text/data and rendered
+and structured scopes for fixture email, password, member/stokvel names, tokens,
+token hashes, password hash, signing-key representations and the amount. Actual
+fixture values and raw log output are not published.
+
+Assertions require captured authentication events, EF command logs and nonempty
+scopes, plus successful responses and a persisted contribution. A separate positive
+control proves the detector sees nested scopes, JSON-escaped characters, structured
+state and exception data. No Error/Critical entry is allowed for the duplicate 409.
+
+Earlier correlation, counter, tag/cardinality, retry/replay, span-status and health
+tests are reused. The payout test now checks the SDK source listener before adding
+its manual listener and checks all observed payout/cycle SQL commands have the
+business span as parent. All original assertions remain intact.
+
+Verification commands:
+
+```powershell
+dotnet build RondiTrack.sln --no-restore -m:1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-6-2-isolation.ps1
+```
+
+The isolation script refuses active development sessions, temporarily sets only
+development database connection admission to false, confirms a real connection
+is rejected, runs the full disposable Testcontainers suite, and restores admission
+and environment settings in finally. It leaves the Windows service and other
+databases running; it does not prove tests passed with the service stopped.
+Only sanitized aggregate evidence is published. Do not run the script while
+development is in use; its preflight aborts rather than terminating sessions.
+
+The test capture now inspects scopes in memory. Framework scopes can carry
+generated route/request identifiers; this proof covers the listed deliberately
+seeded sensitive values, not universal anonymity of framework metadata. It does
+not enable scope export to production sinks. Full third-party 5xx diagnostic risks
+remain as documented in the POPIA audit. Real OTLP delivery and the genuine Aspire
+screenshot still require Stage 8 evidence.
+
+
+Stage 7 adds only test/script diagnostic sites; the production logger/exception
+sites in the Stage 5 audit remain unchanged. Individual additions are recorded below.
+
+| Individual site / method | Diagnostic | Potential contents / risk | Treatment |
+|---|---|---|---|
+| scripts/verify-assignment-6-2-isolation.ps1:15 / preflight / proof | PowerShell exception: Development connection configuration is required for the isolation proof. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:22 / preflight / proof | PowerShell exception: Isolation is restricted to the existing local development database. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:24 / preflight / proof | PowerShell exception: The PostgreSQL client is unavailable. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:40 / preflight / proof | PowerShell exception: Development must initially accept connections; no isolation change was made. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:42 / preflight / proof | PowerShell exception: Development has active sessions; no sessions will be terminated and no isolation change was made. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:46 / preflight / proof | PowerShell exception: Development connection admission could not be disabled. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:49 / preflight / proof | PowerShell exception: A development session appeared during preflight; isolation will be restored without terminating sessions. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:58 / preflight / proof | PowerShell exception: A real development connection was not rejected as expected; independence is not proven. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:79 / preflight / proof | PowerShell exception: The isolated suite failed; inspect the local test artifact without publishing raw diagnostics. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:86 / finally/restoration | PowerShell exception: RESTORATION FAILED: development connection admission must be restored before use. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| scripts/verify-assignment-6-2-isolation.ps1:88 / finally/restoration | PowerShell exception: Development connectivity restoration could not be verified. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
+| EndToEndLogLeakTests / LogCaptureAndLeakInspection_ObserveNestedScopesStateAndExceptionData | Synthetic InvalidOperationException and Information control log | Harmless control markers in state/scopes/exception data. | Test-only positive control, in-memory provider, no production sink; no actual sensitive values published. |

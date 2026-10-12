@@ -72,6 +72,8 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         using var client = factory.CreateClientFor(scenario.Treasurer);
         var traceId = ActivityTraceId.CreateRandom().ToString();
         client.DefaultRequestHeaders.Add("traceparent", $"00-{traceId}-00f067aa0ba902b7-01");
+        // Check the SDK subscription before the test listener can create activities itself.
+        Assert.True(factory.Services.GetRequiredService<RondiTrackTelemetry>().Activities.HasListeners());
         using var capture = new Capture();
         using var response = await client.PostAsJsonAsync(
             $"/api/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
@@ -86,6 +88,13 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         var sql = capture.Activities.Where(span => span.Source.Name == "Npgsql" && span.ParentSpanId == payout.SpanId).ToArray();
         Assert.NotEmpty(sql);
         Assert.All(sql, span => Assert.Equal(payout.TraceId, span.TraceId));
+        var payoutCommands = capture.Activities.Where(span => span.Source.Name == "Npgsql"
+            && span.TraceId == payout.TraceId && span.TagObjects.Any(tag =>
+                tag.Key is "db.query.text" or "db.statement" && tag.Value is string command
+                && (command.Contains("\"Payouts\"", StringComparison.Ordinal)
+                    || command.Contains("\"ContributionCycles\"", StringComparison.Ordinal)))).ToArray();
+        Assert.NotEmpty(payoutCommands);
+        Assert.All(payoutCommands, span => Assert.Equal(payout.SpanId, span.ParentSpanId));
         await using var db = new RondiTrackDbContext(factory.CreateDbContextOptions());
         Assert.Equal(1, await db.Payouts.CountAsync(item => item.ContributionCycleId == scenario.CycleId));
         Assert.Equal("PaidOut", (await db.ContributionCycles.SingleAsync(item => item.Id == scenario.CycleId)).Status);
