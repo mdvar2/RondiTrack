@@ -9,6 +9,8 @@ using RondiTrack.Idempotency;
 using RondiTrack.Domain.Entities;
 using RondiTrack.Domain.Repositories;
 using RondiTrack.Services;
+using Microsoft.Extensions.DependencyInjection;
+using RondiTrack.Observability;
 
 namespace RondiTrack.Tests;
 
@@ -82,7 +84,7 @@ public class ContributionServiceTests
                 stokvelRepository,
                 userRepository,
                 stokvelMemberRepository,
-                idempotencyStore);
+                idempotencyStore, _factory.Services.GetRequiredService<RondiTrackTelemetry>());
 
         var request =
             new RecordContributionRequest(
@@ -173,7 +175,7 @@ public class ContributionServiceTests
                 stokvelRepository,
                 userRepository,
                 stokvelMemberRepository,
-                idempotencyStore);
+                idempotencyStore, _factory.Services.GetRequiredService<RondiTrackTelemetry>());
 
         var firstRequest =
             new RecordContributionRequest(

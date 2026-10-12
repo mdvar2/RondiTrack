@@ -5,6 +5,7 @@ using RondiTrack.Domain.Exceptions;
 using RondiTrack.Idempotency;
 using RondiTrack.Domain.Entities;
 using RondiTrack.Domain.Repositories;
+using RondiTrack.Observability;
 
 namespace RondiTrack.Services;
 
@@ -16,6 +17,7 @@ public class ContributionService
     private readonly IUserRepository _userRepository;
     private readonly IStokvelMemberRepository _stokvelMemberRepository;
     private readonly IIdempotencyStore _idempotencyStore;
+    private readonly RondiTrackTelemetry _telemetry;
 
     public ContributionService(
         IContributionRepository contributionRepository,
@@ -23,7 +25,8 @@ public class ContributionService
         IStokvelRepository stokvelRepository,
         IUserRepository userRepository,
         IStokvelMemberRepository stokvelMemberRepository,
-        IIdempotencyStore idempotencyStore)
+        IIdempotencyStore idempotencyStore,
+        RondiTrackTelemetry telemetry)
     {
         _contributionRepository = contributionRepository;
         _cycleRepository = cycleRepository;
@@ -31,6 +34,7 @@ public class ContributionService
         _userRepository = userRepository;
         _stokvelMemberRepository = stokvelMemberRepository;
         _idempotencyStore = idempotencyStore;
+        _telemetry = telemetry;
     }
 
     public async Task<ContributionResponse> RecordContributionAsync(
@@ -135,6 +139,7 @@ public class ContributionService
 
         await _contributionRepository.AddAsync(
             contribution);
+        _telemetry.ContributionRecorded();
 
         var response =
             ContributionResponse.FromEntity(

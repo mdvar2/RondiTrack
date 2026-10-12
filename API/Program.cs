@@ -23,15 +23,18 @@ using OpenTelemetry.Trace;
 using RondiTrack.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<RondiTrackTelemetry>();
 
 // Keep collection enabled without a dashboard; only exporting depends on an endpoint.
 var telemetry = builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("ronditrack-api"))
     .WithTracing(tracing => tracing
+        .AddSource(RondiTrackTelemetry.SourceName)
         .AddAspNetCoreInstrumentation(options =>
             options.Filter = context => !context.Request.Path.StartsWithSegments("/health"))
         .AddNpgsql())
     .WithMetrics(metrics => metrics
+        .AddMeter(RondiTrackTelemetry.MeterName)
         .AddAspNetCoreInstrumentation()
         .AddMeter("System.Runtime"))
     .WithLogging();

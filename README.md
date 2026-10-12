@@ -16,13 +16,12 @@ cleanup records are excluded from published Git history.
 recorded implementation/publication results, not a new test run for this README
 edit. Earlier counts are historical; see [verification evidence](#verification-evidence).
 
-## Assignment 6.2 progress: Stages 2–3
+## Assignment 6.2 progress: Stages 2–4
 
 The API collects OpenTelemetry traces, metrics and logs with service name
 `ronditrack-api`. ASP.NET Core request traces exclude `/health` and its child
 paths. Npgsql supplies database-command spans; ASP.NET Core and `System.Runtime`
-supply metrics. Business spans, counters and health probes are reserved for later
-stages.
+supply metrics. Health probes remain reserved for Stage 6.
 
 Stage 3 adds a shared W3C correlation helper: every existing problem-response
 path uses the HTTP request activity's 32-character trace ID, with the same value
@@ -36,6 +35,55 @@ Model-binding failures use a fixed detail to avoid echoing submitted values;
 The Stage 3 full Testcontainers run passed **76 tests, 0 failed, 0 skipped**
 without a dashboard endpoint. See the [Stage 3 verification report](docs/assignment-6-2-stage-3-verification.md).
 The 62-test results above remain historical evidence.
+
+### Stage 4: payout tracing and business counters
+
+`RondiTrackTelemetry` owns the singleton ActivitySource **RondiTrack.Business**
+and uses `IMeterFactory` to create the Meter **RondiTrack.Business**. Both names
+are registered with OpenTelemetry. `PayoutService` starts **payout.process**
+before EF's retry strategy and disposes it when the whole operation finishes.
+The active HTTP activity is its parent; Npgsql command activities inherit the
+business activity as their parent. An ActivityListener integration test checks
+the HTTP → payout.process → SQL hierarchy. No Aspire screenshot or visual
+dashboard verification is claimed; that evidence remains the final stage.
+
+Every custom payout span tag is listed below. There are no custom span events,
+exception messages, amounts, names or resource/person identifiers.
+
+| Span tag | Allowed values / maximum distinct values | Safety | Debugging benefit |
+|---|---|---|---|
+| outcome | success, failure / 2 | Fixed state only; no identity or financial value. | Separates completed operations from failures and links failures to their SQL timeline. |
+
+A terminal failure sets Activity status to Error without an exception message
+or status description. A successful operation emits its measurement only after
+the transaction commits and the retry strategy returns. Attempts do not emit
+measurements: one eventual success or failure is counted per service invocation.
+This does not change existing transaction, rollback or retry behaviour.
+
+| Business counter | Purpose | Tag | Permitted values | Maximum distinct tag values / series |
+|---|---|---|---|---|
+| ronditrack.contributions.recorded | Newly persisted contributions. | None | None | No tag values / 1 series |
+| ronditrack.payouts.processed | Finished payout operations by outcome. | outcome | success, failure | 2 / 2 series |
+| ronditrack.authorization.refusals | Refused stokvel operations. | result | not_found, forbidden | 2 / 2 series |
+
+Series limits above apply to custom tags per instrument/resource; separate app
+instances and backend resource labels can add series. The complete Stage 4
+Testcontainers suite passed **83 tests, 0 failed, 0 skipped**. See the
+[Stage 4 verification report](docs/assignment-6-2-stage-4-verification.md).
+
+`ContributionService` increments after the repository successfully persists a
+new contribution, before storing its idempotency response. A replay returns
+earlier and emits nothing. `StokvelAuthorization` increments immediately before
+the existing non-member 404 or insufficient-permission 403 exception. These
+metrics describe resource authorization refusals; framework authentication/global
+policy refusals are not counted as stokvel refusals. No controller emits telemetry.
+
+These are per-process operational counters, not a financial ledger. A
+chairperson asking how many payouts **their stokvel** processed this year needs
+an authorized database query filtered by that stokvel and the agreed date range.
+The database holds committed records and enforces access. Metrics deliberately
+omit stokvel identifiers, reset with process lifetime and can suffer export loss
+or use a different retention period; they cannot supply an authoritative scoped count.
 
 OTLP export is registered only when `OTEL_EXPORTER_OTLP_ENDPOINT` is nonblank.
 Leave it unset for tests and CI; no Aspire dashboard is required. No endpoint is

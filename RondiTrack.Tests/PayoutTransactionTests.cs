@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using RondiTrack.Infrastructure.Data;
 using RondiTrack.Domain.Entities;
 using RondiTrack.Services;
+using Microsoft.Extensions.DependencyInjection;
+using RondiTrack.Observability;
 
 namespace RondiTrack.Tests;
 
@@ -63,7 +65,7 @@ public class PayoutTransactionTests
             new RondiTrackDbContext(options))
         {
             var service =
-                new PayoutService(actContext);
+                new PayoutService(actContext, _factory.Services.GetRequiredService<RondiTrackTelemetry>());
 
             await service.CreatePayoutAsync(
                 stokvel.Id,

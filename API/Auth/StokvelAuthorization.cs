@@ -1,10 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using RondiTrack.Domain.Exceptions;
+using RondiTrack.Observability;
 
 namespace RondiTrack.Auth;
 
-public class StokvelAuthorization(IAuthorizationService authorization)
+public class StokvelAuthorization(IAuthorizationService authorization, RondiTrackTelemetry telemetry)
 {
     public async Task EnsureAsync(ClaimsPrincipal caller, Guid stokvelId, string policy, Guid? contributionUserId = null)
     {
@@ -12,7 +13,11 @@ public class StokvelAuthorization(IAuthorizationService authorization)
             new StokvelAccessResource(stokvelId, contributionUserId), policy);
         if (result.Succeeded) return;
         if (result.Failure?.FailureReasons.Any(reason => reason.Message == Policies.NotMember) == true)
+        {
+            telemetry.AuthorizationRefused(notFound: true);
             throw new NotFoundException("Stokvel not found.");
+        }
+        telemetry.AuthorizationRefused(notFound: false);
         throw new ForbiddenException("You do not have permission for this operation.");
     }
 
