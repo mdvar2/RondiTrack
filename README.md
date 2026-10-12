@@ -12,11 +12,11 @@ update against it yet.** Authentication requires the new schema. See the
 [sanitized migration status](docs/development-migration-status.md). Private
 cleanup records are excluded from published Git history.
 
-**Final reported suite: 62 tests, all passed, none failed or skipped.** These are
-recorded implementation/publication results, not a new test run for this README
-edit. Earlier counts are historical; see [verification evidence](#verification-evidence).
+**Current Assignment 6.2 result: 101 tests passed, 0 failed, 0 skipped.** Stage 8
+reran the full isolated suite on 13 October 2026. The earlier Assignment 6.1
+publication result was 62 passing tests; earlier counts below are historical.
 
-## Assignment 6.2 progress: Stages 2–7
+## Assignment 6.2 progress: Stages 2–8
 
 The API collects OpenTelemetry traces, metrics and logs with service name
 `ronditrack-api`. ASP.NET Core request traces exclude `/health` and its child
@@ -48,7 +48,7 @@ Model-binding failures use a fixed detail to avoid echoing submitted values;
 
 The Stage 3 full Testcontainers run passed **76 tests, 0 failed, 0 skipped**
 without a dashboard endpoint. See the [Stage 3 verification report](docs/assignment-6-2-stage-3-verification.md).
-The 62-test results above remain historical evidence.
+The earlier 62-test Assignment 6.1 results remain historical evidence.
 
 ### Stage 4: payout tracing and business counters
 
@@ -58,8 +58,8 @@ are registered with OpenTelemetry. `PayoutService` starts **payout.process**
 before EF's retry strategy and disposes it when the whole operation finishes.
 The active HTTP activity is its parent; Npgsql command activities inherit the
 business activity as their parent. An ActivityListener integration test checks
-the HTTP → payout.process → SQL hierarchy. No Aspire screenshot or visual
-dashboard verification is claimed; that evidence remains the final stage.
+the HTTP → payout.process → SQL hierarchy. Stage 8 also verified actual OTLP
+delivery and visually inspected the [genuine dashboard screenshot](docs/evidence/payout-trace.png).
 
 Every custom payout span tag is listed below. There are no custom span events,
 exception messages, amounts, names or resource/person identifiers.
@@ -168,7 +168,7 @@ from TestServer HTTP calls with real Docker/PostgreSQL connectivity, excluding
 external network/TLS and container start/stop time. They are not a production
 latency benchmark or a measurement with Windows development PostgreSQL stopped.
 
-The final full suite passed **99 tests, 0 failed, 0 skipped**. See the
+The Stage 6 full suite passed **99 tests, 0 failed, 0 skipped**. See the
 [Stage 6 report](docs/assignment-6-2-stage-6-verification.md) and
 [sanitized timing artifact](docs/assignment-6-2-stage-6-health-timings.json).
 
@@ -851,7 +851,7 @@ No actual identities, amounts or tokens are included in these examples. Historic
 assignment evidence is preserved and predates the current minimization policy.
 
 The combined registration/login/refresh/contribution/duplicate-registration
-leak scenario is now verified in Stage 7. Dashboard evidence remains Stage 8.
+leak scenario is verified in Stage 7; genuine dashboard evidence is recorded below.
 
 ### Stage 7: comprehensive verification
 
@@ -893,8 +893,9 @@ The test capture now inspects scopes in memory. Framework scopes can carry
 generated route/request identifiers; this proof covers the listed deliberately
 seeded sensitive values, not universal anonymity of framework metadata. It does
 not enable scope export to production sinks. Full third-party 5xx diagnostic risks
-remain as documented in the POPIA audit. Real OTLP delivery and the genuine Aspire
-screenshot still require Stage 8 evidence.
+remain as documented in the POPIA audit. Stage 8 verifies real OTLP delivery and
+provides the genuine Aspire screenshot below; the Stage 7 report retains its
+historical description of evidence still pending at that time.
 
 
 Stage 7 adds only test/script diagnostic sites; the production logger/exception
@@ -914,3 +915,118 @@ sites in the Stage 5 audit remain unchanged. Individual additions are recorded b
 | scripts/verify-assignment-6-2-isolation.ps1:86 / finally/restoration | PowerShell exception: RESTORATION FAILED: development connection admission must be restored before use. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
 | scripts/verify-assignment-6-2-isolation.ps1:88 / finally/restoration | PowerShell exception: Development connectivity restoration could not be verified. | Fixed operational guidance; no credentials or record values. | New verification-only site; not production logging. |
 | EndToEndLogLeakTests / LogCaptureAndLeakInspection_ObserveNestedScopesStateAndExceptionData | Synthetic InvalidOperationException and Information control log | Harmless control markers in state/scopes/exception data. | Test-only positive control, in-memory provider, no production sink; no actual sensitive values published. |
+
+### Stage 8: genuine final evidence and review
+
+The final clean solution build passed with zero warnings/errors; the complete
+Testcontainers suite passed **101 tests, 0 failed, 0 skipped**, exit code 0
+(test duration 30 seconds). Commands actually used:
+
+```powershell
+dotnet clean RondiTrack.sln -m:1
+dotnet build RondiTrack.sln --no-restore -m:1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-assignment-6-2-isolation.ps1
+```
+
+Development connection admission was disabled, a real connection was rejected,
+and admission/connectivity were restored in finally. The Windows PostgreSQL
+service remained running. OTLP was disabled and the fixture used disposable
+PostgreSQL; tests did not contact or require Aspire. An injected post-isolation
+exception also restored admission successfully. Read-only before/after fingerprints
+of all public table records, migration history and public column definitions
+matched. No development records or migrations changed.
+
+Actual authorized payout telemetry was exported to a temporary local Aspire
+instance and inspected visually. The screenshot below is a direct headless Edge
+capture of the real dashboard, without image or DOM alteration. It shows the
+HTTP request, **payout.process**, and its nested Npgsql SQL commands. Only
+**outcome=success** appears as a custom business tag; Source is
+**RondiTrack.Business**. Earlier stages' pending-evidence statements in their
+historical reports describe those stages, not the current evidence status.
+
+![Genuine payout trace with HTTP, business and nested SQL spans](docs/evidence/payout-trace.png)
+
+Aspire also received the structured login event and payout metric success series.
+See the [safe manifest](docs/evidence/dashboard-verification.json) and
+[genuine sanitized log excerpts](docs/evidence/sanitized-log-excerpts.txt).
+The payout log excerpt is actual parameter-redacted EF SQL from the payout
+request, not an invented payout-success event. The non-member refusal and 404
+handler event share the caller's W3C correlation ID. Financial values, names,
+emails, passwords and tokens are absent from these selected excerpts.
+
+Local-only setup used:
+
+```powershell
+docker run --rm -d --name ronditrack-assignment62-dashboard -p 127.0.0.1:18888:18888 -p 127.0.0.1:4317:18889 -e DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true -e ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true mcr.microsoft.com/dotnet/aspire-dashboard:13
+```
+
+**This anonymous, unsecured dashboard is for a trusted laptop only. Never publish
+its ports to a LAN/public interface or describe it as deployable.** UI is
+http://127.0.0.1:18888; OTLP/gRPC endpoint is http://127.0.0.1:4317. The
+[Stage 8 report](docs/assignment-6-2-stage-8-verification.md) records the exact
+image digest, setup sources, real evidence procedure and cleanup. The endpoint
+is supplied only to the evidence API child; leave it unset for normal tests/CI.
+
+To reproduce with safe disposable data after building the solution:
+
+```powershell
+dotnet restore scripts/evidence/EvidenceHost.csproj
+dotnet build scripts/evidence/EvidenceHost.csproj --no-restore -m:1
+Remove-Item -LiteralPath obj/stage8-evidence/stop -ErrorAction SilentlyContinue
+dotnet scripts/evidence/bin/Debug/net10.0/EvidenceHost.dll
+# In another terminal after REAL_API_EVIDENCE_READY (installed Python Playwright/Edge):
+python scripts/evidence/capture-dashboard.py
+# Inspect the genuine image and selected logs before publishing any generated files.
+New-Item -ItemType File -Path obj/stage8-evidence/stop -Force | Out-Null
+docker stop ronditrack-assignment62-dashboard
+```
+
+The optional runner is outside RondiTrack.sln and reuses Testcontainers 4.15.0.
+It starts its own PostgreSQL container, applies migrations only there, runs the
+real Kestrel API with private random credentials, makes authorized API requests,
+and disposes its child API/database. Its snapshot mode is separate and explicitly
+read-only against local development user-secrets. No application feature/package
+or automated test assertion was changed in Stage 8.
+
+The [final compliance matrix](docs/assignment-6-2-final-compliance-matrix.md) and
+[submission checklist/security review](docs/assignment-6-2-stage-8-verification.md)
+identify verified evidence and limitations. Literal PDF service-stop requirements
+are **partially verified** using the user-approved isolated substitutes; a stopped
+Windows service is not claimed. The previously documented local backup branch
+retains private development cleanup exports, absent from main and its history.
+It must remain local; publishing all refs or a .git archive would expose them.
+No history or prior evidence was removed. No confirmed credential/token leak was
+found by the targeted reachable-history scan, which is not an exhaustive detector.
+
+All requested Stage 8 artifacts are ready for final review. An unconditional
+submission-ready claim is withheld pending review of those explicit qualifications.
+No push or repository-link submission has occurred. Sampling policy, durable
+retention, remote sink access controls and alerting remain operational gaps:
+they require deployment decisions beyond this local instrumentation assignment.
+Full unexpected third-party 5xx/EF diagnostics, URL/scope metadata and external
+proxy/debug logs retain the audit's documented risks. The development migration
+blocker and all earlier POPIA/cardinality/health timing evidence remain preserved.
+
+Stage8 introduces verification-only diagnostics, not production ILogger sites.
+The fault-injection exception is fixed operational text, contains no input data,
+and is caught by the script's restoration finally. EvidenceRunner catches unexpected
+library failures and prints only fixed failure guidance rather than their exception
+text. Capture assertions examine the real UI; no fixture payload is logged.
+
+
+| Individual Stage 8 diagnostic site | What it can contain / sensitivity | Before / change |
+|---|---|---|
+| scripts/evidence/EvidenceRunner.cs:26 | `EVIDENCE_FAILED: verify local prerequisites; raw diagnostics were not published.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:36 | `Snapshot requires a before or after label.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:43 | `Snapshot target must be local development.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:66 | `READ_ONLY_DEVELOPMENT_SNAPSHOT_CAPTURED`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:99 | `Evidence API exited before readiness.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:102 | `Evidence API did not start.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:141 | `A genuine payout SQL log was not captured.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:151 | `Evidence refusal status mismatch.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:153 | `Evidence correlation mismatch.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:159 | `Required genuine log evidence was not captured.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:161 | `Sensitive evidence value detected; no artifact written.`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/evidence/EvidenceRunner.cs:165 | `REAL_API_EVIDENCE_READY`: fixed verification guidance/status; no credentials, identities or financial values. | New evidence-only site; unexpected exceptions are caught and their text is not printed. |
+| scripts/verify-assignment-6-2-isolation.ps1 / FailAfterIsolation | Fixed synthetic post-isolation exception; no records or supplied values. | New controlled failure to verify finally restoration, before tests start. |
+| scripts/evidence/capture-dashboard.py / three payout-view assertions and signal assertion | UI presence, safe fixture exclusion and signal boolean checks; bare AssertionError has no payload. Playwright itself can emit selector/page diagnostics locally if it fails. | New optional screenshot verifier; no production sink and no raw browser diagnostics published. |

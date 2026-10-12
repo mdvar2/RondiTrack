@@ -1,0 +1,8 @@
+      Security event sign_in with success. CorrelationId: dedc92c0ec68cfab9a111f982c129e4b
+      Security event sign_in with success. CorrelationId: 928b7cea7da8de1a3218894b5c10886f
+      Security event stokvel_refusal with not_found. CorrelationId: bafaae4972b0b8bf5cecc0a82143153d
+      Request rejected with 404 (NotFoundException). CorrelationId: bafaae4972b0b8bf5cecc0a82143153d
+      Executed DbCommand (3ms) [Parameters=[@stokvelId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT p."RecipientUserId"
+      FROM "Payouts" AS p
+      WHERE p."StokvelId" = @stokvelId
