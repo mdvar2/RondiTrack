@@ -16,6 +16,31 @@ cleanup records are excluded from published Git history.
 recorded implementation/publication results, not a new test run for this README
 edit. Earlier counts are historical; see [verification evidence](#verification-evidence).
 
+## Assignment 6.2 progress: Stage 2 telemetry pipeline
+
+The API collects OpenTelemetry traces, metrics and logs with service name
+`ronditrack-api`. ASP.NET Core request traces exclude `/health` and its child
+paths. Npgsql supplies database-command spans; ASP.NET Core and `System.Runtime`
+supply metrics. Business spans, counters, W3C error correlation and health probes
+are reserved for later stages.
+
+OTLP export is registered only when `OTEL_EXPORTER_OTLP_ENDPOINT` is nonblank.
+Leave it unset for tests and CI; no Aspire dashboard is required. No endpoint is
+hardcoded in application or launch settings.
+
+EF command logging is explicitly **Information in Development** and **Warning
+in the base configuration used by Production**. Development emits successful
+commands once through `ILogger`, useful for finding repeated queries. Production
+suppresses routine command events to reduce noise, storage and exposure while
+retaining warning/error diagnostics. There is no `LogTo` SQL output path. Console
+and an enabled OTLP destination can each receive the same structured event;
+that is separate delivery, not duplicate EF command instrumentation. SQL parameter
+values remain disabled.
+
+The health-check package is installed at EF-compatible version 10.0.4, but health
+checks are not registered until Stage 6. Existing database records and migrations
+are unchanged.
+
 ## Architecture and dependencies
 
 Open [RondiTrack.sln](RondiTrack.sln) in VS Code from the repository root.
