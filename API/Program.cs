@@ -15,8 +15,28 @@ using RondiTrack.Services;
 using RondiTrack.Idempotency;
 using RondiTrack.Domain.Repositories;
 using Scalar.AspNetCore;
+using Npgsql;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Keep collection enabled without a dashboard; only exporting depends on an endpoint.
+var telemetry = builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("ronditrack-api"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation(options =>
+            options.Filter = context => !context.Request.Path.StartsWithSegments("/health"))
+        .AddNpgsql())
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddMeter("System.Runtime"))
+    .WithLogging();
+
+if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+    telemetry.UseOtlpExporter();
 
 var jwtOptions = JwtOptions.Load(builder.Configuration);
 builder.Services.AddSingleton(jwtOptions);
