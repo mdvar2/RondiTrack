@@ -73,6 +73,8 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // Program.cs reads this immediately. ConfigureAppConfiguration is too late.
         builder.UseSetting("ConnectionStrings:RondiTrackDb", _container.GetConnectionString());
         builder.UseSetting("Jwt:SigningKey", _testSigningKey);
+        // Tests stay dashboard-independent even if the developer's environment enables OTLP.
+        builder.UseSetting("OTEL_EXPORTER_OTLP_ENDPOINT", string.Empty);
         // Test logging should not require permission to write the Windows Event Log.
         builder.ConfigureLogging(logging => logging.ClearProviders().AddConsole()
             .AddProvider(CorrelationLogs).AddProvider(CapturedLogs));
