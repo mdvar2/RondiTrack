@@ -19,21 +19,8 @@ public class ValidationFilter : IAsyncActionFilter
     {
         if (!context.ModelState.IsValid)
         {
-            var messages = context.ModelState
-                .SelectMany(entry => entry.Value?.Errors
-                    ?? Enumerable.Empty<
-                        Microsoft.AspNetCore.Mvc.ModelBinding.ModelError>())
-                .Select(error =>
-                    string.IsNullOrWhiteSpace(error.ErrorMessage)
-                        ? "The request body is invalid."
-                        : error.ErrorMessage)
-                .ToList();
-
-            var message = messages.Count > 0
-                ? string.Join(" ", messages)
-                : "The request body is invalid.";
-
-            throw new RequestValidationException(message);
+            // Binding errors can echo submitted values; keep the client detail fixed.
+            throw new RequestValidationException("The request body is invalid.");
         }
 
         foreach (var argument in context.ActionArguments.Values)
