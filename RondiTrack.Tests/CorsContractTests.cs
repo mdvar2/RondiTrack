@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 using RondiTrack.Tests.TestSupport;
 
 namespace RondiTrack.Tests;
@@ -8,6 +9,20 @@ namespace RondiTrack.Tests;
 [Collection(PostgresCollection.Name)]
 public class CorsContractTests(PostgresApiFactory factory)
 {
+    [Fact]
+    public async Task DefaultProductionConfiguration_DoesNotAllowDevelopmentOrigin()
+    {
+        await using var app = factory.WithWebHostBuilder(builder => builder.UseEnvironment("Production"));
+        using var client = app.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/api/v1/auth/login");
+        request.Headers.Add("Origin", "http://localhost:3000");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+        request.Headers.Add("Access-Control-Request-Headers", "content-type");
+        var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.DoesNotContain(response.Headers, header => header.Key.StartsWith("Access-Control-", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Theory]
     [InlineData("http://localhost:3000", true)]
     [InlineData("https://untrusted.example", false)]

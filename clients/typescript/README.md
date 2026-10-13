@@ -13,7 +13,7 @@ npm run test:money
 To generate from an already running Development API instead:
 
 ```powershell
-Invoke-WebRequest https://localhost:7000/openapi/v1.json -OutFile openapi.json
+Invoke-WebRequest https://localhost:7125/openapi/v1.json -OutFile openapi.json
 npm run generate
 npm run check
 ```
