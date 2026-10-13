@@ -24,6 +24,7 @@ using RondiTrack.Observability;
 using RondiTrack.Health;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RondiTrack.Common;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddFrontendCors(builder.Configuration);
@@ -78,7 +79,13 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
+}).AddJsonOptions(options =>
+{
+    options.AllowInputFormatterExceptionMessages = false;
+    options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
@@ -182,12 +189,21 @@ app.UseExceptionHandler();
 app.UseStatusCodePages(async statusContext =>
 {
     var http = statusContext.HttpContext;
-    if (http.Response.StatusCode is not (401 or 403)) return;
+    if (http.Response.StatusCode < 400) return;
     var problem = new ProblemDetails
     {
         Type = "about:blank", Status = http.Response.StatusCode,
-        Title = http.Response.StatusCode == 401 ? "Unauthorized" : "Forbidden",
-        Detail = http.Response.StatusCode == 401 ? "Authentication is required." : "You do not have permission for this operation.",
+        Title = Microsoft.AspNetCore.WebUtilities.ReasonPhrases.GetReasonPhrase(http.Response.StatusCode),
+        Detail = http.Response.StatusCode switch
+        {
+            401 => "Authentication is required.",
+            403 => "You do not have permission for this operation.",
+            404 => "The requested endpoint was not found.",
+            405 => "The HTTP method is not allowed for this endpoint.",
+            415 => "The request content type is not supported.",
+            >= 500 => "An unexpected error occurred.",
+            _ => "The request could not be completed."
+        },
         Instance = http.Request.Path
     };
     // Preserve the existing JSON response even when Accept excludes JSON.
