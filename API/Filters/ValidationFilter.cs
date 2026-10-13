@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc.Filters;
 using RondiTrack.Domain.Exceptions;
+using System.Text.Json;
 
 namespace RondiTrack.Filters;
 
@@ -53,8 +54,12 @@ public class ValidationFilter : IAsyncActionFilter
                     result.Errors.Select(
                         error => error.ErrorMessage));
 
-                throw new RequestValidationException(
-                    message);
+                var errors = result.Errors
+                    .GroupBy(error => string.Join('.', error.PropertyName.Split('.')
+                        .Select(JsonNamingPolicy.CamelCase.ConvertName)))
+                    .ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).Distinct().ToArray());
+                // Preserve the established detail text for existing clients/tests, while adding form field errors.
+                throw new RequestValidationException(message, errors);
             }
         }
 

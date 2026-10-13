@@ -47,3 +47,11 @@ NextPayoutDate is nullable DateTimeOffset and currently null: there is no schedu
 Three MemberHomeTests passed using Testcontainers. A fixed TimeProvider proves October calculations independent of host date, per-stokvel Member/Treasurer roles, own totals (excluding another member and September), overpayment clamped to zero, PaidOut name, missing cycle, six fields only, empty memberships and anonymous refusal.
 
 Trainer: The server fills one screen rather than sending tables to the browser. Decimal strings prevent JavaScript rounding without placing an artificial safe-integer limit on existing money. A missing schedule is explicitly null.
+
+## Stage 5 ? one error contract
+
+RequestValidationException gains an optional errors map. ValidationFilter groups FluentValidation messages by camelCase property path; GlobalExceptionHandler adds the map as a ProblemDetails extension. Existing detail messages remain intact so no old assertion changed. Invalid model binding has a fixed safe detail instead of echoing input or type names. Both MVC and HTTP/OpenAPI serializer options use JsonNumberHandling.Strict. Status-code pages cover otherwise empty routing/protocol errors in addition to 401/403. Existing sanitized 5xx and correlation behavior remain.
+
+Full suite: 120 passed, zero failed/skipped, including seven ErrorContractTests. Tests prove field-name maps, string-number/bool/malformed JSON rejection, generic details without internal names, route 404/method 405 Problem Details, and actual generated OpenAPI decimal/integer schemas with no numeric-string unions. Existing telemetry/log privacy, authentication, financial, concurrency and correlation tests all still pass.
+
+Trainer: Forms can attach errors to the fields users entered. Strict JSON settings must agree for both controllers and OpenAPI; otherwise generated types do not describe actual accepted input. Existing generic 5xx responses keep server internals private.

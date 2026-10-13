@@ -80,6 +80,8 @@ public class GlobalExceptionHandler : IExceptionHandler
         };
 
         Correlation.Apply(httpContext, problem);
+        if (exception is RequestValidationException { Errors: not null } validation)
+            problem.Extensions["errors"] = validation.Errors;
 
         httpContext.Response.StatusCode =
             statusCode;
