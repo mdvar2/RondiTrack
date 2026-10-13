@@ -12,7 +12,7 @@ public class SecureDefaultsTests(PostgresApiFactory factory)
     public async Task NoToken_Returns401ProblemResponse()
     {
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
-        var response = await client.GetAsync("/api/users");
+        var response = await client.GetAsync("/api/v1/users");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;

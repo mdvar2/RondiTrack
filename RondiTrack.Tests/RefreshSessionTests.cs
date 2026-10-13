@@ -30,14 +30,14 @@ public class RefreshSessionTests(PostgresApiFactory factory)
     {
         var email = $"{Guid.NewGuid()}@example.com";
         var password = Guid.NewGuid().ToString("N");
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/auth/register", new { name = "Session user", email, password })).StatusCode);
-        var response = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Session user", email, password })).StatusCode);
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var setCookie = response.Headers.GetValues("Set-Cookie").Single();
         Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("secure", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=strict", setCookie, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("path=/api/auth", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/api/v1/auth", setCookie, StringComparison.OrdinalIgnoreCase);
         var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("refreshToken", body);
         Assert.DoesNotContain(Uri.UnescapeDataString(Cookie(response).Split('=', 2)[1]), body);
@@ -49,7 +49,7 @@ public class RefreshSessionTests(PostgresApiFactory factory)
     {
         using var client = Client();
         var original = await Login(client);
-        var refresh = await Post(client, "/api/auth/refresh", original);
+        var refresh = await Post(client, "/api/v1/auth/refresh", original);
         Assert.Equal(HttpStatusCode.OK, refresh.StatusCode);
         var successor = Cookie(refresh);
         Assert.NotEqual(original, successor);
@@ -61,8 +61,8 @@ public class RefreshSessionTests(PostgresApiFactory factory)
         Assert.NotNull(stored.UsedAtUtc);
         Assert.NotNull(stored.ReplacedByTokenId);
         Assert.NotEqual(raw, stored.TokenHash);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/auth/refresh", original)).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/auth/refresh", successor)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/v1/auth/refresh", original)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/v1/auth/refresh", successor)).StatusCode);
     }
 
     [Fact]
@@ -70,10 +70,10 @@ public class RefreshSessionTests(PostgresApiFactory factory)
     {
         using var client = Client();
         var cookie = await Login(client);
-        Assert.Equal(HttpStatusCode.NoContent, (await Post(client, "/api/auth/logout", cookie)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await Post(client, "/api/auth/logout", cookie)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/auth/logout", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/auth/refresh", cookie)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await Post(client, "/api/v1/auth/logout", cookie)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await Post(client, "/api/v1/auth/logout", cookie)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/v1/auth/logout", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/v1/auth/refresh", cookie)).StatusCode);
     }
 
     [Fact]
@@ -81,11 +81,11 @@ public class RefreshSessionTests(PostgresApiFactory factory)
     {
         using var client = Client();
         var cookie = await Login(client);
-        var responses = await Task.WhenAll(Post(client, "/api/auth/refresh", cookie), Post(client, "/api/auth/refresh", cookie));
+        var responses = await Task.WhenAll(Post(client, "/api/v1/auth/refresh", cookie), Post(client, "/api/v1/auth/refresh", cookie));
         Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK);
         Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Unauthorized);
         var successor = Cookie(responses.Single(response => response.StatusCode == HttpStatusCode.OK));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/auth/refresh", successor)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/v1/auth/refresh", successor)).StatusCode);
     }
 
     [Fact]
@@ -94,8 +94,8 @@ public class RefreshSessionTests(PostgresApiFactory factory)
         using var client = Client();
         var first = await Login(client);
         var other = await Login(client);
-        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/api/auth/refresh", first)).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/auth/refresh", first)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/api/auth/refresh", other)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/api/v1/auth/refresh", first)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, "/api/v1/auth/refresh", first)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/api/v1/auth/refresh", other)).StatusCode);
     }
 }

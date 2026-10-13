@@ -43,7 +43,7 @@ public class CorrelationTests(PostgresApiFactory factory)
     {
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         var id = supplyTrace ? AddTrace(client) : null;
-        using var response = await client.GetAsync("/api/users");
+        using var response = await client.GetAsync("/api/v1/users");
         await AssertProblemAsync(response, HttpStatusCode.Unauthorized, id, "RondiTrack.ProblemDetails");
     }
 
@@ -53,7 +53,7 @@ public class CorrelationTests(PostgresApiFactory factory)
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(scenario.Member);
         var id = AddTrace(client);
-        using var response = await client.GetAsync("/api/users");
+        using var response = await client.GetAsync("/api/v1/users");
         await AssertProblemAsync(response, HttpStatusCode.Forbidden, id, "RondiTrack.ProblemDetails");
     }
 
@@ -65,7 +65,7 @@ public class CorrelationTests(PostgresApiFactory factory)
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(admin ? scenario.Admin : scenario.Outsider);
         var id = AddTrace(client);
-        using var response = await client.GetAsync($"/api/stokvels/{scenario.StokvelId}");
+        using var response = await client.GetAsync($"/api/v1/stokvels/{scenario.StokvelId}");
         await AssertProblemAsync(response, HttpStatusCode.NotFound, id);
     }
 
@@ -78,12 +78,12 @@ public class CorrelationTests(PostgresApiFactory factory)
         var email = $"{Guid.NewGuid()}@tests.example";
         if (knownAccount)
         {
-            using var registration = await client.PostAsJsonAsync("/api/auth/register",
+            using var registration = await client.PostAsJsonAsync("/api/v1/auth/register",
                 new { name = "Correlation fixture", email, password = Guid.NewGuid().ToString("N") });
             Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
         }
         var id = AddTrace(client);
-        using var response = await client.PostAsJsonAsync("/api/auth/login", new { email, password = "incorrect-password" });
+        using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "incorrect-password" });
         await AssertProblemAsync(response, HttpStatusCode.Unauthorized, id);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("Email or password is incorrect.", json.RootElement.GetProperty("detail").GetString());
@@ -95,8 +95,8 @@ public class CorrelationTests(PostgresApiFactory factory)
     public async Task Application404_WithoutTraceparent_GetsIndependentW3cIds()
     {
         using var client = factory.CreateAuthenticatedClient();
-        using var first = await client.GetAsync($"/api/users/{Guid.NewGuid()}");
-        using var second = await client.GetAsync($"/api/users/{Guid.NewGuid()}");
+        using var first = await client.GetAsync($"/api/v1/users/{Guid.NewGuid()}");
+        using var second = await client.GetAsync($"/api/v1/users/{Guid.NewGuid()}");
         await AssertProblemAsync(first, HttpStatusCode.NotFound);
         await AssertProblemAsync(second, HttpStatusCode.NotFound);
         using var firstJson = JsonDocument.Parse(await first.Content.ReadAsStringAsync());
@@ -112,7 +112,7 @@ public class CorrelationTests(PostgresApiFactory factory)
         var id = AddTrace(client);
         const string marker = "private-submitted-value";
         using var body = new StringContent("{\"contributionAmount\":\"" + marker + "\",\"name\":\"Fixture\"}", Encoding.UTF8, "application/json");
-        using var response = await client.PostAsync("/api/stokvels", body);
+        using var response = await client.PostAsync("/api/v1/stokvels", body);
         await AssertProblemAsync(response, HttpStatusCode.BadRequest, id);
         Assert.DoesNotContain(marker, await response.Content.ReadAsStringAsync());
     }
@@ -123,7 +123,7 @@ public class CorrelationTests(PostgresApiFactory factory)
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         client.DefaultRequestHeaders.Accept.ParseAdd("text/html");
         var id = AddTrace(client);
-        using var response = await client.GetAsync("/api/users");
+        using var response = await client.GetAsync("/api/v1/users");
         await AssertProblemAsync(response, HttpStatusCode.Unauthorized, id, "RondiTrack.ProblemDetails");
     }
 
@@ -133,7 +133,7 @@ public class CorrelationTests(PostgresApiFactory factory)
         using var client = factory.CreateAuthenticatedClient();
         var id = AddTrace(client);
         using var body = new StringContent("unsupported body", Encoding.UTF8, "text/plain");
-        using var response = await client.PostAsync("/api/stokvels", body);
+        using var response = await client.PostAsync("/api/v1/stokvels", body);
         await AssertProblemAsync(response, HttpStatusCode.UnsupportedMediaType, id, "RondiTrack.ProblemDetails");
     }
 
@@ -143,7 +143,7 @@ public class CorrelationTests(PostgresApiFactory factory)
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(scenario.Member);
         var id = AddTrace(client);
-        using var response = await client.DeleteAsync($"/api/stokvels/{scenario.StokvelId}");
+        using var response = await client.DeleteAsync($"/api/v1/stokvels/{scenario.StokvelId}");
         await AssertProblemAsync(response, HttpStatusCode.Forbidden, id);
     }
 
@@ -152,10 +152,10 @@ public class CorrelationTests(PostgresApiFactory factory)
     {
         using var client = factory.CreateClient();
         var registration = new { name = "Correlation fixture", email = $"{Guid.NewGuid()}@tests.example", password = Guid.NewGuid().ToString("N") };
-        using var created = await client.PostAsJsonAsync("/api/auth/register", registration);
+        using var created = await client.PostAsJsonAsync("/api/v1/auth/register", registration);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var id = AddTrace(client);
-        using var response = await client.PostAsJsonAsync("/api/auth/register", registration);
+        using var response = await client.PostAsJsonAsync("/api/v1/auth/register", registration);
         await AssertProblemAsync(response, HttpStatusCode.Conflict, id);
         var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain(registration.email, body);

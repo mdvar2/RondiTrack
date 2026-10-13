@@ -35,11 +35,11 @@ public class EndToEndLogLeakTests(PostgresApiFactory factory)
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
             { BaseAddress = new Uri("https://localhost"), HandleCookies = false });
         var start = factory.CapturedLogs.Entries.Count;
-        using var registration = await client.PostAsJsonAsync("/api/auth/register", new { name = memberName, email, password });
+        using var registration = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = memberName, email, password });
         Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
         using var registered = JsonDocument.Parse(await registration.Content.ReadAsStringAsync());
         var userId = registered.RootElement.GetProperty("id").GetGuid();
-        using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
 
         async Task<string> CaptureSession(HttpResponseMessage response)
@@ -57,7 +57,7 @@ public class EndToEndLogLeakTests(PostgresApiFactory factory)
         }
 
         var originalCookie = await CaptureSession(login);
-        using var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        using var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/refresh");
         refreshRequest.Headers.Add("Cookie", originalCookie);
         using var refresh = await client.SendAsync(refreshRequest);
         Assert.Equal(HttpStatusCode.OK, refresh.StatusCode);
@@ -66,16 +66,16 @@ public class EndToEndLogLeakTests(PostgresApiFactory factory)
         using var accessBody = JsonDocument.Parse(await refresh.Content.ReadAsStringAsync());
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
             accessBody.RootElement.GetProperty("accessToken").GetString());
-        using var stokvelResponse = await client.PostAsJsonAsync("/api/stokvels", new { name = stokvelName, contributionAmount = amount });
+        using var stokvelResponse = await client.PostAsJsonAsync("/api/v1/stokvels", new { name = stokvelName, contributionAmount = amount });
         Assert.Equal(HttpStatusCode.Created, stokvelResponse.StatusCode);
         using var stokvelBody = JsonDocument.Parse(await stokvelResponse.Content.ReadAsStringAsync());
         var stokvelId = stokvelBody.RootElement.GetProperty("id").GetGuid();
-        using var cycleResponse = await client.PostAsJsonAsync($"/api/stokvels/{stokvelId}/cycles", new { period = "2026-10", targetAmount = amount });
+        using var cycleResponse = await client.PostAsJsonAsync($"/api/v1/stokvels/{stokvelId}/cycles", new { period = "2026-10", targetAmount = amount });
         Assert.Equal(HttpStatusCode.Created, cycleResponse.StatusCode);
         using var cycleBody = JsonDocument.Parse(await cycleResponse.Content.ReadAsStringAsync());
         var cycleId = cycleBody.RootElement.GetProperty("id").GetGuid();
         client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString());
-        using var contribution = await client.PostAsJsonAsync($"/api/stokvels/{stokvelId}/members/{userId}/contributions",
+        using var contribution = await client.PostAsJsonAsync($"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions",
             new { amount, contributionCycleId = cycleId });
         Assert.Equal(HttpStatusCode.Created, contribution.StatusCode);
         await using (var db = new RondiTrackDbContext(factory.CreateDbContextOptions()))
@@ -88,7 +88,7 @@ public class EndToEndLogLeakTests(PostgresApiFactory factory)
         prohibited.Add(Convert.ToBase64String(signingKey));
         prohibited.Add(Convert.ToHexString(signingKey));
         var duplicateStart = factory.CapturedLogs.Entries.Count;
-        using var duplicate = await client.PostAsJsonAsync("/api/auth/register", new { name = memberName, email, password });
+        using var duplicate = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = memberName, email, password });
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
         var captured = factory.CapturedLogs.Entries.Skip(start).ToArray();
         Assert.NotEmpty(captured);

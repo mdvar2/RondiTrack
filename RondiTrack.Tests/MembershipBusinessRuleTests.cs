@@ -22,7 +22,7 @@ public class MembershipBusinessRuleTests
         // Arrange - create an isolated stokvel
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Remove Non Member Test Stokvel",
@@ -45,7 +45,7 @@ public class MembershipBusinessRuleTests
         // Arrange - create an isolated user
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 new
                 {
                     name = "Remove Non Member User",
@@ -71,7 +71,7 @@ public class MembershipBusinessRuleTests
         // Act
         var response =
             await _client.DeleteAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}");
 
         // Assert
         Assert.Equal(

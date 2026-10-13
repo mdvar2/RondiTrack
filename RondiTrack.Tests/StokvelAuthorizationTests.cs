@@ -20,7 +20,7 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
             (scenario.Chairperson, HttpStatusCode.Created), (scenario.Admin, HttpStatusCode.NotFound) })
         {
             using var client = factory.CreateClientFor(user);
-            var response = await client.PostAsJsonAsync($"/api/stokvels/{scenario.StokvelId}/cycles", new { period = "2026-11", targetAmount = 500m });
+            var response = await client.PostAsJsonAsync($"/api/v1/stokvels/{scenario.StokvelId}/cycles", new { period = "2026-11", targetAmount = 500m });
             Assert.Equal(expected, response.StatusCode);
             if (expected == HttpStatusCode.Forbidden)
                 Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
@@ -35,7 +35,7 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
         foreach (var (userId, expected) in new[] { (scenario.Member.Id, HttpStatusCode.Created), (scenario.Treasurer.Id, HttpStatusCode.Forbidden) })
         {
             using var request = new HttpRequestMessage(HttpMethod.Post,
-                $"/api/stokvels/{scenario.StokvelId}/members/{userId}/contributions")
+                $"/api/v1/stokvels/{scenario.StokvelId}/members/{userId}/contributions")
                 { Content = JsonContent.Create(new { amount = 500m, contributionCycleId = scenario.CycleId }) };
             request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
             Assert.Equal(expected, (await client.SendAsync(request)).StatusCode);
@@ -47,7 +47,7 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
     {
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(scenario.Treasurer);
-        var path = $"/api/stokvels/{scenario.StokvelId}/cycles";
+        var path = $"/api/v1/stokvels/{scenario.StokvelId}/cycles";
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(path, new { period = "2026-11", targetAmount = 500m })).StatusCode);
         await using var context = new RondiTrackDbContext(factory.CreateDbContextOptions());
         var membership = await context.StokvelMembers.SingleAsync(member => member.StokvelId == scenario.StokvelId && member.UserId == scenario.Treasurer.Id);
@@ -69,8 +69,8 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
         context.StokvelMembers.Add(new StokvelMember(second.Id, scenario.Treasurer.Id, Roles.Member));
         await context.SaveChangesAsync();
         using var client = factory.CreateClientFor(scenario.Treasurer);
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync($"/api/stokvels/{scenario.StokvelId}/cycles", new { period = "2026-11", targetAmount = 500m })).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync($"/api/stokvels/{second.Id}/cycles", new { period = "2026-11", targetAmount = 500m })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync($"/api/v1/stokvels/{scenario.StokvelId}/cycles", new { period = "2026-11", targetAmount = 500m })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync($"/api/v1/stokvels/{second.Id}/cycles", new { period = "2026-11", targetAmount = 500m })).StatusCode);
     }
 
     [Fact]
@@ -79,9 +79,9 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
         var scenario = await AuthScenario.CreateAsync(factory);
         using var admin = factory.CreateClientFor(scenario.Admin);
         using var member = factory.CreateClientFor(scenario.Member);
-        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/stokvels")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await member.GetAsync("/api/stokvels")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/stokvels/{scenario.StokvelId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/v1/stokvels")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await member.GetAsync("/api/v1/stokvels")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/v1/stokvels/{scenario.StokvelId}")).StatusCode);
     }
 
     [Fact]
@@ -89,11 +89,11 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
     {
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(scenario.Outsider);
-        var created = await client.PostAsJsonAsync("/api/stokvels", new { name = $"Created {Guid.NewGuid()}", contributionAmount = 500m });
+        var created = await client.PostAsJsonAsync("/api/v1/stokvels", new { name = $"Created {Guid.NewGuid()}", contributionAmount = 500m });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var id = JsonDocument.Parse(await created.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetGuid();
         await using var context = new RondiTrackDbContext(factory.CreateDbContextOptions());
         Assert.Equal(Roles.Chairperson, (await context.StokvelMembers.SingleAsync(member => member.StokvelId == id && member.UserId == scenario.Outsider.Id)).Role);
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync($"/api/stokvels/{id}/cycles", new { period = "2026-11", targetAmount = 500m })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync($"/api/v1/stokvels/{id}/cycles", new { period = "2026-11", targetAmount = 500m })).StatusCode);
     }
 }

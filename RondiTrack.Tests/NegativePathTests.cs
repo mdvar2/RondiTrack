@@ -29,7 +29,7 @@ public class NegativePathTests
 
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 stokvelRequest);
 
         Assert.Equal(
@@ -61,7 +61,7 @@ public class NegativePathTests
         // Act
         var response =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 content);
 
         // Assert
@@ -100,7 +100,7 @@ public class NegativePathTests
         // Act
         var response =
             await _client.GetAsync(
-                $"/api/users/{missingUserId}");
+                $"/api/v1/users/{missingUserId}");
 
         // Assert
         Assert.Equal(
@@ -146,7 +146,7 @@ public class NegativePathTests
 
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 stokvelRequest);
 
         Assert.Equal(
@@ -174,7 +174,7 @@ public class NegativePathTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 userRequest);
 
         Assert.Equal(
@@ -193,7 +193,7 @@ public class NegativePathTests
         // Act - first membership should succeed
         var firstResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}",
                 null);
 
         Assert.Equal(
@@ -203,7 +203,7 @@ public class NegativePathTests
         // Act - same membership again should fail
         var secondResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}",
                 null);
 
         // Assert

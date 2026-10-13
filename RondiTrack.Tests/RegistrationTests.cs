@@ -18,7 +18,7 @@ public class RegistrationTests(PostgresApiFactory factory)
         using var client = factory.CreateClient();
         var password = Guid.NewGuid().ToString("N");
         var email = $"Register.{Guid.NewGuid()}@Example.com";
-        var response = await client.PostAsJsonAsync("/api/auth/register", new { name = "Registered user", email, password });
+        var response = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Registered user", email, password });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain(password, body);
@@ -36,7 +36,7 @@ public class RegistrationTests(PostgresApiFactory factory)
     public async Task Register_ShortPassword_Returns400ProblemJson()
     {
         using var client = factory.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/auth/register", new { name = "User", email = $"{Guid.NewGuid()}@example.com", password = "too-short" });
+        var response = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "User", email = $"{Guid.NewGuid()}@example.com", password = "too-short" });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
     }
@@ -47,8 +47,8 @@ public class RegistrationTests(PostgresApiFactory factory)
         using var client = factory.CreateClient();
         var email = $"{Guid.NewGuid()}@example.com";
         var password = Guid.NewGuid().ToString("N");
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/auth/register", new { name = "First", email, password })).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/auth/register", new { name = "Second", email = email.ToUpperInvariant(), password })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "First", email, password })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Second", email = email.ToUpperInvariant(), password })).StatusCode);
         await using var context = new RondiTrackDbContext(factory.CreateDbContextOptions());
         context.Users.Add(new User("Bypass attempt", $" {email.ToUpperInvariant()} "));
         await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());

@@ -31,7 +31,7 @@ public class HappyPathTests
         // Act - create the user
         var createResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 request);
 
         // Assert - creation succeeded
@@ -51,7 +51,7 @@ public class HappyPathTests
         // Act - retrieve the created user
         var getResponse =
             await _client.GetAsync(
-                $"/api/users/{userId}");
+                $"/api/v1/users/{userId}");
 
         // Assert - retrieval succeeded
         Assert.Equal(
@@ -90,7 +90,7 @@ public class HappyPathTests
         // Act - create the stokvel
         var createResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 request);
 
         // Assert - creation succeeded
@@ -110,7 +110,7 @@ public class HappyPathTests
         // Act - retrieve the created stokvel
         var getResponse =
             await _client.GetAsync(
-                $"/api/stokvels/{stokvelId}");
+                $"/api/v1/stokvels/{stokvelId}");
 
         // Assert - retrieval succeeded
         Assert.Equal(
@@ -146,7 +146,7 @@ public class HappyPathTests
 
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 stokvelRequest);
 
         Assert.Equal(
@@ -171,7 +171,7 @@ public class HappyPathTests
         // Act - create the contribution cycle
         var createResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 request);
 
         // Assert - creation succeeded
@@ -191,7 +191,7 @@ public class HappyPathTests
         // Act - retrieve the created cycle
         var getResponse =
             await _client.GetAsync(
-                $"/api/stokvels/{stokvelId}/cycles/{cycleId}");
+                $"/api/v1/stokvels/{stokvelId}/cycles/{cycleId}");
 
         // Assert - retrieval succeeded
         Assert.Equal(
@@ -227,7 +227,7 @@ public class HappyPathTests
 
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 stokvelRequest);
 
         Assert.Equal(
@@ -254,7 +254,7 @@ public class HappyPathTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 userRequest);
 
         Assert.Equal(
@@ -273,7 +273,7 @@ public class HappyPathTests
         // Arrange - add the dedicated user as a member
         var membershipResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}",
                 null);
 
         Assert.Equal(
@@ -289,7 +289,7 @@ public class HappyPathTests
 
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 cycleRequest);
 
         Assert.Equal(
@@ -315,7 +315,7 @@ public class HappyPathTests
         using var request =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions");
 
         request.Headers.Add(
             "Idempotency-Key",

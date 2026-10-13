@@ -21,7 +21,7 @@ public class ContributionBusinessRuleTests
     {
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Non Member Test Stokvel",
@@ -43,7 +43,7 @@ public class ContributionBusinessRuleTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 new
                 {
                     name = "Non Member User",
@@ -65,7 +65,7 @@ public class ContributionBusinessRuleTests
 
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 new
                 {
                     period = "2027-01",
@@ -94,7 +94,7 @@ public class ContributionBusinessRuleTests
         using var request =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions");
 
         request.Headers.Add(
             "Idempotency-Key",
@@ -130,7 +130,7 @@ public class ContributionBusinessRuleTests
     {
         var firstStokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Contribution Test Stokvel",
@@ -152,7 +152,7 @@ public class ContributionBusinessRuleTests
 
         var secondStokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Different Cycle Stokvel",
@@ -174,7 +174,7 @@ public class ContributionBusinessRuleTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 new
                 {
                     name = "Different Cycle User",
@@ -196,7 +196,7 @@ public class ContributionBusinessRuleTests
 
         var membershipResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{firstStokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{firstStokvelId}/members/{userId}",
                 null);
 
         Assert.Equal(
@@ -205,7 +205,7 @@ public class ContributionBusinessRuleTests
 
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{secondStokvelId}/cycles",
+                $"/api/v1/stokvels/{secondStokvelId}/cycles",
                 new
                 {
                     period = "2027-02",
@@ -234,7 +234,7 @@ public class ContributionBusinessRuleTests
         using var request =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{firstStokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{firstStokvelId}/members/{userId}/contributions");
 
         request.Headers.Add(
             "Idempotency-Key",
@@ -270,7 +270,7 @@ public class ContributionBusinessRuleTests
     {
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Duplicate Contribution Stokvel",
@@ -292,7 +292,7 @@ public class ContributionBusinessRuleTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 new
                 {
                     name = "Duplicate Contribution User",
@@ -314,7 +314,7 @@ public class ContributionBusinessRuleTests
 
         var membershipResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}",
                 null);
 
         Assert.Equal(
@@ -323,7 +323,7 @@ public class ContributionBusinessRuleTests
 
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 new
                 {
                     period = "2027-03",
@@ -352,7 +352,7 @@ public class ContributionBusinessRuleTests
         using var firstRequest =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions");
 
         firstRequest.Headers.Add(
             "Idempotency-Key",
@@ -371,7 +371,7 @@ public class ContributionBusinessRuleTests
         using var secondRequest =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions");
 
         secondRequest.Headers.Add(
             "Idempotency-Key",
@@ -408,7 +408,7 @@ public class ContributionBusinessRuleTests
         // Arrange - create isolated stokvel
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Missing Key Test Stokvel",
@@ -431,7 +431,7 @@ public class ContributionBusinessRuleTests
         // Arrange - create isolated user
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 new
                 {
                     name = "Missing Key User",
@@ -454,7 +454,7 @@ public class ContributionBusinessRuleTests
         // Arrange - create a cycle
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 new
                 {
                     period = "2027-04",
@@ -483,7 +483,7 @@ public class ContributionBusinessRuleTests
         // Act - deliberately send NO Idempotency-Key header
         var response =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions",
                 contributionRequest);
 
         // Assert

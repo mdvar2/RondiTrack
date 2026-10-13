@@ -1,3 +1,4 @@
+using RondiTrack.Common;
 using Microsoft.AspNetCore.Authorization;
 using RondiTrack.Auth;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace RondiTrack.Controllers;
 
 [Authorize(Policy = Policies.PlatformAdministration)]
 [ApiController]
-[Route("api/users")]
+[Route(ApiRoutes.V1 + "/users")]
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
