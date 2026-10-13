@@ -2,13 +2,151 @@
 
 A .NET 10 API for managing stokvels, contributions and payouts.
 
-**Recorded result: 101 passed, 0 failed, 0 skipped.** This is the final Assignment 6.2 run
+**Previous Assignment 6.2 result: 101 passed, 0 failed, 0 skipped.** This is the final Assignment 6.2 run
 from 13 October 2026, not a new test run for this documentation edit.
 
 **Development migration blocker:** duplicate normalized emails prevent the existing
 development database from applying the authentication migration. Do not update, reset or
 recreate it to bypass the blocker. Its data is preserved. See [the migration
 status](docs/development-migration-status.md).
+
+## Assignment 6.3 ? ready for the frontend (14 October 2026)
+
+**Verified: 122 tests passed, 0 failed, 0 skipped; strict TypeScript compilation and exact-money runtime checks passed.** The development-database-offline run is **NOT VERIFIED** because the development PostgreSQL service remains running and changing it requires your approval. No development data, schema or migrations were changed. Nothing has been pushed.
+
+Read the [stage-by-stage trainer notes](docs/assignment-6-3-stages.md), [verification evidence](docs/assignment-6-3-verification.md), and [requirement compliance matrix](docs/assignment-6-3-compliance.md). Earlier sections below retain historical assignment examples; this section defines the current v1 browser contract.
+
+### Versioning and the refresh cookie
+
+`API/Common/ApiRoutes.cs` defines `V1 = "api/v1"`. Every controller uses it; the cookie path derives from it as `/api/v1/auth`, covering refresh **and logout**. The moved families are `/api/v1/auth/{register,login,refresh,logout}`, `/api/v1/users`, `/api/v1/stokvels` (including memberships/contributions), nested cycles and payouts. The new screen is `/api/v1/me/home`. Existing JWT, role, resource authorization and refresh rotation/reuse detection remain intact. `VersionedRefreshTests` proves cookie-handler refresh and logout work at the new paths.
+
+Health probes (`/health/live`, `/health/ready`) and Development documentation (`/openapi/v1.json`, `/scalar/v1`) retain their operational paths and contracts. This is an explicit interpretation of ?every route?: every controller API route is versioned, but changing probes/docs would break existing assertions the request requires us to preserve.
+
+### CORS, origins, sites and cookies
+
+`CorsPolicies.Frontend` reads `Cors:AllowedOrigins`. Production's appsettings list is empty. Development allows **exactly `http://localhost:3000`**. Deployment can configure exact entries with `Cors__AllowedOrigins__0`. Wildcards, arbitrary reflection and paths are refused. Credentials are enabled. Allowed methods: GET, POST, PUT, DELETE, OPTIONS. Allowed headers: Authorization, Content-Type, Idempotency-Key, If-Match, traceparent, tracestate. Exposed response headers: Retry-After, ETag, Location. There is no existing idempotency replay response header; replay returns the same 201 body. No tokens or financial information are added to headers.
+
+CORS runs after routing and before authentication; it answers anonymous preflights before JWT fallback authorization. Allowed-origin scoped 403/404 errors retain CORS headers. Five CORS tests cover allowed/rejected preflight, both errors and closed production defaults. CORS controls what a browser can read; it does not replace authentication. See [ASP.NET Core CORS documentation](https://learn.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-10.0).
+
+An **origin** is scheme + host + port. A **site** is scheme + registrable domain (ports do not matter). Cookies remain host-only, HttpOnly, Secure and SameSite=Strict. Browser calls that set/send a refresh cookie need `credentials: "include"`; cross-origin bearer-token calls also require the configured CORS permission. CORS permission cannot override SameSite or Secure. See [MDN's site definition](https://developer.mozilla.org/en-US/docs/Glossary/Site) and [cookie guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies).
+
+| Deployment | Will the current Strict refresh cookie reach the API? |
+|---|---|
+| `http://localhost:3000` ? `http://localhost:5101` | Same site, different origins. Strict permits it if the API is actually served over HTTP without redirect and the browser accepts Secure cookies on localhost. That localhost exception varies by browser. The app's HTTPS redirection may redirect HTTP preflight, so do not assume this setup works merely from server integration tests. |
+| `http://localhost:3000` ? `https://localhost:7125` (existing HTTPS launch profile) | Different scheme means different site. Strict blocks the cookie on cross-site fetch; credentials and CORS cannot fix it. Use a same-scheme frontend/API deployment (with the exact frontend origin explicitly configured), or an intentionally configured same-origin development proxy. Current default allowed origin remains exactly HTTP localhost:3000. |
+| `https://app.ronditrack.co.za` ? `https://api.ronditrack.co.za` | Same HTTPS site, different origins. Strict permits a host-only API cookie to reach the API with credentials; configure that exact frontend origin and use trusted HTTPS. It need not be shared with the app subdomain. |
+| `https://ronditrack.vercel.app` ? `https://ronditrack-api.azurewebsites.net` | Different sites. The current Strict cookie is not sent; login's bearer response may be readable once the exact frontend origin is allowed, but refresh will fail. Cross-site cookies would need an explicit design change to SameSite=None; Secure, CSRF protection and third-party-cookie restrictions must also be addressed. Prefer a shared-site custom domain. |
+
+These are browser-rule analyses, not claims of a browser deployment test. The cookie-handler integration test proves path/rotation behavior, not SameSite enforcement by a real browser.
+
+### Rate limits and idempotency
+
+All names/rules are central in `RateLimitPolicies`; controllers reference policy names only. Configuration in appsettings:
+
+| Policy | Algorithm | Partition | Default |
+|---|---|---|---|
+| Login | Fixed window | Direct remote client IP; missing IP shares `unknown` | 5 requests / 60 seconds |
+| Contributions | Token bucket | Authenticated JWT `sub` (stable user GUID) | Capacity 30; replenish 30 every 60 seconds |
+| Payouts | Separate token bucket | Authenticated JWT `sub` | Capacity 5; replenish 5 every 60 seconds |
+
+All settings must be positive; bucket refill cannot exceed capacity. Queue limits are zero. Failed endpoint attempts and replays count too. Anonymous financial calls reach the existing 401 policy without reserving a user allowance. No untrusted forwarded IP header is accepted; deploying behind a proxy requires explicitly configuring trusted proxies before using forwarded addresses. Token buckets permit a treasurer's approximately twenty post-meeting contribution entries as a burst while bounding later traffic. Shared Wi-Fi users have separate financial quotas because identity, rather than venue IP, partitions money writes. Login has no authenticated identity yet, so its IP limit can affect users sharing Wi-Fi.
+
+Middleware order: exception handler ? status-code pages ? HTTPS redirection ? routing ? **CORS ? authentication ? rate limiting ? authorization** ? controller validation/resource authorization ? **ContributionService idempotency check and write**. CORS stops preflight before fallback authorization. Authentication establishes sub before financial partitioning. Rate limiting stops a rejected request before idempotency can inspect/reserve/store the key or write money. HTTPS preflight redirects are a deployment consideration described above.
+
+Every rejection returns 429 (never rate-limiter 503), application/problem+json, a positive integer-seconds Retry-After rounded upward, title/detail/instance and the existing 6.2 W3C correlationId. Retry-After is exposed to JavaScript. Replays also obey the limiter: a replay can be delayed with 429, but the existing stored response remains available. In the short-window test, two fresh permits replenish, allowing the successful retry with K followed by its replay. The test directly proves K absent and no contribution after rejection, waits the returned Retry-After, then confirms identical success/replay bodies and **one** PostgreSQL row. Separate isolated hosts test login, contribution/payout quotas and two users. Each rate-limit test uses WithWebHostBuilder/UseSetting; the shared fixture receives a generous login allowance.
+
+The built-in limiter is **in memory per API process**. Three balanced replicas can grant up to three times these limits, and a restart resets them. Global enforcement needs shared coordination; it is not provided here. The preserved idempotency store is also per process, so three replicas/restarts do not guarantee stored-response replay. The existing database uniqueness constraint still prevents duplicate member/cycle contribution rows, but those retries may get 409. Distributed idempotency is an existing production gap. See [ASP.NET Core rate limiting](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-10.0).
+
+### Home-screen contract
+
+`MeController` takes the caller from JWT sub, and `MemberHomeService` returns one `HomeResponse`. It projects memberships in one SQL query and current-month cycles with **only that user's** contribution totals in a second query (one query for empty memberships); there is no N+1 fetching. A fixed TimeProvider integration test proves date independence and roles in two stokvels, with an additional no-cycle membership.
+
+```json
+{
+  "stokvels": [
+    {
+      "stokvelName": "Example savings group",
+      "role": "Member",
+      "currentCycle": { "period": "2026-10", "status": "Open" },
+      "amountPaid": "125.1",
+      "amountOwed": "374.9",
+      "nextPayoutDate": null
+    }
+  ]
+}
+```
+
+These six fields fill the requested screen. No identifiers, versions, tokens or other members' amounts are returned. Role comes from each membership, not a platform claim. Status is the existing name (Open/PaidOut). Amounts are invariant **decimal strings**, preserving the domain's full precision without rounding to cents or exceeding JavaScript safe integers. They represent currency units, not integer cents. The generated TypeScript function adds them exactly using BigInt with a common decimal scale; it returns a decimal string.
+
+Documented presentation assumptions: current cycle matches `TimeProvider.GetUtcNow()` formatted as `yyyy-MM`, including a PaidOut cycle in the current month; historical duplicate periods prefer Open then stable ID. The member's obligation is `Stokvel.ContributionAmount`, not the cycle's possibly group-level TargetAmount. Owed = max(obligation ? own paid, 0). No current cycle means currentCycle=null and both amounts="0". A user with no memberships receives `{ "stokvels": [] }`, not 404.
+
+**Missing business rule:** entities/services store past payouts but no future payout schedule. Therefore nextPayoutDate is null rather than an invented deadline. The DTO is nullable DateTimeOffset and its OpenAPI format is date-time; any future supplied date must be UTC. A real next payout date requires a confirmed scheduling rule. This requirement is PARTIAL.
+
+### Complete application error contract
+
+Every controller/application error uses `application/problem+json` with this exact field structure (values vary by request/status):
+
+```json
+{"type":"about:blank","title":"Not Found","status":404,"detail":"Stokvel not found.","instance":"/api/v1/stokvels/...","correlationId":"<32 lowercase hexadecimal characters>"}
+```
+
+FluentValidation adds exactly one field, `errors`, mapping camelCase request names to arrays of messages. Existing detail messages are retained for compatibility:
+
+```json
+{"type":"about:blank","title":"Bad Request","status":400,"detail":"<existing joined validation messages>","instance":"/api/v1/stokvels","correlationId":"<32 lowercase hexadecimal characters>","errors":{"name":["Stokvel name is required."],"contributionAmount":["Contribution amount must be greater than zero."]}}
+```
+
+| Status/title | Source | Detail and exact shape variation |
+|---|---|---|
+| 400 Bad Request | FluentValidation | Base structure + errors map; detail is the existing joined safe messages. |
+| 400 Bad Request | JSON binding, malformed JSON, quoted numbers | Base only; `The request body is invalid.` No internal type or submitted-value echo. |
+| 400 Bad Request | Missing/invalid Idempotency-Key, If-Match, pagination/token/sort input | Base only; safe RequestValidationException message. |
+| 401 Unauthorized | Missing/invalid/expired JWT; deleted account; login/refresh authentication failure | Base only; `Authentication is required.` from fallback, or the existing safe authentication-domain message. |
+| 403 Forbidden | Platform/resource policy denies a member's action | Base only; `You do not have permission for this operation.` |
+| 404 Not Found | Missing resource, non-member scoped resource concealment, unknown route for an authenticated caller | Base only; safe domain not-found message, or `The requested endpoint was not found.` Unknown anonymous routes hit JWT fallback first and may return 401. |
+| 405 Method Not Allowed | Unsupported method on a matched route | Base only; `The HTTP method is not allowed for this endpoint.` HTTP Allow header may also be supplied. |
+| 409 Conflict | Business rule, duplicate-email/member-cycle/payout uniqueness, concurrency conflict, key reuse with different body | Base only; safe domain message; database uniqueness uses `A database constraint was violated.` Unexpected concurrency details remain generic. |
+| 412 Precondition Failed | Stale ETag/If-Match | Base only; existing safe ?refetch and retry? domain detail. Missing If-Match is 400. |
+| 415 Unsupported Media Type | MVC input formatter does not support Content-Type | Base only; `The request content type is not supported.` Shared customization normalizes framework type/detail/instance and removes traceId. |
+| 429 Too Many Requests | Any named rate-limit policy | Base only; `Too many requests. Try again in N seconds.` Positive Retry-After: N header. |
+| 500 Internal Server Error | Unexpected exception, including unexpected database errors | Base only; `An unexpected error occurred.` No exception type/message/stack in the response. |
+| 503 Service Unavailable | Preserved `/health/ready` database probe, outside controller contract | `text/plain; charset=utf-8`, exact body `Unhealthy`; preserved existing operational assertions. This is not rate-limit rejection. |
+
+No 422 is defined by this application (the Matric Compass example's status is not copied). Empty additional 4xx/5xx statuses generated inside the application pipeline receive the same base structure with the HTTP reason phrase and generic detail; 5xx always receive the fixed safe detail. Web-server/proxy failures before the pipeline may have their own protocol contract. The health exception and operational URL interpretation are explicit gaps against an unrestricted reading of ?every error/every route?. Existing telemetry privacy/correlation tests pass.
+
+Both MVC and HTTP/OpenAPI JSON options use JsonNumberHandling.Strict. Quoted JSON numbers are 400; integers/decimals in the **actual generated** OpenAPI document are numeric-only. Home money strings are a deliberate separate contract, not a numeric/string union. Eight error tests cover forms, malformed/invalid JSON, routing/method errors, unsupported media type and actual schemas.
+
+### TypeScript contracts and actual rename experiment
+
+Tooling lives outside all .NET projects in `clients/typescript`, with exact versions openapi-typescript 7.13.0 and TypeScript 5.9.3, plus package-lock.json. The actual OpenAPI snapshot, generated schema.d.ts and typed function are committed. `scripts/contracts` reuses the Testcontainers fixture to export the real API document; no new NuGet package or development database is needed.
+
+```powershell
+cd clients/typescript
+npm ci --ignore-scripts
+npm run regenerate
+npm run test:money
+```
+
+`regenerate` exports ? generates ? runs `tsc --noEmit --strict`. Before rename: exit 0. Temporarily renamed **C# AmountOwed ? OutstandingBalance**, built the API, exported its actual document and regenerated types. The unchanged function failed with actual compiler output, exit 2:
+
+```text
+src/home.ts(7,56): error TS2339: Property 'amountOwed' does not exist on type '{ stokvelName: string; role: string; currentCycle: { period: string; status: string; } | null; amountPaid: string; outstandingBalance: string; nextPayoutDate: string | null; }'.
+```
+
+Restored AmountOwed, rebuilt, exported and regenerated; strict compilation exit 0. The first saved-file restore retained an old timestamp and reused a renamed DLL; refreshing the timestamp rebuilt it. The final generated document/types include amountOwed and no outstandingBalance. Full reproduction and real recovery details: [client README](clients/typescript/README.md). No test assertion was changed for the experiment.
+
+### Final verification and submission gaps
+
+```powershell
+dotnet build RondiTrack.sln --no-restore -m:1
+dotnet test RondiTrack.sln --no-restore -m:1 --logger "trx;LogFileName=final.trx" --results-directory obj/assignment-6-3
+```
+
+Final actual full-suite result: **122 passed, 0 failed, 0 skipped**, 34 seconds. Actual API contracts regenerated and strictly compiled; exact-money checks passed. Existing 28 test-source files were compared to pre-assignment a733cc6: no differences beyond required URL changes. No tests were silently skipped or assertions weakened. Stage commits and the original baseline Docker failure are recorded in [trainer notes](docs/assignment-6-3-stages.md).
+
+**Offline proof remains NOT VERIFIED.** The existing isolation script is ready for review: it requires zero active development sessions, temporarily refuses new connections to local ronditrack, proves refusal, runs the complete Testcontainers suite, and restores/verifies admission in finally. This changes database metadata and must not run without your approval. See the [concrete verification procedure](docs/assignment-6-3-verification.md#safe-offline-verification-awaiting-approval). Fixture target checks alone are not claimed as the requested offline proof.
+
+Remaining gaps: no real payout schedule; current-cycle/obligation assumptions need domain confirmation; health/docs preserved operational contracts; no real-browser deployment verification; process-local limiting and idempotency; existing duplicate-email development migration blocker remains untouched. No push until verification review and explicit approval. Submission repository remains https://github.com/mdvar2/RondiTrack.
 
 ## Contents
 

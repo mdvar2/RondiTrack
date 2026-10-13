@@ -63,3 +63,21 @@ clients/typescript contains its own package.json, exact compatible tool pins (op
 Before rename: strict compilation exit 0. Actual C# AmountOwed -> OutstandingBalance rename, API rebuild, actual OpenAPI export and regeneration produced TS2339 at src/home.ts(7,56), compiler exit 2. Restoring the field and rebuilding/regenerating succeeded, exit 0. Full actual error and reproducible commands are in clients/typescript/README.md. No test assertions were changed for the experiment. A saved-source timestamp initially caused a stale incremental DLL; refreshed timestamp and real re-export resolved it.
 
 Trainer: The generated endpoint type connects the API field name to the function. A breaking rename becomes a compiler error before a user sees a blank screen. The function returns an exact decimal string instead of losing precision in binary floating point.
+
+## Stage 7 ? final integration verification
+
+Added the default-production CORS test and audited unsupported content types. The first audit run passed production CORS but failed the 415 full-contract assertion: framework ProblemDetails used a different type and lacked detail/instance. Fixed shared ProblemDetails customization to normalize these fields; retained the test assertion. Added explicit 429 response metadata to login/contribution/payout OpenAPI and regenerated actual types. Final dotnet test RondiTrack.sln --no-restore -m:1: 122 passed, zero failed/skipped, 34 seconds. Final build: zero warnings/errors. Final npm regeneration/strict compilation and exact-money runtime checks passed. Existing test-source comparison: 28 files, zero non-URL changes.
+
+Development-offline verification remains NOT VERIFIED pending the explicit approval requested for the existing guarded isolation script. No development database was stopped or changed. The factory verifies its actual disposable database target, but this is not claimed as offline evidence.
+
+Trainer: These tests send browser preflight headers and exercise real PostgreSQL, not a mocked data layer. Failures were corrected in implementation, not hidden by changing assertions. The offline proof requires one more approved run.
+
+## Stage 8 ? README and submission documentation
+
+README now has a current Assignment 6.3 contract section covering all requested topics and distinguishing historical earlier examples. docs/api-reference.md route URLs moved. The error-status table includes automatic routing/content-type errors and explicitly preserves operational text/plain health 503. Cookie analysis distinguishes origin from schemeful site: HTTP localhost frontend to HTTPS API is cross-site for Strict cookies. The existing secure/Strict cookie behavior is preserved and deployment limitations are explained using primary references. Real compiler output and all verification gaps are documented.
+
+Trainer: CORS permission does not override cookie SameSite/Secure rules, and a cookie-handler server test is not proof of actual browser enforcement. A real next payout deadline needs an agreed domain schedule.
+
+## Stage 9 ? compliance and publication review
+
+Compared every PDF requirement and the staged user request in docs/assignment-6-3-compliance.md. Explicit partials: operational health/docs paths/error contracts and unknown payout schedule. Offline run remains NOT VERIFIED. The publication audit checks outgoing commit snapshots and current files against actual configured signing/connection credentials in memory, with assignment-context checks for common field-word passwords; values are never printed. No actual credential literals or tracked bin/obj/node_modules/build artifacts were found. This is a practical credential scan, not a guarantee of detection of every possible secret format. No push performed. Authorized changes are committed in logical units; final Git status is checked after documentation commit.

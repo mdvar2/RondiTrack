@@ -4,39 +4,41 @@ I implemented these routes and security rules in Assignment 6.1. This reference 
 detailed contracts from the earlier main README. See the [current
 guide](../README.md#5-features-and-api-functionality) for an overview.
 
+Current Assignment 6.3 browser configuration, errors and home contract: [README](../README.md#assignment-63--ready-for-the-frontend-14-october-2026).
+
 ## Authentication routes
 
 [AuthController](../API/Controllers/AuthController.cs) explicitly allows anonymous access to
 these routes. Bodies use JSON except refresh/logout, which read cookies.
 
-### POST /api/auth/register
+### POST /api/v1/auth/register
 
 - **Input:** name, email, password (minimum 12 characters)
 
 - **Result:** 201 UserResponse; invalid input 400; duplicate normalized email 409.
 
-### POST /api/auth/login
+### POST /api/v1/auth/login
 
 - **Input:** email, password
 
 - **Result:** 200 accessToken/expiresAtUtc plus refresh cookie; unknown email/wrong password
   same safe 401 details, with request-specific correlation; invalid input 400.
 
-### POST /api/auth/refresh
+### POST /api/v1/auth/refresh
 
 - **Input:** Refresh cookie
 
 - **Result:** 200 new access JWT and rotated cookie; missing, expired, revoked or replayed
   token 401.
 
-### POST /api/auth/logout
+### POST /api/v1/auth/logout
 
 - **Input:** Refresh cookie if present
 
 - **Result:** 204, family revoked and cookie deleted; repeated/cookie-free logout idempotent.
 
 Infrastructure outages can still fail requests. Registration returns a Location under
-/api/users/{id}, but that resource is platform-admin restricted; ordinary registrants cannot
+/api/v1/users/{id}, but that resource is platform-admin restricted; ordinary registrants cannot
 GET it.
 
 Registration extends the existing User table, hashes with `PasswordHasher<User>` and never
@@ -44,7 +46,7 @@ returns the hash. Email lookup trims/lowers invariantly; PostgreSQL computes
 `lower(btrim("Email"))` with a unique index, also protecting concurrent registrations/direct
 inserts. Legacy users with null PasswordHash cannot sign in. No public password-reset/setup or
 privileged-role assignment flow is implemented. Registration does not accept a privileged
-role. Admin /api/users creation does not set a password and is not a substitute for
+role. Admin /api/v1/users creation does not set a password and is not a substitute for
 registration.
 
 ## Access JWTs
@@ -80,7 +82,7 @@ by that limit; cookie expiry can be later, but the server rejects the token at t
 | HttpOnly | true; prevents JavaScript reads. |
 | Secure | true; HTTPS only. |
 | SameSite | Strict; limits cross-site delivery. |
-| Path | /api/auth; limits routing. |
+| Path | /api/v1/auth; limits routing. |
 | Domain | Unset; host-only. |
 | Expires | Set from the returned refresh expiry. |
 
@@ -117,127 +119,127 @@ lacking PlatformAdmin. Scoped routes return 404 to nonmembers, including nonmemb
 Ordinary members receive 403 for elevated operations or recording another member's
 contribution.
 
-### GET /api/users
+### GET /api/v1/users
 
 - **Required permission:** PlatformAdmin
 
 - **Success:** 200
 
-### GET /api/users/{id}
+### GET /api/v1/users/{id}
 
 - **Required permission:** PlatformAdmin
 
 - **Success:** 200
 
-### POST /api/users
+### POST /api/v1/users
 
 - **Required permission:** PlatformAdmin
 
 - **Success:** 201
 
-### PUT /api/users/{id}
+### PUT /api/v1/users/{id}
 
 - **Required permission:** PlatformAdmin + If-Match
 
 - **Success:** 204
 
-### DELETE /api/users/{id}
+### DELETE /api/v1/users/{id}
 
 - **Required permission:** PlatformAdmin
 
 - **Success:** 204
 
-### GET /api/stokvels
+### GET /api/v1/stokvels
 
 - **Required permission:** PlatformAdmin (plain role attribute)
 
 - **Success:** 200
 
-### POST /api/stokvels
+### POST /api/v1/stokvels
 
 - **Required permission:** Any authenticated user
 
 - **Success:** 201
 
-### GET /api/stokvels/{id}
+### GET /api/v1/stokvels/{id}
 
 - **Required permission:** Any member of this stokvel
 
 - **Success:** 200
 
-### PUT /api/stokvels/{id}
+### PUT /api/v1/stokvels/{id}
 
 - **Required permission:** Treasurer/Chairperson + If-Match
 
 - **Success:** 204
 
-### DELETE /api/stokvels/{id}
+### DELETE /api/v1/stokvels/{id}
 
 - **Required permission:** Treasurer/Chairperson
 
 - **Success:** 204
 
-### GET /api/stokvels/{stokvelId}/members
+### GET /api/v1/stokvels/{stokvelId}/members
 
 - **Required permission:** Any member
 
 - **Success:** 200
 
-### POST /api/stokvels/{stokvelId}/members/{userId}
+### POST /api/v1/stokvels/{stokvelId}/members/{userId}
 
 - **Required permission:** Treasurer/Chairperson
 
 - **Success:** 204
 
-### DELETE /api/stokvels/{stokvelId}/members/{userId}
+### DELETE /api/v1/stokvels/{stokvelId}/members/{userId}
 
 - **Required permission:** Treasurer/Chairperson
 
 - **Success:** 204
 
-### GET /api/stokvels/{stokvelId}/cycles
+### GET /api/v1/stokvels/{stokvelId}/cycles
 
 - **Required permission:** Any member
 
 - **Success:** 200
 
-### GET /api/stokvels/{stokvelId}/cycles/{cycleId}
+### GET /api/v1/stokvels/{stokvelId}/cycles/{cycleId}
 
 - **Required permission:** Any member
 
 - **Success:** 200
 
-### GET /api/stokvels/{stokvelId}/cycles/{cycleId}/contributions
+### GET /api/v1/stokvels/{stokvelId}/cycles/{cycleId}/contributions
 
 - **Required permission:** Any member
 
 - **Success:** 200
 
-### POST /api/stokvels/{stokvelId}/cycles
+### POST /api/v1/stokvels/{stokvelId}/cycles
 
 - **Required permission:** Treasurer/Chairperson
 
 - **Success:** 201
 
-### PUT /api/stokvels/{stokvelId}/cycles/{cycleId}
+### PUT /api/v1/stokvels/{stokvelId}/cycles/{cycleId}
 
 - **Required permission:** Treasurer/Chairperson + If-Match
 
 - **Success:** 204
 
-### DELETE /api/stokvels/{stokvelId}/cycles/{cycleId}
+### DELETE /api/v1/stokvels/{stokvelId}/cycles/{cycleId}
 
 - **Required permission:** Treasurer/Chairperson
 
 - **Success:** 204
 
-### POST /api/stokvels/{stokvelId}/members/{userId}/contributions
+### POST /api/v1/stokvels/{stokvelId}/members/{userId}/contributions
 
 - **Required permission:** Own userId as Member, or Treasurer/Chairperson; Idempotency-Key
 
 - **Success:** 201
 
-### POST /api/stokvels/{stokvelId}/cycles/{cycleId}/payouts
+### POST /api/v1/stokvels/{stokvelId}/cycles/{cycleId}/payouts
 
 - **Required permission:** Treasurer/Chairperson
 
