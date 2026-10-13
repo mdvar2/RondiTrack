@@ -1,0 +1,17 @@
+{
+  "name": "ronditrack-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "export": "dotnet run --project ../../scripts/contracts/ExportContracts.csproj -- openapi.json",
+    "generate": "openapi-typescript openapi.json -o src/schema.d.ts",
+    "check": "tsc --noEmit --strict",
+    "test:money": "node check-money.mjs",
+    "regenerate": "npm run export && npm run generate && npm run check"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

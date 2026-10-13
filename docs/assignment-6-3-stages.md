@@ -55,3 +55,11 @@ RequestValidationException gains an optional errors map. ValidationFilter groups
 Full suite: 120 passed, zero failed/skipped, including seven ErrorContractTests. Tests prove field-name maps, string-number/bool/malformed JSON rejection, generic details without internal names, route 404/method 405 Problem Details, and actual generated OpenAPI decimal/integer schemas with no numeric-string unions. Existing telemetry/log privacy, authentication, financial, concurrency and correlation tests all still pass.
 
 Trainer: Forms can attach errors to the fields users entered. Strict JSON settings must agree for both controllers and OpenAPI; otherwise generated types do not describe actual accepted input. Existing generic 5xx responses keep server internals private.
+
+## Stage 6 ? generated TypeScript
+
+clients/typescript contains its own package.json, exact compatible tool pins (openapi-typescript 7.13.0, TypeScript 5.9.3), lockfile, actual OpenAPI snapshot, generated schema.d.ts, strict tsconfig and a typed home function. scripts/contracts exports from the real API through the existing disposable PostgreSQL fixture with an explicit API content root. No new NuGet package. npm run regenerate performs export/generation/strict compilation; npm run test:money proves exact decimal addition using BigInt including values beyond safe integers.
+
+Before rename: strict compilation exit 0. Actual C# AmountOwed -> OutstandingBalance rename, API rebuild, actual OpenAPI export and regeneration produced TS2339 at src/home.ts(7,56), compiler exit 2. Restoring the field and rebuilding/regenerating succeeded, exit 0. Full actual error and reproducible commands are in clients/typescript/README.md. No test assertions were changed for the experiment. A saved-source timestamp initially caused a stale incremental DLL; refreshed timestamp and real re-export resolved it.
+
+Trainer: The generated endpoint type connects the API field name to the function. A breaking rename becomes a compiler error before a user sees a blank screen. The function returns an exact decimal string instead of losing precision in binary floating point.
