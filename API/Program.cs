@@ -173,6 +173,8 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<MembershipService>();
 builder.Services.AddScoped<ContributionService>();
 builder.Services.AddScoped<PayoutService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<MemberHomeService>();
 
 var app = builder.Build();
 
