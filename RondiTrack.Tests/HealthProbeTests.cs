@@ -58,7 +58,7 @@ public class HealthProbeTests(PostgresApiFactory factory)
         Assert.All(probes, activity => Assert.False(activity.IsAllDataRequested));
         Assert.All(probes, activity => Assert.False(activity.Recorded));
         var controlId = ActivityTraceId.CreateRandom().ToString();
-        using var control = new HttpRequestMessage(HttpMethod.Get, "/api/users");
+        using var control = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
         control.Headers.Add("traceparent", $"00-{controlId}-00f067aa0ba902b7-01");
         using var controlResponse = await client.SendAsync(control);
         Assert.Equal(HttpStatusCode.Unauthorized, controlResponse.StatusCode);

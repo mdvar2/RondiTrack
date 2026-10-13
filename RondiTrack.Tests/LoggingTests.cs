@@ -75,7 +75,7 @@ public class LoggingTests(PostgresApiFactory factory)
         using var client = authenticated ? factory.CreateClientFor(scenario.Member) : Client();
         var id = SetTrace(client);
         var baseline = factory.CapturedLogs.Entries.Count;
-        using var response = await client.GetAsync("/api/users");
+        using var response = await client.GetAsync("/api/v1/users");
         Assert.Equal(status, response.StatusCode);
         using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(id, problem.RootElement.GetProperty("correlationId").GetString());
@@ -95,7 +95,7 @@ public class LoggingTests(PostgresApiFactory factory)
         const string password = "unknown-account-fixture";
         var baseline = factory.CapturedLogs.Entries.Count;
         var id = SetTrace(client);
-        using var response = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
         await AssertExpectedError(response, HttpStatusCode.Unauthorized, id, nameof(AuthenticationFailedException), baseline);
         var entry = Assert.Single(Logs(id), log => Equals(log.Properties.GetValueOrDefault("EventType"), "sign_in"));
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -112,11 +112,11 @@ public class LoggingTests(PostgresApiFactory factory)
         var email = $"{Guid.NewGuid()}@tests.example";
         var password = Guid.NewGuid().ToString("N");
         var baseline = factory.CapturedLogs.Entries.Count;
-        using var registered = await client.PostAsJsonAsync("/api/auth/register", new { name = "Logging fixture", email, password });
+        using var registered = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Logging fixture", email, password });
         Assert.Equal(HttpStatusCode.Created, registered.StatusCode);
         const string wrong = "wrong-password-fixture";
         var id = SetTrace(client);
-        using var response = await client.PostAsJsonAsync("/api/auth/login", new { email, password = success ? password : wrong });
+        using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = success ? password : wrong });
         Assert.Equal(success ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, response.StatusCode);
         var entry = Assert.Single(Logs(id), log => Equals(log.Properties.GetValueOrDefault("EventType"), "sign_in"));
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -149,14 +149,14 @@ public class LoggingTests(PostgresApiFactory factory)
         var email = $"{Guid.NewGuid()}@tests.example";
         var password = Guid.NewGuid().ToString("N");
         var baseline = factory.CapturedLogs.Entries.Count;
-        using var registered = await client.PostAsJsonAsync("/api/auth/register", new { name = "Logging fixture", email, password });
+        using var registered = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Logging fixture", email, password });
         Assert.Equal(HttpStatusCode.Created, registered.StatusCode);
-        using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var cookie = login.Headers.GetValues("Set-Cookie").Single().Split(';')[0];
         async Task<HttpResponseMessage> Refresh()
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/refresh");
             request.Headers.Add("Cookie", cookie);
             return await client.SendAsync(request);
         }
@@ -191,7 +191,7 @@ public class LoggingTests(PostgresApiFactory factory)
         var id = SetTrace(client);
         var baseline = factory.CapturedLogs.Entries.Count;
         using var response = await client.PostAsJsonAsync(
-            $"/api/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
+            $"/api/v1/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
         await AssertExpectedError(response, status, id, type, baseline);
         var entry = Assert.Single(Logs(id), log => Equals(log.Properties.GetValueOrDefault("EventType"), "stokvel_refusal"));
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -204,11 +204,11 @@ public class LoggingTests(PostgresApiFactory factory)
     {
         using var client = Client();
         var body = new { name = "Logging fixture", email = $"{Guid.NewGuid()}@tests.example", password = Guid.NewGuid().ToString("N") };
-        using var first = await client.PostAsJsonAsync("/api/auth/register", body);
+        using var first = await client.PostAsJsonAsync("/api/v1/auth/register", body);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         var id = SetTrace(client);
         var baseline = factory.CapturedLogs.Entries.Count;
-        using var duplicate = await client.PostAsJsonAsync("/api/auth/register", body);
+        using var duplicate = await client.PostAsJsonAsync("/api/v1/auth/register", body);
         await AssertExpectedError(duplicate, HttpStatusCode.Conflict, id, nameof(BusinessRuleException), baseline);
         var logs = factory.CapturedLogs.Entries.Skip(baseline).ToArray();
         Assert.DoesNotContain(logs, entry => entry.Level >= LogLevel.Error);
@@ -257,10 +257,10 @@ public class LoggingTests(PostgresApiFactory factory)
         var email = $"{Guid.NewGuid()}@tests.example";
         var password = Guid.NewGuid().ToString("N");
         var baseline = factory.CapturedLogs.Entries.Count;
-        using var registration = await client.PostAsJsonAsync("/api/auth/register", new { name = "Logging fixture", email, password });
+        using var registration = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Logging fixture", email, password });
         Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
         var id = SetTrace(client);
-        using var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var raw = Uri.UnescapeDataString(login.Headers.GetValues("Set-Cookie").Single().Split(';')[0].Split('=', 2)[1]);
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
@@ -301,7 +301,7 @@ public class LoggingTests(PostgresApiFactory factory)
         var marker = amount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var baseline = factory.CapturedLogs.Entries.Count;
         using var response = await client.PostAsJsonAsync(
-            $"/api/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions",
+            $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions",
             new { amount, contributionCycleId = scenario.CycleId });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var queries = spans.Where(span => span.TraceId.ToString() == id).ToArray();

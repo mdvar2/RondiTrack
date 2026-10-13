@@ -22,7 +22,7 @@ public class EdgeCaseTests
         // Arrange - create an isolated stokvel
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Zero Contribution Test Stokvel",
@@ -45,7 +45,7 @@ public class EdgeCaseTests
         // Arrange - create an isolated user
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 new
                 {
                     name = "Zero Contribution User",
@@ -68,7 +68,7 @@ public class EdgeCaseTests
         // Arrange - create a valid contribution cycle
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 new
                 {
                     period = "2027-05",
@@ -100,7 +100,7 @@ public class EdgeCaseTests
         using var request =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions");
 
         request.Headers.Add(
             "Idempotency-Key",
@@ -148,7 +148,7 @@ public class EdgeCaseTests
         // Arrange - create an isolated stokvel
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 new
                 {
                     name = "Invalid Period Test Stokvel",
@@ -180,7 +180,7 @@ public class EdgeCaseTests
         // Act
         var response =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 cycleRequest);
 
         // Assert

@@ -88,7 +88,7 @@ public class ConcurrencyProtectionTests
         };
 
         var createResponse = await _client.PostAsJsonAsync(
-            "/api/users",
+            "/api/v1/users",
             createRequest);
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
@@ -99,7 +99,7 @@ public class ConcurrencyProtectionTests
             .GetProperty("id")
             .GetGuid();
 
-        var getResponse = await _client.GetAsync($"/api/users/{userId}");
+        var getResponse = await _client.GetAsync($"/api/v1/users/{userId}");
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
 
         var etag = getResponse.Headers.ETag?.Tag;
@@ -113,7 +113,7 @@ public class ConcurrencyProtectionTests
 
         var firstUpdateRequest = new HttpRequestMessage(
             HttpMethod.Put,
-            $"/api/users/{userId}")
+            $"/api/v1/users/{userId}")
         {
             Content = JsonContent.Create(updateRequest)
         };
@@ -124,7 +124,7 @@ public class ConcurrencyProtectionTests
 
         var staleUpdateRequest = new HttpRequestMessage(
             HttpMethod.Put,
-            $"/api/users/{userId}")
+            $"/api/v1/users/{userId}")
         {
             Content = JsonContent.Create(updateRequest)
         };

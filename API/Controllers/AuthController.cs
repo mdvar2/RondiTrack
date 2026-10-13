@@ -1,3 +1,4 @@
+using RondiTrack.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RondiTrack.Auth;
@@ -7,7 +8,7 @@ using RondiTrack.DTOs.Users;
 namespace RondiTrack.Controllers;
 
 [ApiController]
-[Route("api/auth")]
+[Route(ApiRoutes.V1 + "/auth")]
 public class AuthController(AuthService authService) : ControllerBase
 {
     [AllowAnonymous]
@@ -24,7 +25,7 @@ public class AuthController(AuthService authService) : ControllerBase
     public static CookieOptions RefreshCookieOptions => new()
     {
         HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict,
-        Path = "/api/auth", IsEssential = true
+        Path = ApiRoutes.AuthCookiePath, IsEssential = true
     };
 
     private void SetRefreshCookie(AuthSessionResult session)
@@ -57,6 +58,6 @@ public class AuthController(AuthService authService) : ControllerBase
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
         var response = await authService.RegisterAsync(request);
-        return Created($"/api/users/{response.Id}", response);
+        return Created($"/{ApiRoutes.V1}/users/{response.Id}", response);
     }
 }

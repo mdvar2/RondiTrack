@@ -1,3 +1,4 @@
+using RondiTrack.Common;
 using Microsoft.AspNetCore.Authorization;
 using RondiTrack.Auth;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,7 @@ namespace RondiTrack.Controllers;
 
 [Authorize(Policy = Policies.SignedIn)]
 [ApiController]
-[Route("api/stokvels")]
+[Route(ApiRoutes.V1 + "/stokvels")]
 public class StokvelsController : ControllerBase
 {
     private readonly StokvelAuthorization _stokvelAuthorization;

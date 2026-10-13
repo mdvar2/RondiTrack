@@ -28,7 +28,7 @@ public class AuthorizationMatrixTests(PostgresApiFactory factory)
     public async Task EveryScopedRoute_RequiresAuthenticationAndLiveMembership(string method, string suffix, bool view)
     {
         var scenario = await AuthScenario.CreateAsync(factory);
-        var path = $"/api/stokvels/{scenario.StokvelId}" + suffix
+        var path = $"/api/v1/stokvels/{scenario.StokvelId}" + suffix
             .Replace("{user}", scenario.Treasurer.Id.ToString()).Replace("{cycle}", scenario.CycleId.ToString());
         foreach (var (user, expected) in new[] {
             ((User?)null, HttpStatusCode.Unauthorized), (scenario.Outsider, HttpStatusCode.NotFound),
@@ -53,15 +53,15 @@ public class AuthorizationMatrixTests(PostgresApiFactory factory)
     {
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(scenario.Admin);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/users")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/users")).StatusCode);
         await using var context = new RondiTrackDbContext(factory.CreateDbContextOptions());
         var user = await context.Users.SingleAsync(user => user.Id == scenario.Admin.Id);
         user.SetPlatformRole(Roles.PlatformUser);
         await context.SaveChangesAsync();
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/users")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/users")).StatusCode);
         context.Users.Remove(user);
         await context.SaveChangesAsync();
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/users")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/users")).StatusCode);
     }
 
     [Theory]
@@ -72,11 +72,11 @@ public class AuthorizationMatrixTests(PostgresApiFactory factory)
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(chairperson ? scenario.Chairperson : scenario.Treasurer);
         using var contribution = new HttpRequestMessage(HttpMethod.Post,
-            $"/api/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions")
+            $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions")
         { Content = JsonContent.Create(new { amount = 500m, contributionCycleId = scenario.CycleId }) };
         contribution.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
         Assert.Equal(HttpStatusCode.Created, (await client.SendAsync(contribution)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(
-            $"/api/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m })).StatusCode);
+            $"/api/v1/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m })).StatusCode);
     }
 }

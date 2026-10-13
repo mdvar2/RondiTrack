@@ -21,9 +21,9 @@ public class JwtLoginTests(PostgresApiFactory factory)
         using var client = factory.CreateClient();
         var email = $"{Guid.NewGuid()}@example.com";
         var password = Guid.NewGuid().ToString("N");
-        var registration = await client.PostAsJsonAsync("/api/auth/register", new { name = "Login user", email, password });
+        var registration = await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "Login user", email, password });
         var userId = JsonDocument.Parse(await registration.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetGuid();
-        var response = await client.PostAsJsonAsync("/api/auth/login", new { email = email.ToUpperInvariant(), password });
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = email.ToUpperInvariant(), password });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var access = (await response.Content.ReadFromJsonAsync<AccessTokenResponse>())!;
         var options = factory.Services.GetRequiredService<JwtOptions>();
@@ -41,12 +41,12 @@ public class JwtLoginTests(PostgresApiFactory factory)
         using var client = factory.CreateClient();
         var email = $"{Guid.NewGuid()}@example.com";
         var password = Guid.NewGuid().ToString("N");
-        await client.PostAsJsonAsync("/api/auth/register", new { name = "User", email, password });
+        await client.PostAsJsonAsync("/api/v1/auth/register", new { name = "User", email, password });
         // Compare failures within one caller trace; all existing assertions remain intact.
         client.DefaultRequestHeaders.Add("traceparent",
             "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
-        var wrong = await client.PostAsJsonAsync("/api/auth/login", new { email, password = "incorrect-password" });
-        var unknown = await client.PostAsJsonAsync("/api/auth/login", new { email = $"{Guid.NewGuid()}@example.com", password = "incorrect-password" });
+        var wrong = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "incorrect-password" });
+        var unknown = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = $"{Guid.NewGuid()}@example.com", password = "incorrect-password" });
         Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, unknown.StatusCode);
         Assert.Equal("application/problem+json", wrong.Content.Headers.ContentType?.MediaType);

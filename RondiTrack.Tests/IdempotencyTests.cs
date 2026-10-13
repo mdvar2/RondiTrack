@@ -28,7 +28,7 @@ public class IdempotencyTests
 
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 stokvelRequest);
 
         Assert.Equal(
@@ -56,7 +56,7 @@ public class IdempotencyTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 userRequest);
 
         Assert.Equal(
@@ -75,7 +75,7 @@ public class IdempotencyTests
         // Arrange - create membership
         var membershipResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}",
                 null);
 
         Assert.Equal(
@@ -91,7 +91,7 @@ public class IdempotencyTests
 
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 cycleRequest);
 
         Assert.Equal(
@@ -172,7 +172,7 @@ public class IdempotencyTests
 
         var stokvelResponse =
             await _client.PostAsJsonAsync(
-                "/api/stokvels",
+                "/api/v1/stokvels",
                 stokvelRequest);
 
         Assert.Equal(
@@ -200,7 +200,7 @@ public class IdempotencyTests
 
         var userResponse =
             await _client.PostAsJsonAsync(
-                "/api/users",
+                "/api/v1/users",
                 userRequest);
 
         Assert.Equal(
@@ -219,7 +219,7 @@ public class IdempotencyTests
         // Arrange - create membership
         var membershipResponse =
             await _client.PostAsync(
-                $"/api/stokvels/{stokvelId}/members/{userId}",
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}",
                 null);
 
         Assert.Equal(
@@ -235,7 +235,7 @@ public class IdempotencyTests
 
         var cycleResponse =
             await _client.PostAsJsonAsync(
-                $"/api/stokvels/{stokvelId}/cycles",
+                $"/api/v1/stokvels/{stokvelId}/cycles",
                 cycleRequest);
 
         Assert.Equal(
@@ -323,7 +323,7 @@ public class IdempotencyTests
         var request =
             new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/stokvels/{stokvelId}/members/{userId}/contributions");
+                $"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions");
 
         request.Headers.Add(
             "Idempotency-Key",

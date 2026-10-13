@@ -76,7 +76,7 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         Assert.True(factory.Services.GetRequiredService<RondiTrackTelemetry>().Activities.HasListeners());
         using var capture = new Capture();
         using var response = await client.PostAsJsonAsync(
-            $"/api/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
+            $"/api/v1/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         capture.AssertMeasurement(RondiTrackTelemetry.PayoutsName, "outcome", "success");
         var payout = Assert.Single(capture.Activities, span => span.Source.Name == RondiTrackTelemetry.SourceName);
@@ -107,7 +107,7 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         using var client = factory.CreateClientFor(scenario.Treasurer);
         using var capture = new Capture();
         using var response = await client.PostAsJsonAsync(
-            $"/api/stokvels/{scenario.StokvelId}/cycles/{Guid.NewGuid()}/payouts", new { amount = 500m });
+            $"/api/v1/stokvels/{scenario.StokvelId}/cycles/{Guid.NewGuid()}/payouts", new { amount = 500m });
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         capture.AssertMeasurement(RondiTrackTelemetry.PayoutsName, "outcome", "failure");
         var payout = Assert.Single(capture.Activities, span => span.Source.Name == RondiTrackTelemetry.SourceName);
@@ -125,7 +125,7 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString());
         var body = new { amount = 500m, contributionCycleId = scenario.CycleId };
         using var capture = new Capture();
-        var path = $"/api/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions";
+        var path = $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions";
         using var first = await client.PostAsJsonAsync(path, body);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         capture.AssertMeasurement(RondiTrackTelemetry.ContributionsName);
@@ -146,7 +146,7 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         using var client = factory.CreateClientFor(outsider ? scenario.Outsider : scenario.Member);
         using var capture = new Capture();
         using var response = await client.PostAsJsonAsync(
-            $"/api/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
+            $"/api/v1/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts", new { amount = 500m });
         Assert.Equal(status, response.StatusCode);
         capture.AssertMeasurement(RondiTrackTelemetry.RefusalsName, "result", result);
         Assert.DoesNotContain(capture.Measurements, item => item.Name == RondiTrackTelemetry.PayoutsName);
