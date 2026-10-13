@@ -42,6 +42,7 @@ public class PayoutsController : ControllerBase
     [ProducesResponseType(
         typeof(ProblemDetails),
         StatusCodes.Status409Conflict)]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimitPolicies.Payouts)]
     [HttpPost]
     public async Task<ActionResult<PayoutResponse>> Create(
         Guid stokvelId,

@@ -21,3 +21,19 @@ Moved families: auth (register/login/refresh/logout), users, stokvels (including
 `VersionedRefreshTests.BrowserCookieHandler_SendsCookieToVersionedRefreshAndLogout` uses the client's cookie handler rather than manually injecting a Cookie header. It checks login, refresh rotation, logout and refusal after logout at the new paths. This proves the path permits the cookie to reach both refresh and logout.
 
 Trainer explanation: “A const can be used in attributes. Deriving the cookie path from the same prefix prevents a working login followed by a broken refresh when routes move.”
+
+## Stage 2 ? CORS
+
+CorsPolicies reads exact origins from configuration (localhost:3000 only in Development; empty production list). Explicit methods/headers allow Idempotency-Key and concurrency/tracing headers. Retry-After, ETag and Location are exposed; no existing replay header exists. CORS runs before authentication. Four browser-style tests passed: credentialed preflight, rejected origin, scoped 403 and scoped 404. Stage 1 full suite passed 102/102.
+
+Trainer: CORS answers preflights before JWT authorization and makes scoped errors readable. Authentication still protects data.
+
+## Stage 3 ? rate limiting
+
+RateLimitPolicies centrally defines Login (fixed window, 5 per 60 seconds by remote IP), Contributions (token bucket, capacity/refill 30 per 60 seconds by authenticated sub), and Payouts (separate token bucket, capacity/refill 5 per 60 seconds by sub). Endpoints reference only names. Settings are validated; queues are disabled. Anonymous financial calls reach existing 401 authorization without consuming a user quota. No forwarded headers are trusted implicitly.
+
+Program order: routing, CORS, authentication, rate limiting, authorization, controller/resource authorization, contribution idempotency. Each rejection writes 429 problem+json with Retry-After (positive integer ceiling), title, detail, instance and the existing W3C correlationId. Replays count against limits too; rejection delays them but never removes or reserves a key. A rejected fresh key never reaches ContributionService.
+
+The shared factory overrides only the login allowance to 1000; every rate-limit test uses WithWebHostBuilder and UseSetting to isolate its app and counters. Four rate-limit tests plus four CORS tests passed. The short three-second contribution test exhausts two permits, proves K absent and zero writes after 429, waits the reported Retry-After, succeeds and replays with K, then counts exactly one contribution. It also proves a later rejected replay preserves K. Contributions and payouts both isolate users sharing the test IP; payout writes remain single.
+
+Trainer: A bucket permits a meeting-sized burst of twenty contributions without allowing unlimited traffic. Per-user identity avoids penalizing everyone using one Wi-Fi IP. Limits are process-local; three balanced instances can grant up to three times the allowance, and restart resets it. Existing idempotency is also process-local, so cross-instance retry safety is an existing production gap, not solved by rate limiting.

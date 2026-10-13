@@ -336,6 +336,7 @@ public class StokvelsController : ControllerBase
     [ProducesResponseType(
         typeof(ProblemDetails),
         StatusCodes.Status409Conflict)]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimitPolicies.Contributions)]
     [HttpPost(
         "{stokvelId:guid}/members/{userId:guid}/contributions")]
     public async Task<IActionResult> RecordContribution(
