@@ -27,6 +27,7 @@ using RondiTrack.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddFrontendCors(builder.Configuration);
+builder.Services.AddApiRateLimiting(builder.Configuration);
 builder.Services.AddSingleton<RondiTrackTelemetry>();
 
 // Keep collection enabled without a dashboard; only exporting depends on an endpoint.
@@ -207,6 +208,7 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors(CorsPolicies.Frontend);
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

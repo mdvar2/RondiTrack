@@ -13,6 +13,7 @@ public class AuthController(AuthService authService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("login")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimitPolicies.Login)]
     public async Task<ActionResult<AccessTokenResponse>> Login(LoginRequest request)
     {
         var session = await authService.LoginAsync(request);
