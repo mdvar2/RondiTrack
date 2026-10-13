@@ -37,3 +37,13 @@ Program order: routing, CORS, authentication, rate limiting, authorization, cont
 The shared factory overrides only the login allowance to 1000; every rate-limit test uses WithWebHostBuilder and UseSetting to isolate its app and counters. Four rate-limit tests plus four CORS tests passed. The short three-second contribution test exhausts two permits, proves K absent and zero writes after 429, waits the reported Retry-After, succeeds and replays with K, then counts exactly one contribution. It also proves a later rejected replay preserves K. Contributions and payouts both isolate users sharing the test IP; payout writes remain single.
 
 Trainer: A bucket permits a meeting-sized burst of twenty contributions without allowing unlimited traffic. Per-user identity avoids penalizing everyone using one Wi-Fi IP. Limits are process-local; three balanced instances can grant up to three times the allowance, and restart resets it. Existing idempotency is also process-local, so cross-instance retry safety is an existing production gap, not solved by rate limiting.
+
+## Stage 4 ? member home
+
+MeController obtains the caller from JWT sub; MemberHomeService performs one projected membership query and one projected current-month-cycle query with caller-only contribution sums. Empty memberships return immediately. TimeProvider supplies the UTC month, matched against existing YYYY-MM periods. CurrentCycle contains only Period and the named Status; AmountPaid and AmountOwed are invariant decimal strings preserving full domain precision. Owed = max(ContributionAmount - own paid, 0); no current cycle means zero paid/owed. Cycle TargetAmount is not assumed to be a per-member obligation. Duplicate current periods prefer Open then a stable cycle ID, because the existing schema permits duplicates. These are documented presentation assumptions, not new write rules.
+
+NextPayoutDate is nullable DateTimeOffset and currently null: there is no scheduling rule/date in the domain, so inventing a payout deadline would mislead members. A future non-null value serializes in UTC. No migration or new financial rule was introduced.
+
+Three MemberHomeTests passed using Testcontainers. A fixed TimeProvider proves October calculations independent of host date, per-stokvel Member/Treasurer roles, own totals (excluding another member and September), overpayment clamped to zero, PaidOut name, missing cycle, six fields only, empty memberships and anonymous refusal.
+
+Trainer: The server fills one screen rather than sending tables to the browser. Decimal strings prevent JavaScript rounding without placing an artificial safe-integer limit on existing money. A missing schedule is explicitly null.
