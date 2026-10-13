@@ -59,6 +59,21 @@ public class ErrorContractTests(PostgresApiFactory factory)
     }
 
     [Fact]
+    public async Task UnsupportedBodyContentType_UsesSafeProblemContract()
+    {
+        using var client = factory.CreateAuthenticatedClient();
+        var response = await client.PostAsync("/api/v1/stokvels", new StringContent("unsupported", Encoding.UTF8, "text/plain"));
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("about:blank", json.RootElement.GetProperty("type").GetString());
+        Assert.Equal("The request content type is not supported.", json.RootElement.GetProperty("detail").GetString());
+        Assert.Equal("/api/v1/stokvels", json.RootElement.GetProperty("instance").GetString());
+        Assert.True(json.RootElement.TryGetProperty("correlationId", out _));
+        Assert.False(json.RootElement.TryGetProperty("traceId", out _));
+    }
+
+    [Fact]
     public async Task OpenApi_DescribesActualIntegerAndDecimalPropertiesAsNumericOnly()
     {
         using var client = factory.CreateAuthenticatedClient();

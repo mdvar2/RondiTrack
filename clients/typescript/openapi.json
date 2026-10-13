@@ -36,22 +36,22 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "429": {
+            "description": "Too Many Requests",
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccessTokenResponse"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccessTokenResponse"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccessTokenResponse"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -821,6 +821,26 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1511,6 +1531,26 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
             "content": {
               "text/plain": {
                 "schema": {

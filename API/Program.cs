@@ -103,6 +103,19 @@ builder.Services.AddProblemDetails(options =>
         // Retain one caller-facing ID rather than an additional span-specific traceId.
         context.ProblemDetails.Extensions.Remove("traceId");
         var status = context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode;
+        context.ProblemDetails.Type = "about:blank";
+        context.ProblemDetails.Instance ??= context.HttpContext.Request.Path;
+        context.ProblemDetails.Title ??= Microsoft.AspNetCore.WebUtilities.ReasonPhrases.GetReasonPhrase(status);
+        context.ProblemDetails.Detail ??= status switch
+        {
+            400 => "The request body is invalid.",
+            401 => "Authentication is required.",
+            403 => "You do not have permission for this operation.",
+            404 => "The requested endpoint was not found.",
+            405 => "The HTTP method is not allowed for this endpoint.",
+            415 => "The request content type is not supported.",
+            _ => "The request could not be completed."
+        };
         if (status >= 500)
             context.ProblemDetails.Detail = "An unexpected error occurred.";
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
