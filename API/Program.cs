@@ -23,8 +23,10 @@ using OpenTelemetry.Trace;
 using RondiTrack.Observability;
 using RondiTrack.Health;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RondiTrack.Common;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddFrontendCors(builder.Configuration);
 builder.Services.AddSingleton<RondiTrackTelemetry>();
 
 // Keep collection enabled without a dashboard; only exporting depends on an endpoint.
@@ -202,6 +204,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
+app.UseCors(CorsPolicies.Frontend);
 app.UseAuthentication();
 app.UseAuthorization();
 
