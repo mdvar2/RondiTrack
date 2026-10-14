@@ -69,11 +69,11 @@ Evidence abbreviations: `V` = VersionedRefreshTests; `C` = CorsContractTests; `R
 | Revert C# rename, regenerate correct types, strict success | PASS | Restored AmountOwed; actual re-export and exit 0; no renamed field in committed snapshot. |
 | README includes actual before/after compiler results | PASS | Full exact compiler diagnostic in main/client README and stage notes. |
 | All existing/new tests use existing Testcontainers infrastructure | PASS | Final full solution run 122/122; factory enforces actual container target. |
-| Run tests while development database stopped/unavailable | NOT VERIFIED | Development remains running; explicit user approval required before stopping/modifying it. Concrete guarded admission-isolation script documented. |
+| Run tests while development database stopped/unavailable | PASS | Approved 14 October 2026 run: real local development connection rejected with admission disabled and zero sessions; freshly built Testcontainers suite 122 passed, 0 failed/skipped; original admission restored and final SELECT 1 succeeded. See verification report for unique artifacts. Windows PostgreSQL service remained running. |
 | No silently skipped failures/weakened tests | PASS | Final zero skipped; baseline/audit failures disclosed and corrected; original assertions unchanged. |
 | README covers all fourteen requested topics | PASS | Current Assignment 6.3 section, exact error table, real outputs, final results and explicit gaps. |
 | No secrets/build artifacts accidentally committed | PASS | Final publication audit checks actual configured credentials in memory and outgoing snapshots; tracked-artifact review. No raw logs or node_modules/bin/obj committed. |
-| Final Git status | PASS | All authorized work committed; final git status --short empty. Approval-dependent offline evidence and push remain separate. |
-| Push only after verification and user approval | NOT VERIFIED | No push performed. Remote remains https://github.com/mdvar2/RondiTrack.git. |
+| Final Git status | PENDING REVIEW | Earlier implementation is committed. Updated verification script, README, report and matrix remain uncommitted and unpushed at the user's request. |
+| Push only after verification and user approval | PENDING REVIEW | Earlier work exists on remote main at 64a6e7a (confirmed with git ls-remote). This read confirms remote state, not historical approval. No commit or push performed during this verification; current changes await review. |
 
-The assignment is **not fully complete** while the development-offline run is unverified and a real next-payout schedule remains undefined. Stable probe/documentation contracts are explicit partial interpretations, not hidden passes.
+The development-offline requirement is now verified. A real next-payout schedule remains undefined, and stable probe/documentation contracts remain explicit partial interpretations. Current verification changes await review before commit or push.
