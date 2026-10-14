@@ -2,19 +2,27 @@
 
 A .NET 10 API for managing stokvels, contributions and payouts.
 
-**Previous Assignment 6.2 result: 101 passed, 0 failed, 0 skipped.** This is the final Assignment 6.2 run
-from 13 October 2026, not a new test run for this documentation edit.
+**Latest verification (Assignment 6.3): 122 tests passed, 0 failed, 0 skipped.** The full suite also passed with development database connections temporarily disabled. Earlier assignment results remain below as historical evidence.
 
 **Development migration blocker:** duplicate normalized emails prevent the existing
 development database from applying the authentication migration. Do not update, reset or
 recreate it to bypass the blocker. Its data is preserved. See [the migration
 status](docs/development-migration-status.md).
 
-## Assignment 6.3 ? ready for the frontend (14 October 2026)
+## Assignment 6.3 — Ready for the Frontend (14 October 2026)
 
-**Verified: 122 tests passed, 0 failed, 0 skipped, including the approved development-database-offline run on 14 October 2026.** Strict TypeScript compilation and exact-money runtime checks previously passed. Development connection admission was temporarily disabled, its original enabled setting restored, and `SELECT 1` succeeded afterward. No development data, schema or migrations were changed. Remote `main` contains commit `64a6e7a`; the updated verification script and documentation remain uncommitted and unpushed pending review.
+Assignment 6.3 prepares RondiTrack for frontend integration through versioned API routes, CORS, rate limiting, contribution idempotency, a personalized member home endpoint, consistent error responses, and generated TypeScript contracts.
 
-Read the [stage-by-stage trainer notes](docs/assignment-6-3-stages.md), [verification evidence](docs/assignment-6-3-verification.md), and [requirement compliance matrix](docs/assignment-6-3-compliance.md). Earlier sections below retain historical assignment examples; this section defines the current v1 browser contract.
+**Verification results**
+
+- **122 tests passed, 0 failed, 0 skipped.**
+- Fresh solution build succeeded with **0 warnings and 0 errors**.
+- Strict TypeScript compilation and exact-money runtime checks passed.
+- Offline isolation verification passed: development database connections were temporarily disabled while the full test suite ran, using disposable Testcontainers databases for database-backed tests.
+- The original development connection setting was restored, and `SELECT 1` succeeded afterward.
+- No development data, schemas, or migrations were changed during verification.
+
+See the [stage-by-stage trainer notes](docs/assignment-6-3-stages.md), [verification report](docs/assignment-6-3-verification.md), and [requirement compliance matrix](docs/assignment-6-3-compliance.md). The following sections describe the current v1 browser contract; earlier assignment evidence is identified as historical.
 
 ### Versioning and the refresh cookie
 
@@ -146,7 +154,7 @@ Final actual full-suite result: **122 passed, 0 failed, 0 skipped**, 34 seconds.
 
 **Offline proof passed on 14 October 2026 at 06:26 SAST.** The approved guarded script freshly built the solution, required zero active development sessions, disabled connections to local `ronditrack`, proved real connection refusal, and ran all 122 tests using Testcontainers with zero failures/skips. It restored the original `ALLOW_CONNECTIONS=true`, checked admission metadata and verified `SELECT 1`. See [the actual run evidence and procedure](docs/assignment-6-3-verification.md#successful-offline-verification).
 
-Remaining gaps: no real payout schedule; current-cycle/obligation assumptions need domain confirmation; health/docs preserved operational contracts; no real-browser deployment verification; process-local limiting and idempotency; existing duplicate-email development migration blocker remains untouched. Earlier Assignment 6.3 commits are on remote `main`; no new commit or push was performed during offline verification. Submission repository remains https://github.com/mdvar2/RondiTrack.
+Remaining gaps: no real payout schedule; current-cycle/obligation assumptions need domain confirmation; health/docs preserved operational contracts; no real-browser deployment verification; process-local limiting and idempotency; existing duplicate-email development migration blocker remains untouched. Assignment 6.3 implementation and offline-verification evidence are published on `main`. Submission repository remains https://github.com/mdvar2/RondiTrack.
 
 ## Contents
 
@@ -369,7 +377,7 @@ evidence index](#14-detailed-assignment-evidence).
 **Authentication** establishes who the caller is. **Authorization** decides whether that
 caller can perform an operation.
 
-I implemented anonymous registration, login, refresh and logout under `/api/auth`.
+I implemented anonymous registration, login, refresh and logout under `/api/v1/auth` (previously `/api/auth` before Assignment 6.3).
 Registration requires at least 12 password characters, stores a password hash and does not
 accept a privileged role.
 
@@ -727,9 +735,7 @@ verification](docs/assignment-6-2-stage-6-verification.md).
 
 ## 12. Testing and verification
 
-The final recorded suite passed **101 tests, 0 failed, 0 skipped**, exit 0, in 30 seconds.
-Build passed with zero warnings/errors in 21.42 seconds; clean passed in 2.28 seconds. No new
-build/test run is claimed for this documentation edit.
+**Current Assignment 6.3 verification:** 122 tests passed, 0 failed, 0 skipped, including the guarded development-database-offline run on 14 October 2026. The fresh solution build completed with 0 warnings and 0 errors; development database access was restored and verified. The earlier Assignment 6.2 suite passed 101 tests, as documented in the historical evidence.
 
 ### Run the ordinary suite
 
