@@ -17,8 +17,8 @@
 | TypeScript after restoring C# and regenerating | Strict compilation exit 0. |
 | Exact-money runtime checks | Passed empty, fractional, mixed-scale, beyond-safe-integer and invalid-input checks. |
 | Existing test source comparison | 28 existing C# files compared to a733cc6; zero changes beyond required versioned URLs. Factory additionally receives a generous login configuration, with assertions unchanged. |
-| Development database unavailable run | **NOT VERIFIED.** PostgreSQL service is running. No approval was given to stop it or change connection admission. |
-| Push | Not performed; requires the user's approval after review. |
+| Development database unavailable run | **PASS, 14 October 2026, 06:26 SAST.** Fresh build: zero warnings/errors. Real development connection rejected with admission disabled; 122 passed, 0 failed, 0 skipped using Testcontainers; original admission restored and final `SELECT 1` succeeded. |
+| Push | Remote `main` verified with `git ls-remote` at `64a6e7a8339b24325f4a1d12d5bdbfb927eb669b`, matching local HEAD. Current script/documentation changes remain uncommitted and unpushed pending review. |
 
 Commands:
 
@@ -35,18 +35,28 @@ Local raw logs/TRX/build outputs stay in ignored `obj`, `bin` and `node_modules`
 
 Each PostgreSQL factory compares the API connection target to its disposable container, applies all seven preserved migrations and verifies `current_database() = ronditrack_test`. This proves the tests' configured target; it does **not** replace the requested run with development unavailable. Existing isolated container-outage health tests stop only their own disposable database.
 
-## Safe offline verification awaiting approval
+## Successful offline verification
 
-The existing `scripts/verify-assignment-6-2-isolation.ps1` is concrete and reviewable. It restricts its target to the local `ronditrack` database, requires zero active sessions, temporarily sets `ALLOW_CONNECTIONS false`, proves a real development connection is rejected, runs the built full test assembly against Testcontainers, and restores `ALLOW_CONNECTIONS true` in `finally`, then verifies `SELECT 1`. It does not alter tables, business rows or migrations or terminate sessions. It **does** modify database connection-admission metadata, so the user's Stage 7 rule requires approval before running it. Its stage-numbered filenames are historical; the rebuilt assembly includes all Assignment 6.3 tests.
+The user approved the strengthened `scripts/verify-assignment-6-2-isolation.ps1`. It checks Docker Linux availability, builds the solution without incremental compilation, confirms PostgreSQL connectivity/ownership, records original admission, and requires zero development sessions before and after disabling admission. Restoration is marked necessary before attempting ALTER, including ambiguous client failures. It restores the original setting in `finally`, checks metadata and verifies `SELECT 1`. It does not delete development records, alter schemas/migrations or terminate sessions. Recovery commands are saved before isolation; restoration failure produces a prominent warning and cannot produce success.
 
-After approval only, from repository root:
+Actual approved invocation from repository root (process-only execution-policy override; elevated tool permissions were needed for Docker pipe access):
 
 ```powershell
-dotnet build RondiTrack.sln --no-restore -m:1
-./scripts/verify-assignment-6-2-isolation.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-assignment-6-2-isolation.ps1
 ```
 
-Until approval and a successful actual run, report this requirement as NOT VERIFIED.
+Successful run ID: `20261014T042604243Z-5eed28819c41447da68c20cfaade93a9` (14 October 2026, 06:26 SAST). The script exited 0. TRX outcome `Completed`: total/executed/passed 122, failed 0, notExecuted 0. The development probe was rejected with `ALLOW_CONNECTIONS=false` and zero existing sessions. Original admission was `true`; restoration metadata and final `SELECT 1` were verified. The TRX records two disposable PostgreSQL containers, both `ronditrack_test`, with seven migrations. All database-backed tests use the guarded Testcontainers factory.
+
+Local evidence directory: `C:\Users\gwiny\RondiTrack\obj\assignment-6-3-offline-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9`. Files use the same run ID:
+
+- `tests-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9.trx`
+- `tests-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9.log`
+- `build-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9.log`
+- `docker-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9.log`
+- `evidence-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9.txt`
+- `recovery-20261014T042604243Z-5eed28819c41447da68c20cfaade93a9.txt`
+
+Earlier attempts stopped before building or accessing PostgreSQL: Docker was unavailable, then sandbox access to its pipe was denied. These attempts are not passing evidence. Raw artifacts remain local and ignored. The successful offline run supersedes the pending status in historical trainer notes.
 
 ## Boundaries and unresolved domain rules
 
@@ -58,4 +68,4 @@ Rates and the preserved idempotency store are process-local. Three load-balanced
 
 ## Publication audit
 
-Final solution build succeeded with zero warnings and errors. The local in-memory audit compared outgoing commit snapshots and current files against actual configured signing keys/connection credentials without exposing values. It uses assignment-context checks for short dictionary credentials to distinguish actual password literals from API field/type vocabulary. Credential matches: 0. Tracked build artifacts: 0. git diff --check passed. This cannot guarantee every possible secret format. Final status is checked after the logical documentation commit; no push is authorized yet.
+Final solution build succeeded with zero warnings and errors. The earlier local in-memory audit compared outgoing commit snapshots and current files against actual configured signing keys/connection credentials without exposing values. It uses assignment-context checks for short dictionary credentials to distinguish actual password literals from API field/type vocabulary. Credential matches: 0. Tracked build artifacts: 0. This cannot guarantee every possible secret format. Remote `main` now contains the earlier Assignment 6.3 work at `64a6e7a`. Current verification changes remain uncommitted and unpushed pending review; no new publication is authorized.

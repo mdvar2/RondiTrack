@@ -12,7 +12,7 @@ status](docs/development-migration-status.md).
 
 ## Assignment 6.3 ? ready for the frontend (14 October 2026)
 
-**Verified: 122 tests passed, 0 failed, 0 skipped; strict TypeScript compilation and exact-money runtime checks passed.** The development-database-offline run is **NOT VERIFIED** because the development PostgreSQL service remains running and changing it requires your approval. No development data, schema or migrations were changed. Nothing has been pushed.
+**Verified: 122 tests passed, 0 failed, 0 skipped, including the approved development-database-offline run on 14 October 2026.** Strict TypeScript compilation and exact-money runtime checks previously passed. Development connection admission was temporarily disabled, its original enabled setting restored, and `SELECT 1` succeeded afterward. No development data, schema or migrations were changed. Remote `main` contains commit `64a6e7a`; the updated verification script and documentation remain uncommitted and unpushed pending review.
 
 Read the [stage-by-stage trainer notes](docs/assignment-6-3-stages.md), [verification evidence](docs/assignment-6-3-verification.md), and [requirement compliance matrix](docs/assignment-6-3-compliance.md). Earlier sections below retain historical assignment examples; this section defines the current v1 browser contract.
 
@@ -144,9 +144,9 @@ dotnet test RondiTrack.sln --no-restore -m:1 --logger "trx;LogFileName=final.trx
 
 Final actual full-suite result: **122 passed, 0 failed, 0 skipped**, 34 seconds. Actual API contracts regenerated and strictly compiled; exact-money checks passed. Existing 28 test-source files were compared to pre-assignment a733cc6: no differences beyond required URL changes. No tests were silently skipped or assertions weakened. Stage commits and the original baseline Docker failure are recorded in [trainer notes](docs/assignment-6-3-stages.md).
 
-**Offline proof remains NOT VERIFIED.** The existing isolation script is ready for review: it requires zero active development sessions, temporarily refuses new connections to local ronditrack, proves refusal, runs the complete Testcontainers suite, and restores/verifies admission in finally. This changes database metadata and must not run without your approval. See the [concrete verification procedure](docs/assignment-6-3-verification.md#safe-offline-verification-awaiting-approval). Fixture target checks alone are not claimed as the requested offline proof.
+**Offline proof passed on 14 October 2026 at 06:26 SAST.** The approved guarded script freshly built the solution, required zero active development sessions, disabled connections to local `ronditrack`, proved real connection refusal, and ran all 122 tests using Testcontainers with zero failures/skips. It restored the original `ALLOW_CONNECTIONS=true`, checked admission metadata and verified `SELECT 1`. See [the actual run evidence and procedure](docs/assignment-6-3-verification.md#successful-offline-verification).
 
-Remaining gaps: no real payout schedule; current-cycle/obligation assumptions need domain confirmation; health/docs preserved operational contracts; no real-browser deployment verification; process-local limiting and idempotency; existing duplicate-email development migration blocker remains untouched. No push until verification review and explicit approval. Submission repository remains https://github.com/mdvar2/RondiTrack.
+Remaining gaps: no real payout schedule; current-cycle/obligation assumptions need domain confirmation; health/docs preserved operational contracts; no real-browser deployment verification; process-local limiting and idempotency; existing duplicate-email development migration blocker remains untouched. Earlier Assignment 6.3 commits are on remote `main`; no new commit or push was performed during offline verification. Submission repository remains https://github.com/mdvar2/RondiTrack.
 
 ## Contents
 
@@ -823,7 +823,7 @@ I kept these limits visible rather than claiming complete production infrastruct
 
 Targeted publication scans found no confirmed outgoing credential/token leak, but are not
 exhaustive detectors. No backup or earlier evidence was removed. Publication/submission
-approval remains pending. See [the final
+approval for the current verification changes remains pending; earlier Assignment 6.3 commits are on remote `main`. See [the final
 matrix](docs/assignment-6-2-final-compliance-matrix.md) and [safe-publication
 guidance](docs/safe-push-verification.md).
 
