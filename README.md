@@ -40,10 +40,10 @@ An **origin** is scheme + host + port. A **site** is scheme + registrable domain
 
 | Deployment | Will the current Strict refresh cookie reach the API? |
 |---|---|
-| `http://localhost:3000` ? `http://localhost:5101` | Same site, different origins. Strict permits it if the API is actually served over HTTP without redirect and the browser accepts Secure cookies on localhost. That localhost exception varies by browser. The app's HTTPS redirection may redirect HTTP preflight, so do not assume this setup works merely from server integration tests. |
-| `http://localhost:3000` ? `https://localhost:7125` (existing HTTPS launch profile) | Different scheme means different site. Strict blocks the cookie on cross-site fetch; credentials and CORS cannot fix it. Use a same-scheme frontend/API deployment (with the exact frontend origin explicitly configured), or an intentionally configured same-origin development proxy. Current default allowed origin remains exactly HTTP localhost:3000. |
-| `https://app.ronditrack.co.za` ? `https://api.ronditrack.co.za` | Same HTTPS site, different origins. Strict permits a host-only API cookie to reach the API with credentials; configure that exact frontend origin and use trusted HTTPS. It need not be shared with the app subdomain. |
-| `https://ronditrack.vercel.app` ? `https://ronditrack-api.azurewebsites.net` | Different sites. The current Strict cookie is not sent; login's bearer response may be readable once the exact frontend origin is allowed, but refresh will fail. Cross-site cookies would need an explicit design change to SameSite=None; Secure, CSRF protection and third-party-cookie restrictions must also be addressed. Prefer a shared-site custom domain. |
+| `http://localhost:3000` → `http://localhost:5101` | Same site, different origins. Strict permits it if the API is actually served over HTTP without redirect and the browser accepts Secure cookies on localhost. That localhost exception varies by browser. The app's HTTPS redirection may redirect HTTP preflight, so do not assume this setup works merely from server integration tests. |
+| `http://localhost:3000` → `https://localhost:7125` (existing HTTPS launch profile) | Different scheme means different site. Strict blocks the cookie on cross-site fetch; credentials and CORS cannot fix it. Use a same-scheme frontend/API deployment (with the exact frontend origin explicitly configured), or an intentionally configured same-origin development proxy. Current default allowed origin remains exactly HTTP localhost:3000. |
+| `https://app.ronditrack.co.za` → `https://api.ronditrack.co.za` | Same HTTPS site, different origins. Strict permits a host-only API cookie to reach the API with credentials; configure that exact frontend origin and use trusted HTTPS. It need not be shared with the app subdomain. |
+| `https://ronditrack.vercel.app` → `https://ronditrack-api.azurewebsites.net` | Different sites. The current Strict cookie is not sent; login's bearer response may be readable once the exact frontend origin is allowed, but refresh will fail. Cross-site cookies would need an explicit design change to SameSite=None; Secure, CSRF protection and third-party-cookie restrictions must also be addressed. Prefer a shared-site custom domain. |
 
 These are browser-rule analyses, not claims of a browser deployment test. The cookie-handler integration test proves path/rotation behavior, not SameSite enforcement by a real browser.
 
@@ -88,7 +88,7 @@ The built-in limiter is **in memory per API process**. Three balanced replicas c
 
 These six fields fill the requested screen. No identifiers, versions, tokens or other members' amounts are returned. Role comes from each membership, not a platform claim. Status is the existing name (Open/PaidOut). Amounts are invariant **decimal strings**, preserving the domain's full precision without rounding to cents or exceeding JavaScript safe integers. They represent currency units, not integer cents. The generated TypeScript function adds them exactly using BigInt with a common decimal scale; it returns a decimal string.
 
-Documented presentation assumptions: current cycle matches `TimeProvider.GetUtcNow()` formatted as `yyyy-MM`, including a PaidOut cycle in the current month; historical duplicate periods prefer Open then stable ID. The member's obligation is `Stokvel.ContributionAmount`, not the cycle's possibly group-level TargetAmount. Owed = max(obligation ? own paid, 0). No current cycle means currentCycle=null and both amounts="0". A user with no memberships receives `{ "stokvels": [] }`, not 404.
+Documented presentation assumptions: current cycle matches `TimeProvider.GetUtcNow()` formatted as `yyyy-MM`, including a PaidOut cycle in the current month; historical duplicate periods prefer Open then stable ID. The member's obligation is `Stokvel.ContributionAmount`, not the cycle's possibly group-level TargetAmount. Owed = max(obligation − own paid, 0). No current cycle means currentCycle=null and both amounts="0". A user with no memberships receives `{ "stokvels": [] }`, not 404.
 
 **Missing business rule:** entities/services store past payouts but no future payout schedule. Therefore nextPayoutDate is null rather than an invented deadline. The DTO is nullable DateTimeOffset and its OpenAPI format is date-time; any future supplied date must be UTC. A real next payout date requires a confirmed scheduling rule. This requirement is PARTIAL.
 
@@ -137,7 +137,7 @@ npm run regenerate
 npm run test:money
 ```
 
-`regenerate` exports ? generates ? runs `tsc --noEmit --strict`. Before rename: exit 0. Temporarily renamed **C# AmountOwed ? OutstandingBalance**, built the API, exported its actual document and regenerated types. The unchanged function failed with actual compiler output, exit 2:
+`regenerate` exports the OpenAPI document → generates TypeScript types → runs `tsc --noEmit --strict`. Before rename: exit 0. Temporarily renamed **C# `AmountOwed` → `OutstandingBalance`**, built the API, exported its actual document and regenerated types. The unchanged function failed with actual compiler output, exit 2:
 
 ```text
 src/home.ts(7,56): error TS2339: Property 'amountOwed' does not exist on type '{ stokvelName: string; role: string; currentCycle: { period: string; status: string; } | null; amountPaid: string; outstandingBalance: string; nextPayoutDate: string | null; }'.
@@ -830,8 +830,7 @@ I kept these limits visible rather than claiming complete production infrastruct
   all refs or a `.git` archive would expose them.
 
 Targeted publication scans found no confirmed outgoing credential/token leak, but are not
-exhaustive detectors. No backup or earlier evidence was removed. Publication/submission
-approval for the current verification changes remains pending; earlier Assignment 6.3 commits are on remote `main`. See [the final
+exhaustive detectors. No backup or earlier evidence was removed. The Assignment 6.3 implementation and offline-verification documentation are published on `main`. See [the final
 matrix](docs/assignment-6-2-final-compliance-matrix.md) and [safe-publication
 guidance](docs/safe-push-verification.md).
 
