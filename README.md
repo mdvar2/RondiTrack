@@ -99,3 +99,40 @@ There are still limitations I need to address before treating this as a producti
 - [Earlier assignment history](README-history.md)
 
 The detailed notes are kept separately so I can still refer to the code, tests and decisions during a trainer walkthrough without making this README difficult to read.
+
+## Assignment 6.4 — Docker, CI, and scheduled processing
+
+From a fresh clone, install Docker Desktop and .NET 10 SDK, then copy `.env.example` to `.env` and set a strong PostgreSQL password and a random Base64 JWT signing key (at least 32 decoded bytes). Do not commit `.env`.
+
+```powershell
+Copy-Item .env.example .env
+# Edit .env and replace both placeholders before starting.
+docker compose up --build -d api
+docker compose ps
+docker compose logs migrate --tail 30
+curl.exe http://localhost:8080/health/live
+curl.exe http://localhost:8080/health/ready
+```
+
+The API is available at `http://localhost:8080`, with health checks at `/health/live` and `/health/ready`. Scalar/OpenAPI are mapped only in Development by `Program.cs`; the Compose configuration uses Production, so `/scalar` and `/openapi/v1.json` are deliberately unavailable there. For local interactive API exploration, use a development profile only in a trusted environment.
+
+The PostgreSQL service is internal to the Compose network (no host database port). Its data survives container recreation in `postgres_data`. `migrate` applies EF Core migrations once before `api` starts. The API runs as a non-root user on port 8080. `docker compose down` preserves the named volume; `docker compose down -v` **deletes** local database data.
+
+`CycleClose__IntervalSeconds` sets the cycle-close polling interval (default 60). The worker uses `TimeProvider` and Johannesburg local calendar dates. A cycle ending October 31 remains open at 23:59 SAST and becomes eligible at 00:00 SAST on November 1. It records each member's unpaid balance as integer cents, closes the cycle and creates a successor. A PostgreSQL transaction advisory lock serializes processing of the same stokvel across replicas, and the arrears table has a uniqueness constraint. The worker retries failures on later ticks. Only cycles with a configured `EndDate` are eligible.
+
+`Housekeeping__IntervalHours` (default 24) and `Housekeeping__RefreshTokenGraceDays` (default 7) control database cleanup. Expired refresh-token families are deleted in a single set-based statement after a grace period, cascading to their token hashes. The grace period retains hashes temporarily for replay investigations. `Housekeeping__IdempotencyRetentionHours` is validated but **not enforced**: the current idempotency store is in-memory, not database-backed. Persistent idempotency with retention is a production gap.
+
+CI (`.github/workflows/ci.yml`) runs restore, Release build, Testcontainers integration tests, and Docker build on main pushes and pull requests. Docker image build runs only after tests succeed. For manual verification:
+
+```powershell
+dotnet restore RondiTrack.Tests/RondiTrack.Tests.csproj
+dotnet build RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-restore
+dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-build
+docker build -t ronditrack-api:check .
+docker image inspect ronditrack-api:check
+docker history ronditrack-api:check
+```
+
+For a second API replica, the current Compose file binds host port 8080 and must be adapted to avoid port collisions (for example, remove the fixed host port and use a reverse proxy). After that, `docker compose up --scale api=2` can start two workers; transaction-scoped advisory locks protect each stokvel's close. Migrations must remain a separate one-shot service and never run independently in each replica.
+
+**Before production:** implement persisted idempotency with retention and cleanup, add a unique `(StokvelId, Period)` database constraint and validate cycle period/end-date alignment, secure a public HTTPS endpoint, configure secret management and monitoring, and run a peer fresh-clone acceptance test. The existing tests and README do not substitute for that review. The newly added cycle-close tests and housekeeping changes must be run through the full CI suite before being treated as verified.

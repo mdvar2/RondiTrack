@@ -5,13 +5,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using RondiTrack.Domain.Entities;
 using RondiTrack.Infrastructure.Data;
+using RondiTrack.Observability;
 
 namespace RondiTrack.BackgroundJobs;
 
 public sealed class CycleCloseProcessor(
     RondiTrackDbContext db,
     TimeProvider clock,
-    ILogger<CycleCloseProcessor> logger)
+    ILogger<CycleCloseProcessor> logger,
+    RondiTrackTelemetry telemetry)
 {
     private static readonly TimeZoneInfo Johannesburg =
         TimeZoneInfo.FindSystemTimeZoneById("Africa/Johannesburg");
@@ -68,6 +70,24 @@ public sealed class CycleCloseProcessor(
         DateOnly localToday,
         CancellationToken cancellationToken)
     {
+        // EF Core's retrying Npgsql execution strategy requires the entire
+        // user-managed transaction to execute inside its retry delegate.
+        var strategy = db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await ProcessStokvelTransactionAsync(stokvelId, localToday, cancellationToken);
+        });
+    }
+
+    private async Task ProcessStokvelTransactionAsync(
+        Guid stokvelId,
+        DateOnly localToday,
+        CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.Activities.StartActivity("stokvel.cycle_close");
+        long closedCount = 0;
+        long arrearsCount = 0;
         // Each stokvel is processed in its own transaction.
         await using var transaction =
             await db.Database.BeginTransactionAsync(
@@ -158,6 +178,7 @@ public sealed class CycleCloseProcessor(
 
                 if (cents > 0)
                 {
+                    arrearsCount++;
                     db.ContributionArrears.Add(
                         new ContributionArrear(
                             stokvelId,
@@ -168,6 +189,7 @@ public sealed class CycleCloseProcessor(
             }
 
             cycle.Close();
+            closedCount++;
 
             // The next cycle begins the day after
             // the previous cycle ends.
@@ -202,6 +224,9 @@ public sealed class CycleCloseProcessor(
 
         // Commit closes, arrears and next cycles together.
         await transaction.CommitAsync(cancellationToken);
+
+        telemetry.CyclesClosed(closedCount);
+        telemetry.ArrearsCreated(arrearsCount);
 
         // Avoid retaining tracked entities between stokvels.
         db.ChangeTracker.Clear();

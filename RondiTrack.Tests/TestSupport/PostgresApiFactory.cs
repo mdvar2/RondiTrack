@@ -128,12 +128,13 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // call RunOnceAsync() explicitly.
         builder.ConfigureTestServices(services =>
         {
-            var workerRegistration = services.FirstOrDefault(
+            var workerRegistrations = services.Where(
                 descriptor =>
                     descriptor.ServiceType == typeof(IHostedService) &&
-                    descriptor.ImplementationType == typeof(CycleCloseWorker));
+                    (descriptor.ImplementationType == typeof(CycleCloseWorker) ||
+                     descriptor.ImplementationType == typeof(HousekeepingWorker)));
 
-            if (workerRegistration is not null)
+            foreach (var workerRegistration in workerRegistrations.ToArray())
             {
                 services.Remove(workerRegistration);
             }

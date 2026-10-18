@@ -205,6 +205,13 @@ builder.Services.AddOptions<CycleCloseOptions>()
 
 builder.Services.AddScoped<CycleCloseProcessor>();
 builder.Services.AddHostedService<CycleCloseWorker>();
+builder.Services.AddOptions<HousekeepingOptions>()
+    .Bind(builder.Configuration.GetSection(HousekeepingOptions.SectionName))
+    .Validate(o => o.IntervalHours > 0 && o.RefreshTokenGraceDays >= 0 &&
+        o.IdempotencyRetentionHours > 0, "Invalid housekeeping configuration.")
+    .ValidateOnStart();
+builder.Services.AddScoped<HousekeepingProcessor>();
+builder.Services.AddHostedService<HousekeepingWorker>();
 
 var app = builder.Build();
 
