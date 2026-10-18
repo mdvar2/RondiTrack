@@ -12,6 +12,8 @@ public class RondiTrackDbContext : DbContext
     {
     }
 
+    public DbSet<PersistedIdempotencyRecord> PersistedIdempotencyRecords => Set<PersistedIdempotencyRecord>();
+
     // Authentication
     public DbSet<RefreshToken> RefreshTokens =>
         Set<RefreshToken>();
@@ -43,6 +45,14 @@ public class RondiTrackDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<PersistedIdempotencyRecord>(entity =>
+        {
+            entity.HasKey(x => x.Key);
+            entity.Property(x => x.Key).HasMaxLength(256);
+            entity.Property(x => x.RequestHash).HasMaxLength(64);
+            entity.HasIndex(x => x.CreatedAtUtc);
+        });
 
         // =====================================================
         // REFRESH TOKEN CONFIGURATION
