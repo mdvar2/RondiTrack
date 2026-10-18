@@ -182,9 +182,7 @@ builder.Services.AddScoped<
     IStokvelMemberRepository,
     EfStokvelMemberRepository>();
 
-builder.Services.AddSingleton<
-    IIdempotencyStore,
-    IdempotencyStore>();
+builder.Services.AddScoped<IIdempotencyStore, PostgresIdempotencyStore>();
 
 builder.Services.AddScoped<RondiTrack.Domain.Repositories.IRefreshTokenRepository, EfRefreshTokenRepository>();
 
