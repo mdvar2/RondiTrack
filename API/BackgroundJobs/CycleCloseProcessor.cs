@@ -58,9 +58,12 @@ public sealed class CycleCloseProcessor(
                 // Clear tracked changes from a failed transaction.
                 db.ChangeTracker.Clear();
 
+                // Include the failing stokvel ID so operators
+                // can identify the affected stokvel.
                 logger.LogError(
                     exception,
-                    "Cycle-close processing failed. The next run will retry.");
+                    "Cycle-close processing failed for StokvelId {StokvelId}. The next run will retry.",
+                    stokvelId);
             }
         }
     }
@@ -70,13 +73,19 @@ public sealed class CycleCloseProcessor(
         DateOnly localToday,
         CancellationToken cancellationToken)
     {
-        // EF Core's retrying Npgsql execution strategy requires the entire
-        // user-managed transaction to execute inside its retry delegate.
+        // EF Core's retrying Npgsql execution strategy requires
+        // the entire user-managed transaction to execute inside
+        // its retry delegate.
         var strategy = db.Database.CreateExecutionStrategy();
+
         await strategy.ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
-            await ProcessStokvelTransactionAsync(stokvelId, localToday, cancellationToken);
+
+            await ProcessStokvelTransactionAsync(
+                stokvelId,
+                localToday,
+                cancellationToken);
         });
     }
 
@@ -85,9 +94,12 @@ public sealed class CycleCloseProcessor(
         DateOnly localToday,
         CancellationToken cancellationToken)
     {
-        using var activity = telemetry.Activities.StartActivity("stokvel.cycle_close");
+        using var activity =
+            telemetry.Activities.StartActivity("stokvel.cycle_close");
+
         long closedCount = 0;
         long arrearsCount = 0;
+
         // Each stokvel is processed in its own transaction.
         await using var transaction =
             await db.Database.BeginTransactionAsync(
@@ -108,6 +120,7 @@ public sealed class CycleCloseProcessor(
                 "SELECT pg_advisory_xact_lock(hashtextextended(@stokvelId, 0))";
 
             var parameter = command.CreateParameter();
+
             parameter.ParameterName = "stokvelId";
             parameter.Value = stokvelId.ToString();
 
@@ -179,6 +192,7 @@ public sealed class CycleCloseProcessor(
                 if (cents > 0)
                 {
                     arrearsCount++;
+
                     db.ContributionArrears.Add(
                         new ContributionArrear(
                             stokvelId,
@@ -194,7 +208,10 @@ public sealed class CycleCloseProcessor(
             // The next cycle begins the day after
             // the previous cycle ends.
             var nextStart = cycle.EndDate!.Value.AddDays(1);
-            var nextEnd = nextStart.AddMonths(1).AddDays(-1);
+
+            var nextEnd = nextStart
+                .AddMonths(1)
+                .AddDays(-1);
 
             var nextPeriod = nextStart.ToString(
                 "yyyy-MM",
