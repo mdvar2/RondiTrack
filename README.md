@@ -1,5 +1,7 @@
 # RondiTrack
 
+[![RondiTrack CI](https://github.com/mdvar2/RondiTrack/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mdvar2/RondiTrack/actions/workflows/ci.yml)
+
 RondiTrack is a backend API I built during my Bitcube software development training. It helps manage stokvels, including members, contributions, savings cycles and payouts.
 
 I started with basic API endpoints and gradually added database relationships, security, testing and monitoring. My latest assignment focused on making the backend ready for a frontend application.
@@ -102,7 +104,7 @@ The detailed notes are kept separately so I can still refer to the code, tests a
 
 ## Assignment 6.4 — Docker, CI, and scheduled processing
 
-From a fresh clone, install Docker Desktop and .NET 10 SDK, then copy `.env.example` to `.env` and set a strong PostgreSQL password and a random Base64 JWT signing key (at least 32 decoded bytes). Do not commit `.env`.
+From a fresh clone, install Docker Desktop (no host .NET SDK required for Compose), then copy `.env.example` to `.env` and set a strong PostgreSQL password and a random Base64 JWT signing key (at least 32 decoded bytes). Do not commit `.env`.
 
 ```powershell
 Copy-Item .env.example .env
@@ -135,4 +137,53 @@ docker history ronditrack-api:check
 
 For a second API replica, the current Compose file binds host port 8080 and must be adapted to avoid port collisions (for example, remove the fixed host port and use a reverse proxy). After that, `docker compose up --scale api=2` can start two workers; transaction-scoped advisory locks protect each stokvel's close. Migrations must remain a separate one-shot service and never run independently in each replica.
 
-**Before production:** implement persisted idempotency with retention and cleanup, add a unique `(StokvelId, Period)` database constraint and validate cycle period/end-date alignment, secure a public HTTPS endpoint, configure secret management and monitoring, and run a peer fresh-clone acceptance test. The existing tests and README do not substitute for that review. The newly added cycle-close tests and housekeeping changes must be run through the full CI suite before being treated as verified.
+**Before production:** implement persisted idempotency with retention and cleanup, add a unique `(StokvelId, Period)` database constraint and validate cycle period/end-date alignment, secure a public HTTPS endpoint, configure secret management and monitoring, and run a peer fresh-clone acceptance test. The existing tests and README do not substitute for that review. The 125-test suite passed locally on 18 October 2026 and the latest main-branch GitHub Actions run passed; this does not prove the unimplemented acceptance cases.
+
+
+## Assignment 6.4 — verified CI evidence and outstanding acceptance work
+
+- **Latest green main run:** [commit 4ac8e08, CI passed](https://github.com/mdvar2/RondiTrack/actions/runs/39171975779). The submitted local test output reported **125 passed, 0 failed, 0 skipped**.
+- **Intentional red PR run:** [failed test](https://github.com/mdvar2/RondiTrack/actions/runs/39152181436).
+- **Fixed green PR run:** [passing after fix](https://github.com/mdvar2/RondiTrack/actions/runs/39152807177).
+- **Visible proof PR:** [#3](https://github.com/mdvar2/RondiTrack/pull/3), intentionally left open as requested.
+- **Cycle-close instant:** a cycle with an end date of **25 October 2026** remains open at **21:59 UTC** on the 25th (23:59 SAST), and becomes eligible at **22:00 UTC** on the 25th (00:00 SAST on the 26th). Eligibility uses `TimeProvider` and `Africa/Johannesburg`.
+- **Catch-up:** each overdue cycle is closed and its next monthly cycle is created, repeating until the first unexpired cycle; the per-stokvel transaction commits the whole catch-up or none of it. Concurrent replicas use a transaction-scoped PostgreSQL advisory lock; arrears are additionally protected by a unique index on `(StokvelId, UserId, ContributionCycleId)`. See `CycleCloseIntegrationTests.ConcurrentProcessors_DoNotDuplicateArrears`.
+- **Retention:** expired refresh-token families are retained for **7 additional days** to preserve replay evidence before set-based deletion. The configured **24-hour idempotency retention** is **not currently enforced** because the existing idempotency store is in-memory; a retry after its record is lost could be treated as a new request. A persistent cross-replica store and safe cleanup are required before production.
+- **Test coverage still needed:** three-cycle catch-up, a failing-stokvel isolation scenario, refresh-token grace/reuse checks and persisted-idempotency replay checks. The latest 125 passing tests do not establish those cases.
+- **Peer fresh-clone:** no independent trainee's questions or fix commits have been recorded yet. This acceptance item remains open; do not claim it happened.
+- **Dev DB stopped:** prior 6.3 isolation evidence is in `docs/assignment-6-3-verification.md`; a new 6.4-specific stopped-dev-DB run has not been independently recorded here.
+
+### Docker image and secret-proof commands
+
+Run these on a machine with Docker and record the **actual output**; image size and build times are machine-dependent and have not been fabricated here.
+
+```powershell
+git log --all -- .env
+docker build --no-cache -t ronditrack-api:proof .
+docker image inspect ronditrack-api:proof --format '{{.Size}}'
+docker history --no-trunc ronditrack-api:proof
+docker image inspect ronditrack-api:proof --format '{{json .Config.Env}}'
+Measure-Command { docker build -t ronditrack-api:proof . }
+```
+
+`git log --all -- .env` should be empty. The Dockerfile copies published binaries, not the local `.env`; the image's configured environment must not contain passwords or JWT signing keys. `docker history` must not contain secrets either. To measure a *code-only* rebuild, change a harmless source comment before repeating the timed build, then revert that comment. Do not paste live credentials into the README.
+
+### Environment variables used by Compose
+
+| Variable | Required? | Secret? | Purpose |
+| --- | --- | --- | --- |
+| `POSTGRES_PASSWORD` | Yes | Yes | PostgreSQL container password, sourced from `.env` |
+| `JWT_SIGNING_KEY` | Yes | Yes | JWT signing key, sourced from `.env` |
+| `ConnectionStrings__RondiTrackDb` | Set by Compose | Yes | Internal connection string with host `db`, not `localhost` |
+| `Jwt__SigningKey` | Set by Compose | Yes | ASP.NET Core JWT key |
+| `ASPNETCORE_ENVIRONMENT` | Set by Compose | No | Production by default |
+| `ASPNETCORE_HTTP_PORTS` | Set by Compose | No | 8080 |
+| `CycleClose__IntervalSeconds` | Optional | No | Default 60 seconds |
+| `Housekeeping__IntervalHours` | Optional | No | Default 24 hours |
+| `Housekeeping__RefreshTokenGraceDays` | Optional | No | Default 7 days |
+| `Housekeeping__IdempotencyRetentionHours` | Optional | No | Default 24 hours; not enforced by current in-memory store |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional | No | Tracing exporter endpoint |
+
+The host name `db` resolves via Docker Compose service DNS. `localhost` inside the API container refers to that API container, not PostgreSQL. In Production Compose, `/scalar/v1` and `/openapi/v1.json` are unavailable by design; use the Development environment on a trusted local machine for interactive API documentation.
+
+**Before production:** persist idempotency responses across replicas and implement safe retention; validate and constrain cycle periods; add remaining acceptance tests; use HTTPS and managed secrets; collect image measurements and peer fresh-clone evidence.
