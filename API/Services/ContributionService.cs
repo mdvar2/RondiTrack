@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using RondiTrack.Infrastructure.Data;
 using System.Security.Cryptography;
 using System.Text;
 using RondiTrack.DTOs.Contributions;
@@ -18,6 +20,7 @@ public class ContributionService
     private readonly IStokvelMemberRepository _stokvelMemberRepository;
     private readonly IIdempotencyStore _idempotencyStore;
     private readonly RondiTrackTelemetry _telemetry;
+    private readonly RondiTrackDbContext? _db;
 
     public ContributionService(
         IContributionRepository contributionRepository,
@@ -26,7 +29,8 @@ public class ContributionService
         IUserRepository userRepository,
         IStokvelMemberRepository stokvelMemberRepository,
         IIdempotencyStore idempotencyStore,
-        RondiTrackTelemetry telemetry)
+        RondiTrackTelemetry telemetry,
+        RondiTrackDbContext? db = null)
     {
         _contributionRepository = contributionRepository;
         _cycleRepository = cycleRepository;
@@ -35,9 +39,39 @@ public class ContributionService
         _stokvelMemberRepository = stokvelMemberRepository;
         _idempotencyStore = idempotencyStore;
         _telemetry = telemetry;
+        _db = db;
     }
 
+    // One transaction covers both the payment and the saved response.
+    // The transaction-scoped PostgreSQL advisory lock serializes the same
+    // key across different API instances, not merely within this process.
     public async Task<ContributionResponse> RecordContributionAsync(
+        Guid stokvelId, Guid userId, string idempotencyKey,
+        RecordContributionRequest request)
+    {
+        if (_db is null)
+            return await RecordCoreAsync(stokvelId, userId, idempotencyKey, request);
+
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            throw new RequestValidationException("Idempotency-Key header is required.");
+
+        if (idempotencyKey.Length > 256)
+            throw new RequestValidationException("Idempotency-Key must be 256 characters or fewer.");
+
+        var strategy = _db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            // Parameterized SQL: never interpolate the key into SQL text.
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({idempotencyKey}, 0))");
+            var response = await RecordCoreAsync(stokvelId, userId, idempotencyKey, request);
+            await transaction.CommitAsync();
+            return response;
+        });
+    }
+
+    private async Task<ContributionResponse> RecordCoreAsync(
         Guid stokvelId,
         Guid userId,
         string idempotencyKey,
