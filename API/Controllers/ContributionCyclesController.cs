@@ -52,7 +52,8 @@ public class ContributionCyclesController : ControllerBase
     public async Task<ActionResult<IEnumerable<ContributionCycleResponse>>> GetAll(
         Guid stokvelId)
     {
-        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+        await _stokvelAuthorization.EnsureAsync(
+            User, stokvelId, Policies.StokvelView);
 
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -89,7 +90,8 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId,
         Guid cycleId)
     {
-        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+        await _stokvelAuthorization.EnsureAsync(
+            User, stokvelId, Policies.StokvelView);
 
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -138,7 +140,8 @@ public class ContributionCyclesController : ControllerBase
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null)
     {
-        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+        await _stokvelAuthorization.EnsureAsync(
+            User, stokvelId, Policies.StokvelView);
 
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -177,8 +180,11 @@ public class ContributionCyclesController : ControllerBase
                 maxAmount);
 
         return Ok(new PagedResult<ContributionWithMemberResponse>(
-            response.Items.Select(ContributionWithMemberResponse.FromQuery).ToList(),
-            response.NextPageToken, response.PageSize));
+            response.Items
+                .Select(ContributionWithMemberResponse.FromQuery)
+                .ToList(),
+            response.NextPageToken,
+            response.PageSize));
     }
 
     /// <summary>
@@ -203,7 +209,8 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId,
         CreateContributionCycleRequest request)
     {
-        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+        await _stokvelAuthorization.EnsureAsync(
+            User, stokvelId, Policies.StokvelManage);
 
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -215,7 +222,8 @@ public class ContributionCyclesController : ControllerBase
             new ContributionCycle(
                 stokvelId,
                 request.Period,
-                request.TargetAmount);
+                request.TargetAmount,
+                request.EndDate);
 
         await _cycleRepository.AddAsync(cycle);
 
@@ -236,7 +244,8 @@ public class ContributionCyclesController : ControllerBase
     /// Updates an existing contribution cycle.
     /// </summary>
     /// <remarks>
-    /// Updates the period and target amount of an existing contribution cycle.
+    /// Updates the period, target amount and optional end date
+    /// of an existing contribution cycle.
     /// Returns 400 when the request fails validation.
     /// Returns 404 when the stokvel or contribution cycle does not exist,
     /// or when the cycle does not belong to the specified stokvel.
@@ -256,7 +265,8 @@ public class ContributionCyclesController : ControllerBase
         UpdateContributionCycleRequest request,
         [FromHeader(Name = "If-Match")] string? ifMatch)
     {
-        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+        await _stokvelAuthorization.EnsureAsync(
+            User, stokvelId, Policies.StokvelManage);
 
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -278,6 +288,7 @@ public class ContributionCyclesController : ControllerBase
         }
 
         var providedVersion = ParseIfMatch(ifMatch);
+
         if (providedVersion != cycle.Version)
         {
             throw new PreconditionFailedException(
@@ -286,7 +297,8 @@ public class ContributionCyclesController : ControllerBase
 
         cycle.UpdateDetails(
             request.Period,
-            request.TargetAmount);
+            request.TargetAmount,
+            request.EndDate);
 
         await _cycleRepository.UpdateAsync(cycle);
 
@@ -311,7 +323,8 @@ public class ContributionCyclesController : ControllerBase
         Guid stokvelId,
         Guid cycleId)
     {
-        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelManage);
+        await _stokvelAuthorization.EnsureAsync(
+            User, stokvelId, Policies.StokvelManage);
 
         var stokvel =
             await _stokvelRepository.GetByIdReadOnlyAsync(stokvelId);
@@ -334,17 +347,21 @@ public class ContributionCyclesController : ControllerBase
     private static uint ParseIfMatch(string ifMatch)
     {
         var normalized = ifMatch.Trim();
-        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+
+        if (normalized.StartsWith('"') &&
+            normalized.EndsWith('"'))
         {
             normalized = normalized.Trim('"');
         }
 
-        if (normalized.StartsWith("W/", StringComparison.OrdinalIgnoreCase))
+        if (normalized.StartsWith(
+            "W/", StringComparison.OrdinalIgnoreCase))
         {
             normalized = normalized.Substring(2).Trim();
         }
 
-        if (normalized.StartsWith('"') && normalized.EndsWith('"'))
+        if (normalized.StartsWith('"') &&
+            normalized.EndsWith('"'))
         {
             normalized = normalized.Trim('"');
         }

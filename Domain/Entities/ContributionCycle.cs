@@ -1,3 +1,4 @@
+
 namespace RondiTrack.Domain.Entities;
 
 public class ContributionCycle
@@ -14,6 +15,8 @@ public class ContributionCycle
 
     public decimal TargetAmount { get; private set; }
 
+    public DateOnly? EndDate { get; private set; }
+
     public string Status { get; private set; }
 
     public IReadOnlyCollection<Contribution> Contributions =>
@@ -22,7 +25,8 @@ public class ContributionCycle
     public ContributionCycle(
         Guid stokvelId,
         string period,
-        decimal targetAmount)
+        decimal targetAmount,
+        DateOnly? endDate = null)
     {
         if (stokvelId == Guid.Empty)
             throw new ArgumentException(
@@ -40,12 +44,14 @@ public class ContributionCycle
         StokvelId = stokvelId;
         Period = period.Trim();
         TargetAmount = targetAmount;
+        EndDate = endDate;
         Status = "Open";
     }
 
     public void UpdateDetails(
         string period,
-        decimal targetAmount)
+        decimal targetAmount,
+        DateOnly? endDate = null)
     {
         if (string.IsNullOrWhiteSpace(period))
             throw new ArgumentException(
@@ -57,6 +63,16 @@ public class ContributionCycle
 
         Period = period.Trim();
         TargetAmount = targetAmount;
+        EndDate = endDate;
+    }
+
+    public void Close()
+    {
+        if (Status != "Open")
+            throw new InvalidOperationException(
+                "Only an open contribution cycle can be closed.");
+
+        Status = "Closed";
     }
 
     public void MarkPaidOut()

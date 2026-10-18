@@ -1,3 +1,4 @@
+
 using RondiTrack.Domain.Entities;
 
 namespace RondiTrack.DTOs.ContributionCycles;
@@ -7,7 +8,8 @@ public record ContributionCycleResponse(
     Guid StokvelId,
     string Period,
     decimal TargetAmount,
-    uint Version)
+    uint Version,
+    DateOnly? EndDate = null)
 {
     public static ContributionCycleResponse FromEntity(
         ContributionCycle cycle)
@@ -17,6 +19,7 @@ public record ContributionCycleResponse(
             cycle.StokvelId,
             cycle.Period,
             cycle.TargetAmount,
-            cycle.Version);
+            cycle.Version,
+            cycle.EndDate);
     }
 }

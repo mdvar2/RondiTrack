@@ -71,6 +71,9 @@ namespace RondiTrack.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Period")
                         .IsRequired()
                         .HasColumnType("text");
