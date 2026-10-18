@@ -78,7 +78,8 @@ public class RateLimitContractTests(PostgresApiFactory factory)
         var key = Guid.NewGuid().ToString("N");
         client.DefaultRequestHeaders.Add("Idempotency-Key", key);
         var wait = await AssertRejected(await client.PostAsJsonAsync(path, body));
-        Assert.Null(await app.Services.GetRequiredService<IIdempotencyStore>().GetAsync(key));
+        using (var scope = app.Services.CreateScope())
+            Assert.Null(await scope.ServiceProvider.GetRequiredService<IIdempotencyStore>().GetAsync(key));
         await using var context = new RondiTrackDbContext(factory.CreateDbContextOptions());
         Assert.Equal(0, await context.Contributions.CountAsync(c => c.StokvelId == scenario.StokvelId && c.UserId == scenario.Member.Id));
         await Task.Delay(TimeSpan.FromSeconds(wait) + TimeSpan.FromMilliseconds(200));
@@ -87,12 +88,14 @@ public class RateLimitContractTests(PostgresApiFactory factory)
         var replay = await client.PostAsJsonAsync(path, body);
         Assert.Equal(HttpStatusCode.Created, replay.StatusCode);
         Assert.Equal(await success.Content.ReadAsStringAsync(), await replay.Content.ReadAsStringAsync());
-        Assert.NotNull(await app.Services.GetRequiredService<IIdempotencyStore>().GetAsync(key));
+        using (var scope = app.Services.CreateScope())
+            Assert.NotNull(await scope.ServiceProvider.GetRequiredService<IIdempotencyStore>().GetAsync(key));
         Assert.Equal(1, await context.Contributions.CountAsync(c => c.StokvelId == scenario.StokvelId
             && c.UserId == scenario.Member.Id && c.ContributionCycleId == scenario.CycleId));
         // Replays also obey the limiter: stored key survives another rejection.
         await AssertRejected(await client.PostAsJsonAsync(path, body));
-        Assert.NotNull(await app.Services.GetRequiredService<IIdempotencyStore>().GetAsync(key));
+        using (var scope = app.Services.CreateScope())
+            Assert.NotNull(await scope.ServiceProvider.GetRequiredService<IIdempotencyStore>().GetAsync(key));
     }
 
     [Theory]
