@@ -1,0 +1,36 @@
+
+name: RondiTrack CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore RondiTrack.Tests/RondiTrack.Tests.csproj
+
+      - name: Build RondiTrack
+        run: dotnet build RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
