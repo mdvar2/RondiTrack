@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using RondiTrack.Domain.Entities;
 
@@ -11,41 +12,91 @@ public class RondiTrackDbContext : DbContext
     {
     }
 
-    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-    public DbSet<RefreshTokenFamily> RefreshTokenFamilies => Set<RefreshTokenFamily>();
+    // Authentication
+    public DbSet<RefreshToken> RefreshTokens =>
+        Set<RefreshToken>();
 
+    public DbSet<RefreshTokenFamily> RefreshTokenFamilies =>
+        Set<RefreshTokenFamily>();
+
+    // Users and stokvels
     public DbSet<User> Users => Set<User>();
+
     public DbSet<Stokvel> Stokvels => Set<Stokvel>();
-    public DbSet<StokvelMember> StokvelMembers => Set<StokvelMember>();
+
+    public DbSet<StokvelMember> StokvelMembers =>
+        Set<StokvelMember>();
+
+    // Contribution cycles and payments
     public DbSet<ContributionCycle> ContributionCycles =>
         Set<ContributionCycle>();
-    public DbSet<Contribution> Contributions => Set<Contribution>();
+
+    public DbSet<Contribution> Contributions =>
+        Set<Contribution>();
+
     public DbSet<Payout> Payouts => Set<Payout>();
+
+    // Outstanding contributions
+    public DbSet<ContributionArrear> ContributionArrears =>
+        Set<ContributionArrear>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        // =====================================================
+        // REFRESH TOKEN CONFIGURATION
+        // =====================================================
+
         modelBuilder.Entity<RefreshTokenFamily>()
-            .HasOne<User>().WithMany().HasForeignKey(family => family.UserId).OnDelete(DeleteBehavior.Cascade);
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(family => family.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<RefreshToken>()
-            .HasOne<RefreshTokenFamily>().WithMany().HasForeignKey(token => token.FamilyId).OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<RefreshToken>().Property(token => token.TokenHash).HasMaxLength(64);
-        modelBuilder.Entity<RefreshToken>().HasIndex(token => token.TokenHash).IsUnique();
+            .HasOne<RefreshTokenFamily>()
+            .WithMany()
+            .HasForeignKey(token => token.FamilyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RefreshToken>()
+            .Property(token => token.TokenHash)
+            .HasMaxLength(64);
+
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(token => token.TokenHash)
+            .IsUnique();
+
+        // =====================================================
+        // STOKVEL CONFIGURATION
+        // =====================================================
 
         modelBuilder.Entity<Stokvel>()
             .Ignore(stokvel => stokvel.Members);
 
-        modelBuilder.Entity<User>().Property(user => user.PlatformRole)
-            .HasMaxLength(32).HasDefaultValue(Roles.PlatformUser);
+        // =====================================================
+        // USER CONFIGURATION
+        // =====================================================
+
+        modelBuilder.Entity<User>()
+            .Property(user => user.PlatformRole)
+            .HasMaxLength(32)
+            .HasDefaultValue(Roles.PlatformUser);
 
         modelBuilder.Entity<User>()
             .Property(user => user.NormalizedEmail)
-            .HasComputedColumnSql("lower(btrim(\"Email\"))", stored: true);
+            .HasComputedColumnSql(
+                "lower(btrim(\"Email\"))",
+                stored: true);
 
         modelBuilder.Entity<User>()
             .HasIndex(user => user.NormalizedEmail)
             .IsUnique();
+
+        // =====================================================
+        // OPTIMISTIC CONCURRENCY
+        // =====================================================
 
         modelBuilder.Entity<User>()
             .Property(user => user.Version)
@@ -71,6 +122,10 @@ public class RondiTrackDbContext : DbContext
             .Property(member => member.Version)
             .IsRowVersion();
 
+        // =====================================================
+        // STOKVEL MEMBERSHIP CONFIGURATION
+        // =====================================================
+
         modelBuilder.Entity<StokvelMember>()
             .HasKey(member => new
             {
@@ -89,6 +144,10 @@ public class RondiTrackDbContext : DbContext
             .WithMany(stokvel => stokvel.StokvelMemberships)
             .HasForeignKey(member => member.StokvelId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // =====================================================
+        // CONTRIBUTION CONFIGURATION
+        // =====================================================
 
         modelBuilder.Entity<Contribution>()
             .HasOne(contribution => contribution.Member)
@@ -112,6 +171,7 @@ public class RondiTrackDbContext : DbContext
                 contribution.ContributionCycleId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Only one contribution per member per cycle
         modelBuilder.Entity<Contribution>()
             .HasIndex(contribution => new
             {
@@ -121,6 +181,7 @@ public class RondiTrackDbContext : DbContext
             })
             .IsUnique();
 
+        // Index for paginated contribution queries
         modelBuilder.Entity<Contribution>()
             .HasIndex(contribution => new
             {
@@ -132,6 +193,10 @@ public class RondiTrackDbContext : DbContext
             .IsDescending(false, false, true, true)
             .HasDatabaseName(
                 "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id");
+
+        // =====================================================
+        // PAYOUT CONFIGURATION
+        // =====================================================
 
         modelBuilder.Entity<Payout>()
             .HasIndex(payout => new
@@ -155,5 +220,54 @@ public class RondiTrackDbContext : DbContext
                 member.StokvelId
             })
             .OnDelete(DeleteBehavior.Restrict);
+
+        // =====================================================
+        // CONTRIBUTION ARREARS CONFIGURATION
+        // =====================================================
+
+        // Primary key
+        modelBuilder.Entity<ContributionArrear>()
+            .HasKey(arrear => arrear.Id);
+
+        // PostgreSQL must reject zero or negative shortfalls
+        modelBuilder.Entity<ContributionArrear>()
+            .ToTable(table =>
+                table.HasCheckConstraint(
+                    "CK_ContributionArrears_ShortfallCents_Positive",
+                    "\"ShortfallCents\" > 0"));
+
+        // Each arrears record belongs to a contribution cycle
+        modelBuilder.Entity<ContributionArrear>()
+            .HasOne(arrear => arrear.Cycle)
+            .WithMany()
+            .HasForeignKey(arrear =>
+                arrear.ContributionCycleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Each arrears record belongs to a stokvel member
+        modelBuilder.Entity<ContributionArrear>()
+            .HasOne<StokvelMember>()
+            .WithMany()
+            .HasForeignKey(arrear => new
+            {
+                arrear.UserId,
+                arrear.StokvelId
+            })
+            .HasPrincipalKey(member => new
+            {
+                member.UserId,
+                member.StokvelId
+            })
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Prevent duplicate arrears for the same member and cycle
+        modelBuilder.Entity<ContributionArrear>()
+            .HasIndex(arrear => new
+            {
+                arrear.StokvelId,
+                arrear.UserId,
+                arrear.ContributionCycleId
+            })
+            .IsUnique();
     }
 }

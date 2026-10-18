@@ -65,6 +65,39 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.ToTable("Contributions");
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.ContributionArrear", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContributionCycleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ShortfallCents")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("StokvelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContributionCycleId");
+
+                    b.HasIndex("UserId", "StokvelId");
+
+                    b.HasIndex("StokvelId", "UserId", "ContributionCycleId")
+                        .IsUnique();
+
+                    b.ToTable("ContributionArrears", t =>
+                        {
+                            t.HasCheckConstraint("CK_ContributionArrears_ShortfallCents_Positive", "\"ShortfallCents\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.ContributionCycle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -310,6 +343,23 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.Navigation("Cycle");
 
                     b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.ContributionArrear", b =>
+                {
+                    b.HasOne("RondiTrack.Domain.Entities.ContributionCycle", "Cycle")
+                        .WithMany()
+                        .HasForeignKey("ContributionCycleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RondiTrack.Domain.Entities.StokvelMember", null)
+                        .WithMany()
+                        .HasForeignKey("UserId", "StokvelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cycle");
                 });
 
             modelBuilder.Entity("RondiTrack.Domain.Entities.Payout", b =>
