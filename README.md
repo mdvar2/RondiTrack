@@ -20,63 +20,54 @@ I started with basic API endpoints and gradually added database relationships, s
 
 - Returns consistent error responses and includes tracing, logging and health checks.
 
-The project is ****backend only**** at the moment. I use Scalar to explore and test the API during development.
+The project is **backend only** at the moment. I use Scalar to explore and test the API during development.
 
 ## Technologies I used
 
 | Technology | How I used it |
-
 |---|---|
-
 | C# / ASP.NET Core 10 | Built the API endpoints and services |
-
 | EF Core 10 / PostgreSQL 17 | Stored and queried application data |
-
 | FluentValidation | Validated incoming requests |
-
 | JWT authentication | Protected endpoints and identified users |
-
 | xUnit / Testcontainers | Tested the API with disposable PostgreSQL databases |
-
 | OpenAPI / Scalar | Documented and explored the API |
-
 | OpenTelemetry / Aspire | Worked with tracing, metrics and logs |
-
 | TypeScript | Generated frontend-facing types from the API contract |
 
-I separated the solution into ****API****, ****Domain****, ****Infrastructure**** and ****RondiTrack.Tests**** projects. The [architecture guide](docs/architecture.md) explains how they fit together.
+I separated the solution into **API**, **Domain**, **Infrastructure** and **RondiTrack.Tests** projects. The [architecture guide](docs/architecture.md) explains how they fit together.
 
 ## My latest work: Assignment 6.3
 
 For Assignment 6.3, I worked on the parts of the backend that a frontend would depend on:
 
-- ****API versioning:**** Controller endpoints now use `/api/v1`.
+- **API versioning:** Controller endpoints now use `/api/v1`.
 
-- ****CORS:**** The API allows the configured frontend origin rather than accepting requests from any origin.
+- **CORS:** The API allows the configured frontend origin rather than accepting requests from any origin.
 
-- ****Rate limiting:**** Login, contribution and payout requests have limits to reduce excessive requests.
+- **Rate limiting:** Login, contribution and payout requests have limits to reduce excessive requests.
 
-- ****Contribution retries:**** The existing idempotency handling works alongside rate limiting.
+- **Contribution retries:** The existing idempotency handling works alongside rate limiting.
 
-- ****Member home endpoint:**** `GET /api/v1/me/home` returns information for the logged-in member without exposing other members' contribution amounts.
+- **Member home endpoint:** `GET /api/v1/me/home` returns information for the logged-in member without exposing other members' contribution amounts.
 
-- ****Consistent errors:**** API errors follow a Problem Details response format.
+- **Consistent errors:** API errors follow a Problem Details response format.
 
-- ****TypeScript contracts:**** I generated types from the actual OpenAPI document and checked that a renamed backend property would cause a frontend compile error.
+- **TypeScript contracts:** I generated types from the actual OpenAPI document and checked that a renamed backend property would cause a frontend compile error.
 
-One feature is still incomplete: ****`nextPayoutDate` returns `null`**** because the system does not yet have a rule for scheduling future payouts. I have not made up a date for it.
+One feature is still incomplete: **`nextPayoutDate` returns `null`** because the system does not yet have a rule for scheduling future payouts. I have not made up a date for it.
 
 For a more detailed explanation of the changes, see the [Assignment 6.3 trainer notes](docs/assignment-6-3-stages.md) and [compliance matrix](docs/assignment-6-3-compliance.md).
 
 ## Testing and verification
 
-****On 14 October 2026, all 122 tests passed, with no failures or skipped tests.**** The fresh solution build also completed with no warnings or errors.
+**On 14 October 2026, all 122 tests passed, with no failures or skipped tests.** The fresh solution build also completed with no warnings or errors.
 
 I also checked that the tests could run without connecting to my development PostgreSQL database. I temporarily disabled new connections to that database, ran the test suite using Testcontainers, and then restored the original connection setting. I confirmed the database was accessible again with `SELECT 1`.
 
 No development data, schemas or migrations were changed during that verification.
 
-The [Assignment 6.3 verification report](docs/assignment-6-3-verification.md#successful-offline-verification) has the full procedure and recorded results. The earlier Assignment 6.2 test result was 101 passing tests; ****122 is the latest verified total****.
+The [Assignment 6.3 verification report](docs/assignment-6-3-verification.md#successful-offline-verification) has the full procedure and recorded results. The earlier Assignment 6.2 test result was 101 passing tests; Assignment 6.3 verified 122, and Assignment 6.4 later verified 130 passing tests.
 
 To run the ordinary tests locally, start Docker Desktop in Linux-container mode and use:
 
@@ -90,7 +81,7 @@ dotnet test RondiTrack.sln --no-restore -m:1
 
 ```
 
-These commands run the normal suite. They do ****not**** disable development database connections. The guarded isolation procedure is explained separately in the verification report.
+These commands run the normal suite. They do **not** disable development database connections. The guarded isolation procedure is explained separately in the verification report.
 
 ## Running the API locally
 
@@ -108,7 +99,7 @@ dotnet run --project API
 
 The development API documentation is available at `/scalar/v1` and the OpenAPI document at `/openapi/v1.json` on the port used by the running API.
 
-****Important database note:**** My existing development database contains duplicate normalized emails that currently block an authentication migration. I am keeping that data intact rather than resetting the database to make the migration pass. See [development migration status](docs/development-migration-status.md) before attempting database updates.
+**Important database note:** My existing development database contains duplicate normalized emails that currently block an authentication migration. I am keeping that data intact rather than resetting the database to make the migration pass. See [development migration status](docs/development-migration-status.md) before attempting database updates.
 
 For configuration, local secrets, HTTPS and migration steps, use the [detailed technical notes](docs/README-detailed-technical-notes.md#4-setup-and-running-the-api).
 
@@ -116,7 +107,7 @@ For configuration, local secrets, HTTPS and migration steps, use the [detailed t
 
 This project helped me practise building APIs in stages, keeping business logic separate from controllers, protecting financial operations, and writing integration tests against a real database engine.
 
-There are still limitations I need to address before treating this as a production system. Rate limiting and the idempotency response store currently work ****per API process****, not across multiple running instances. I also need a confirmed future payout scheduling rule, and the development migration issue still needs a safe resolution.
+There are still limitations I need to address before treating this as a production system. Rate limiting requires review before distributed deployment. Assignment 6.4 introduced PostgreSQL-backed durable idempotency records, replacing the earlier per-process limitation. I also need a confirmed future payout scheduling rule, and the development migration issue still needs a safe resolution.
 
 ## Project documentation
 
@@ -158,7 +149,7 @@ From the repository root, create a local environment file:
 Copy-Item .env.example .env
 ```
 
-Replace the placeholder values in `.env` with a strong PostgreSQL password and a random Base64 JWT signing key containing at least 32 decoded bytes. **Never commit `.env` or publish its secrets.**
+Replace the example values in `.env` with a strong PostgreSQL password and a random Base64 JWT signing key containing at least 32 decoded bytes. **Never commit `.env` or publish its secrets.**
 
 | Variable or setting | Purpose | Default / source |
 | --- | --- | --- |
@@ -240,7 +231,7 @@ Housekeeping retains expired refresh-token families for seven additional days by
 | Check | Observed result |
 | --- | --- |
 | Local automated tests | **130 passed, 0 failed, 0 skipped** |
-| Main-branch GitHub Actions workflow #23 | **Passed** |
+| Main-branch GitHub Actions workflow #24 (commit `451b786`) | **Passed** |
 | `docker compose config --quiet` | Passed |
 | Standalone Docker image build | Passed, 19/19 steps |
 | Compose API image build | Passed |
@@ -253,6 +244,7 @@ The initial health-check requests returned empty replies immediately after start
 
 The following repository resources support review:
 
+- [Final passing CI run #24](https://github.com/mdvar2/RondiTrack/actions/runs/39176699045)
 - [GitHub Actions](https://github.com/mdvar2/RondiTrack/actions)
 - [CI workflow](.github/workflows/ci.yml)
 - [Cycle-close integration tests](RondiTrack.Tests/CycleCloseIntegrationTests.cs)
@@ -262,6 +254,39 @@ The following repository resources support review:
 - [Intentional failing CI run](https://github.com/mdvar2/RondiTrack/actions/runs/39152181436)
 - [Passing CI run after fix](https://github.com/mdvar2/RondiTrack/actions/runs/39152807177)
 - [Proof pull request #3](https://github.com/mdvar2/RondiTrack/pull/3)
+
+### Run it and build against it
+
+This section is for a frontend developer who has cloned the repository with Docker Desktop available. Use the Docker Compose startup and health-check commands above; the API base URL is `http://localhost:8080`.
+
+| Endpoint | URL | Availability |
+| --- | --- | --- |
+| API base | `http://localhost:8080/api/v1` | Production Compose |
+| Liveness | `http://localhost:8080/health/live` | Production Compose |
+| Readiness | `http://localhost:8080/health/ready` | Production Compose |
+| Scalar explorer | `/scalar/v1` on the development API host/port | Development only |
+| OpenAPI JSON | `/openapi/v1.json` on the development API host/port | Development only |
+
+The frontend should use the API v1 contract, respect configured CORS origins and rate limits, and send an `Idempotency-Key` for contribution requests that might be retried. Authentication uses JWT access tokens and a refresh-token cookie; keep cookies in the supported browser flow rather than reading their contents from JavaScript. Consult [API reference](docs/api-reference.md) and [detailed technical notes](docs/README-detailed-technical-notes.md) for existing route and configuration details. TypeScript contracts are generated from the OpenAPI contract; confirm the exact generation command in the repository before running it.
+
+**Unverified handoff items:** seeded demo accounts (including one member in two stokvels), a step-by-step refresh replay walkthrough, a frontend error-status table, and the exact TypeScript regeneration command have not been independently verified in this README. Do not assume these are available. A peer fresh-clone test and its findings/fix commits have not yet been recorded.
+
+### Assignment 6.4 evidence still to collect
+
+The assignment also requires numeric image size, initial-versus-code-only rebuild timing, `docker history` and `docker inspect` environment output, and evidence that `.env` has never been committed. The successful Docker builds establish that the image builds, **not** these measurements or secret-history proofs. Collect and record actual outputs before marking these items complete.
+
+```powershell
+git log --all -- .env
+docker image inspect ronditrack:assignment-6-4 --format '{{.Size}}'
+docker image inspect ronditrack:assignment-6-4 --format '{{json .Config.Env}}'
+docker history --no-trunc ronditrack:assignment-6-4
+```
+
+The image contains only published application output in its runtime stage; the test project is not copied into that runtime output because testing is performed separately in CI. The contents of `docker history` and `docker inspect` must still be inspected for accidental secret exposure. For timing comparisons, measure a fresh uncached build and a rebuild after changing only source code; report the actual durations rather than estimates.
+
+The refresh-token grace period is seven days so expiry does not immediately remove spent-token evidence that supports reuse investigation. Idempotency records are retained for 24 hours, accommodating delayed client retries within that window; a retry after expiry can be processed as a new request and must be treated accordingly by clients and operators.
+
+For `docker compose up --scale api=2`, the fixed host mapping `8080:8080` cannot be shared by two replicas. A deployment should move port exposure to a reverse proxy, keep migrations as one one-shot service, and use the database transaction/advisory lock to serialize close processing. The automated concurrent-processors test exercises the locking behaviour; this is not a claim of a separate two-container manual demonstration.
 
 ### Handover and remaining work
 
