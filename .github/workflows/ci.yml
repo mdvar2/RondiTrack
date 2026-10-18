@@ -34,3 +34,6 @@ jobs:
 
       - name: Run automated tests
         run: dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
+
+      - name: Build Docker image
+        run: docker build --tag ronditrack-api:ci .
