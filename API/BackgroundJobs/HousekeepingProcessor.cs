@@ -21,8 +21,11 @@ public sealed class HousekeepingProcessor(
             .Where(family => family.ExpiresAtUtc < cutoff)
             .ExecuteDeleteAsync(cancellationToken);
 
-        // The current idempotency store is in-memory and scoped, not persisted.
-        // It has no database rows for ExecuteDeleteAsync to remove.
+        var idempotencyCutoff = now.AddHours(-options.Value.IdempotencyRetentionHours);
+        var removedKeys = await db.PersistedIdempotencyRecords
+            .Where(record => record.CreatedAtUtc < idempotencyCutoff)
+            .ExecuteDeleteAsync(cancellationToken);
+        logger.LogInformation("Expired idempotency records removed: {Count}", removedKeys);
         logger.LogInformation("Expired refresh-token families removed: {Count}", removed);
     }
 }
