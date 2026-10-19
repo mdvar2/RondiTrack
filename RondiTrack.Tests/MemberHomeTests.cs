@@ -140,11 +140,11 @@ public class MemberHomeTests(PostgresApiFactory factory)
                 stokvel.Role == Roles.Member &&
                 stokvel.CurrentCycle is not null);
 
-        Assert.Equal("125.1", first.AmountPaid);
-        Assert.Equal("374.9", first.AmountOwed);
+        Assert.Equal(12510L, first.AmountPaid);
+        Assert.Equal(37490L, first.AmountOwed);
 
         Assert.Equal(
-            new HomeCycleResponse("2026-10", "Open"),
+            new HomeCycleResponse("2026-10", "Open", null),
             first.CurrentCycle);
 
         // Verify the second stokvel
@@ -153,8 +153,8 @@ public class MemberHomeTests(PostgresApiFactory factory)
             stokvel => stokvel.StokvelName == second.Name);
 
         Assert.Equal(Roles.Treasurer, other.Role);
-        Assert.Equal("725", other.AmountPaid);
-        Assert.Equal("0", other.AmountOwed);
+        Assert.Equal(72500L, other.AmountPaid);
+        Assert.Equal(0L, other.AmountOwed);
         Assert.Equal("PaidOut", other.CurrentCycle!.Status);
 
         // Verify the stokvel without a current cycle
@@ -163,8 +163,8 @@ public class MemberHomeTests(PostgresApiFactory factory)
             stokvel => stokvel.StokvelName == missing.Name);
 
         Assert.Null(absent.CurrentCycle);
-        Assert.Equal("0", absent.AmountPaid);
-        Assert.Equal("0", absent.AmountOwed);
+        Assert.Equal(0L, absent.AmountPaid);
+        Assert.Equal(0L, absent.AmountOwed);
 
         // No payout dates should be available
         Assert.All(
@@ -193,8 +193,8 @@ public class MemberHomeTests(PostgresApiFactory factory)
         Assert.DoesNotContain(
             home.Stokvels,
             stokvel =>
-                stokvel.AmountPaid == "499" ||
-                stokvel.AmountOwed == "499");
+                stokvel.AmountPaid == 49900L ||
+                stokvel.AmountOwed == 49900L);
     }
 
     [Fact]

@@ -10,12 +10,25 @@ public record ContributionWithMemberResponse(
     string UserEmail,
     string MemberRole,
     Guid ContributionCycleId,
-    decimal Amount,
+    long Amount,
     DateTime RecordedAtUtc,
     uint Version)
 {
-    public static ContributionWithMemberResponse FromQuery(RondiTrack.Domain.Queries.ContributionWithMember row) =>
-        new(row.Id, row.StokvelId, row.UserId, row.UserName, row.UserEmail, row.MemberRole, row.ContributionCycleId, row.Amount, row.RecordedAtUtc, row.Version);
+    public static ContributionWithMemberResponse FromQuery(
+        RondiTrack.Domain.Queries.ContributionWithMember row)
+    {
+        return new ContributionWithMemberResponse(
+            row.Id,
+            row.StokvelId,
+            row.UserId,
+            row.UserName,
+            row.UserEmail,
+            row.MemberRole,
+            row.ContributionCycleId,
+            ToCents(row.Amount),
+            row.RecordedAtUtc,
+            row.Version);
+    }
 
     public static ContributionWithMemberResponse FromEntity(
         Contribution contribution)
@@ -28,8 +41,21 @@ public record ContributionWithMemberResponse(
             contribution.Member.User.Email,
             contribution.Member.Role,
             contribution.ContributionCycleId,
-            contribution.Amount,
+            ToCents(contribution.Amount),
             contribution.RecordedAtUtc,
             contribution.Version);
+    }
+
+    private static long ToCents(decimal amount)
+    {
+        var cents = amount * 100m;
+
+        if (cents != decimal.Truncate(cents))
+        {
+            throw new InvalidOperationException(
+                "Money must have no more than two decimal places.");
+        }
+
+        return checked((long)cents);
     }
 }

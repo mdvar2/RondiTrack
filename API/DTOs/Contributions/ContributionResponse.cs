@@ -7,7 +7,7 @@ public record ContributionResponse(
     Guid StokvelId,
     Guid UserId,
     Guid ContributionCycleId,
-    decimal Amount,
+    long Amount,
     DateTime RecordedAtUtc,
     uint Version)
 {
@@ -19,8 +19,21 @@ public record ContributionResponse(
             contribution.StokvelId,
             contribution.UserId,
             contribution.ContributionCycleId,
-            contribution.Amount,
+            ToCents(contribution.Amount),
             contribution.RecordedAtUtc,
             contribution.Version);
+    }
+
+    private static long ToCents(decimal amount)
+    {
+        var cents = amount * 100m;
+
+        if (cents != decimal.Truncate(cents))
+        {
+            throw new InvalidOperationException(
+                "Money must have no more than two decimal places.");
+        }
+
+        return checked((long)cents);
     }
 }

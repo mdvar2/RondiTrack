@@ -25,7 +25,7 @@ public sealed class PersistedIdempotencyTests(PostgresApiFactory factory)
         var now = new DateTimeOffset(2026, 10, 19, 0, 0, 0, TimeSpan.Zero);
         var response = new ContributionResponse(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            125m, now.UtcDateTime, 1u);
+            12500L, now.UtcDateTime, 1u);
 
         await using (var db = new RondiTrackDbContext(factory.CreateDbContextOptions()))
         {
