@@ -77,6 +77,7 @@ public class MemberHomeService(
                     member.ContributionAmount - paid);
 
             return new HomeStokvelResponse(
+                member.StokvelId,
                 member.Name,
                 member.Role,
                 cycle is null

@@ -52,7 +52,7 @@ function App() {
         >
           {sampleStokvels.map((stokvel) => (
             <StokvelCard
-              key={stokvel.stokvelName}
+              key={stokvel.stokvelId}
               stokvel={stokvel}
             />
           ))}

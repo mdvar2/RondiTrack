@@ -1,3 +1,4 @@
+
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -140,6 +141,7 @@ public class MemberHomeTests(PostgresApiFactory factory)
                 stokvel.Role == Roles.Member &&
                 stokvel.CurrentCycle is not null);
 
+        Assert.Equal(scenario.StokvelId, first.StokvelId);
         Assert.Equal(12510L, first.AmountPaid);
         Assert.Equal(37490L, first.AmountOwed);
 
@@ -152,6 +154,7 @@ public class MemberHomeTests(PostgresApiFactory factory)
             home.Stokvels,
             stokvel => stokvel.StokvelName == second.Name);
 
+        Assert.Equal(second.Id, other.StokvelId);
         Assert.Equal(Roles.Treasurer, other.Role);
         Assert.Equal(72500L, other.AmountPaid);
         Assert.Equal(0L, other.AmountOwed);
@@ -162,6 +165,7 @@ public class MemberHomeTests(PostgresApiFactory factory)
             home.Stokvels,
             stokvel => stokvel.StokvelName == missing.Name);
 
+        Assert.Equal(missing.Id, absent.StokvelId);
         Assert.Null(absent.CurrentCycle);
         Assert.Equal(0L, absent.AmountPaid);
         Assert.Equal(0L, absent.AmountOwed);
@@ -182,9 +186,24 @@ public class MemberHomeTests(PostgresApiFactory factory)
                 .GetProperty("stokvels")
                 .EnumerateArray(),
             stokvel =>
+            {
                 Assert.Equal(
-                    6,
-                    stokvel.EnumerateObject().Count()));
+                    7,
+                    stokvel.EnumerateObject().Count());
+
+                var stokvelId = stokvel
+                    .GetProperty("stokvelId")
+                    .GetGuid();
+
+                Assert.Contains(
+                    stokvelId,
+                    new[]
+                    {
+                        scenario.StokvelId,
+                        second.Id,
+                        missing.Id
+                    });
+            });
 
         // Verify that another member's payment is not
         // exposed in the current member's financial totals.

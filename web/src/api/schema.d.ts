@@ -1443,6 +1443,8 @@ export interface components {
             stokvels: components["schemas"]["HomeStokvelResponse"][];
         };
         HomeStokvelResponse: {
+            /** Format: uuid */
+            stokvelId: string;
             stokvelName: string;
             role: string;
             currentCycle: null | components["schemas"]["HomeCycleResponse"];

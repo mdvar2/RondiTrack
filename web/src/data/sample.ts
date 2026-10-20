@@ -1,3 +1,4 @@
+
 import type {
   HomeStokvel,
   ContributionWithMemberResponse,
@@ -5,6 +6,7 @@ import type {
 
 export const sampleStokvels = [
   {
+    stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187001',
     stokvelName: 'Ubuntu Savings Club',
     role: 'Treasurer',
     currentCycle: {
@@ -17,6 +19,7 @@ export const sampleStokvels = [
     nextPayoutDate: '2026-11-15T08:00:00Z',
   },
   {
+    stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187002',
     stokvelName: 'Masakhane Community Stokvel',
     role: 'Member',
     currentCycle: {
@@ -29,6 +32,7 @@ export const sampleStokvels = [
     nextPayoutDate: null,
   },
   {
+    stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187003',
     stokvelName: 'Future Builders Stokvel',
     role: 'Member',
     currentCycle: null,
@@ -37,7 +41,6 @@ export const sampleStokvels = [
     nextPayoutDate: null,
   },
 ] satisfies HomeStokvel[]
-
 
 export const sampleContributions = [
   {
