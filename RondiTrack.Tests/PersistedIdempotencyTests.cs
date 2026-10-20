@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,8 +25,14 @@ public sealed class PersistedIdempotencyTests(PostgresApiFactory factory)
         var key = "durable-" + Guid.NewGuid().ToString("N");
         var now = new DateTimeOffset(2026, 10, 19, 0, 0, 0, TimeSpan.Zero);
         var response = new ContributionResponse(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            12500L, now.UtcDateTime, 1u);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            12500L,
+            "Paid",
+            now.UtcDateTime,
+            1u);
 
         await using (var db = new RondiTrackDbContext(factory.CreateDbContextOptions()))
         {
@@ -39,20 +46,37 @@ public sealed class PersistedIdempotencyTests(PostgresApiFactory factory)
             var restored = await store.GetAsync(key);
             Assert.NotNull(restored);
             Assert.Equal(response, restored.ResponseBody);
-            var cleanup = new HousekeepingProcessor(db, new FixedClock(now.AddHours(23)),
-                Options.Create(new HousekeepingOptions { IdempotencyRetentionHours = 24 }),
+
+            var cleanup = new HousekeepingProcessor(
+                db,
+                new FixedClock(now.AddHours(23)),
+                Options.Create(new HousekeepingOptions
+                {
+                    IdempotencyRetentionHours = 24
+                }),
                 NullLogger<HousekeepingProcessor>.Instance);
+
             await cleanup.RunOnceAsync();
             Assert.NotNull(await store.GetAsync(key));
         }
 
         await using (var db = new RondiTrackDbContext(factory.CreateDbContextOptions()))
         {
-            var cleanup = new HousekeepingProcessor(db, new FixedClock(now.AddHours(25)),
-                Options.Create(new HousekeepingOptions { IdempotencyRetentionHours = 24 }),
+            var cleanup = new HousekeepingProcessor(
+                db,
+                new FixedClock(now.AddHours(25)),
+                Options.Create(new HousekeepingOptions
+                {
+                    IdempotencyRetentionHours = 24
+                }),
                 NullLogger<HousekeepingProcessor>.Instance);
+
             await cleanup.RunOnceAsync();
-            var store = new PostgresIdempotencyStore(db, new FixedClock(now.AddHours(25)));
+
+            var store = new PostgresIdempotencyStore(
+                db,
+                new FixedClock(now.AddHours(25)));
+
             Assert.Null(await store.GetAsync(key));
         }
     }

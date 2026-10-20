@@ -118,6 +118,7 @@ public class ContributionRepository : IContributionRepository
                 contribution.Member.Role,
                 contribution.ContributionCycleId,
                 contribution.Amount,
+                contribution.Status,
                 contribution.RecordedAtUtc,
                 contribution.Version
             })
@@ -137,6 +138,7 @@ public class ContributionRepository : IContributionRepository
                 row.Role,
                 row.ContributionCycleId,
                 row.Amount,
+                row.Status,
                 row.RecordedAtUtc,
                 row.Version))
             .ToList();
@@ -180,6 +182,7 @@ public class ContributionRepository : IContributionRepository
                         contribution.Member.Role,
                         contribution.ContributionCycleId,
                         contribution.Amount,
+                        contribution.Status,
                         contribution.RecordedAtUtc,
                         contribution.Version))
             .ToListAsync();

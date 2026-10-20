@@ -89,7 +89,7 @@ function App() {
               <ContributionCard
                 key={contribution.id}
                 contribution={contribution}
-                cycleName="October 2026"
+                cycleName={sampleStokvels.find((stokvel) => stokvel.stokvelId === contribution.stokvelId)?.currentCycle?.period ?? 'Cycle unavailable'}
               />
             ))}
           </div>

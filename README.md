@@ -302,7 +302,7 @@ This section is for a frontend developer who has cloned the repository with Dock
 | Scalar explorer | `/scalar/v1` on the development API host/port | Development only |
 | OpenAPI JSON | `/openapi/v1.json` on the development API host/port | Development only |
 
-The frontend should use the API v1 contract, respect configured CORS origins and rate limits, and send an `Idempotency-Key` for contribution requests that might be retried. Authentication uses JWT access tokens and a refresh-token cookie; keep cookies in the supported browser flow rather than reading their contents from JavaScript. Consult [API reference](docs/api-reference.md) and [detailed technical notes](docs/README-detailed-technical-notes.md) for existing route and configuration details. TypeScript contracts are generated from the OpenAPI contract; the verified frontend command is `cd web` followed by `npm.cmd run generate:api` while the development API is running.
+The frontend should use the API v1 contract, respect configured CORS origins and rate limits, and send an `Idempotency-Key` for contribution requests that might be retried. Authentication uses JWT access tokens and a refresh-token cookie; keep cookies in the supported browser flow rather than reading their contents from JavaScript. Consult [API reference](docs/api-reference.md) and [detailed technical notes](docs/README-detailed-technical-notes.md) for existing route and configuration details. For Assignment 7.1, the TypeScript contract was successfully regenerated from a locally running Development API on port **8081**, because port 8080 was already occupied by Docker/WSL forwarding. See the frontend README for contract-generation instructions.
 
 **Unverified handoff items:** seeded demo accounts (including one member in two stokvels), a step-by-step refresh replay walkthrough, and a frontend error-status table have not been independently verified in this README. Do not assume these are available. A peer fresh-clone test and its findings/fix commits have not yet been recorded.
 
@@ -338,74 +338,73 @@ No independent peer handover or public deployment is claimed here.
 
 ## Assignment 7.1 — StokvelCard & ContributionCard
 
-Assignment 7.1 extends RondiTrack with a responsive React 19, TypeScript 5 and Vite 8 frontend under [`web/`](web/). The assignment uses typed sample data rather than live API calls. See the [frontend README](web/README.md) for frontend-specific setup and component details.
+Assignment 7.1 adds a responsive React 19, TypeScript and Vite frontend in [`web/`](web/). The dashboard uses typed demonstration data, **not live authenticated API fetching**. See the [frontend README](web/README.md) for component-level setup and limitations.
 
-### Backend contracts and verification
+### Backend contract
 
-- The anonymous OpenAPI document is exposed in Development at `GET /openapi/v1.json`.
-- `GET /api/v1/me/home` returns each member's stokvel role, current contribution cycle, amount paid, amount owed and next payout date when available.
-- Home amounts and the updated contribution response amounts are expressed as **integer cents** (`int64` in the OpenAPI schema); internal domain monetary values remain `decimal`.
-- The home response includes a cycle period, status and due date when a current cycle exists. Missing payout schedules remain `null` rather than being invented.
-- Backend integration and unit tests: **130 passed, 0 failed**, in the latest local run for this assignment.
+- The Development API exposes its OpenAPI document at `/openapi/v1.json`.
+- `GET /api/v1/me/home` provides member-specific stokvel details, including role, current cycle, amount paid, amount owed and a next payout date when available.
+- Contribution response types now include a `status` field. The generated frontend contract in `web/src/api/schema.d.ts` requires this field.
+- Home and contribution amounts are represented as **integer cents** in the frontend-facing API contract. Display formatting converts cents to ZAR.
+- A missing payout schedule remains `null`; the UI must not imply that a payout date was calculated by the backend.
 
-### Frontend components
+### Frontend components and sample cases
 
-- **`StokvelCard`** shows stokvel name, role, current cycle period/status/due date, amount paid and owed, and next payout date. It hides payment totals when there is no current cycle, displays **All paid up** for zero owed, displays **No payout scheduled** when appropriate, and shows a nonfunctional Treasurer-only tools placeholder.
-- **`ContributionCard`** shows the contribution amount, a **Recorded** display label, cycle name, Johannesburg-local timestamp and contributor name when present. Contribution lists use contribution IDs as React keys.
-- **Formatting utilities** handle ZAR values from integer cents and format UTC timestamps in `Africa/Johannesburg`. For example, `2026-10-31T22:30:00Z` appears as `01 Nov 2026, 00:30`.
-- **Generated types** are committed in `web/src/api/schema.d.ts`, with aliases in `web/src/api/types.ts`. Sample data is in `web/src/data/sample.ts`.
-- **Responsive layout** presents multiple columns on wider screens and adjusts for smaller screens.
+- **`StokvelCard`** presents the stokvel name, member role, current cycle details, amount paid and owed, and payout scheduling information. The interface distinguishes amounts owed from an **All paid up** state. A Treasurer-only tools area is a nonfunctional UI placeholder, not an active privileged operation.
+- **`ContributionCard`** presents the amount, the contribution's `status` (Pending, Paid or Confirmed in the demonstration cases), cycle name, Johannesburg-local recorded timestamp and contributor name when available. Contributions are keyed by their IDs.
+- **Formatting:** integer cents are displayed as ZAR amounts; UTC timestamps are displayed in `Africa/Johannesburg`. For example, `2026-10-31T22:30:00Z` is 01 November 2026 at 00:30 SAST.
+- **Sample coverage:** the frontend demonstration includes Treasurer and Member roles, a zero-owed state, a small 10-cent amount and contribution status variants. The example records are **illustrative fixtures**, not verified captures of signed-in API responses. This provenance distinction remains a verification item against the assignment rubric.
+- **Types:** `web/src/api/schema.d.ts` is generated from the backend OpenAPI document; `web/src/api/types.ts` provides aliases for component use. No live frontend API calls are implemented for this assignment.
 
-The sample payout date displayed by the frontend is **demonstration data**, not evidence that the backend has implemented future payout scheduling. Likewise, the **Recorded** contribution label is a presentation value, not a status returned by the current contribution DTO.
+### Run the frontend
 
-### Run Assignment 7.1 locally
-
-From the repository root, start Docker Desktop and create `.env` from `.env.example` if it does not already exist. Supply your own secure values as described in the Assignment 6.4 configuration section above. To expose OpenAPI in the local development environment:
-
-```powershell
-docker compose -f compose.yaml -f compose.dev.yaml up --build -d
-curl.exe -i http://localhost:8080/health/live
-curl.exe -i http://localhost:8080/health/ready
-curl.exe -i http://localhost:8080/openapi/v1.json
-```
-
-`compose.dev.yaml` overrides the API environment to `Development` for local work. Do not use this override as a production deployment configuration.
-
-In a separate PowerShell window:
+Install Node.js 24 (see `web/.nvmrc`), then run from the repository root:
 
 ```powershell
 cd web
 npm.cmd ci
-npm.cmd run generate:api
 npm.cmd run dev
 ```
 
-Open `http://localhost:3000`. Node.js **24** is required by the frontend project (`web/.nvmrc`). The frontend renders sample data and does not need an active API connection for normal dashboard display; the API must be available when regenerating OpenAPI types.
+Open the local URL printed by Vite. The sample-data dashboard does not require the API to be running.
 
-### Assignment 7.1 tests and checks
-
-Run the following inside `web/`:
+To **regenerate API types**, start the current Development API on a free port, for example from the repository root:
 
 ```powershell
-npm.cmd run test -- --run
-npm.cmd run typecheck
-npm.cmd run lint
-npm.cmd run build
+dotnet run --project API --urls http://localhost:8081
 ```
 
-Latest observed local results:
+In a second PowerShell terminal:
 
-| Check | Result |
+```powershell
+cd web
+npx.cmd openapi-typescript http://localhost:8081/openapi/v1.json -o src/api/schema.d.ts
+npm.cmd run typecheck
+```
+
+**Port note:** Docker Compose uses host port 8080 for the containerized API. During the Assignment 7.1 verification, Docker Desktop/WSL occupied that port and served an older OpenAPI contract, so the updated development API was run on **8081**. The `npm.cmd run generate:api` script targets 8080; only use it when that port is serving the intended, up-to-date Development API.
+
+### Verification — 20 October 2026
+
+From `web/`:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run lint
+npm.cmd run test -- --run
+```
+
+| Check | Observed result |
 | --- | --- |
-| Frontend Vitest | **14 passed** across 2 test files |
 | TypeScript typecheck | Passed |
+| Vite production build | Passed (24 modules transformed) |
 | ESLint | Passed |
-| Vite production build | Passed |
-| Backend automated tests | **130 passed** |
-| Git commit | `bbefdc7` pushed to `main` |
+| Vitest | **14 passed**, across 2 test files |
+| Backend automated tests | **130 passed** in the previously reported local run |
 
-### Assignment 7.1 scope and follow-up
+These are local verification results, **not** a claim that the latest changes have been committed, pushed or passed CI. The earlier commit history and Assignment 6.4 CI evidence above remain historical evidence for those earlier versions.
 
-The frontend is a **typed sample-data demonstration**. It does not yet implement login, authenticated API fetching, payment forms or live Treasurer actions. The home response currently does not provide a stable stokvel ID for the frontend list key, so the preview uses the stokvel name; this should be revisited before using live or renameable data. The money formatter's extreme-value precision and exact assignment rubric alignment also warrant final review. These limitations are disclosed rather than represented as completed features.
+### Limitations and handoff
 
----
+The dashboard does not yet provide login, authenticated API requests, payment submission or working Treasurer controls. The demonstration statuses and records should not be mistaken for independently captured production or signed-in API responses. The final rubric check should confirm the required sample-data provenance and UI edge cases before declaring Assignment 7.1 fully complete. Backend authorization must remain enforced by the API; hiding a frontend control is not authorization.

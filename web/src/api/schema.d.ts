@@ -1389,6 +1389,7 @@ export interface components {
             contributionCycleId: string;
             /** Format: int64 */
             amount: number;
+            status: string;
             /** Format: date-time */
             recordedAtUtc: string;
             /** Format: uint32 */
@@ -1408,6 +1409,7 @@ export interface components {
             contributionCycleId: string;
             /** Format: int64 */
             amount: number;
+            status: string;
             /** Format: date-time */
             recordedAtUtc: string;
             /** Format: uint32 */

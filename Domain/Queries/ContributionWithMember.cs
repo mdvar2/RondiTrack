@@ -1,3 +1,4 @@
+
 namespace RondiTrack.Domain.Queries;
 
 public record ContributionWithMember(
@@ -9,5 +10,6 @@ public record ContributionWithMember(
     string MemberRole,
     Guid ContributionCycleId,
     decimal Amount,
+    string Status,
     DateTime RecordedAtUtc,
     uint Version);

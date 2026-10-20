@@ -62,7 +62,7 @@ For example, the UTC timestamp `2026-10-31T22:30:00Z` displays as `01 Nov 2026, 
 
 ## 3. Frontend Data and API Contracts
 
-The dashboard currently uses **typed sample data** from `src/data/sample.ts`.
+The dashboard currently uses **illustrative typed sample data** from `src/data/sample.ts`. These fixtures are not verified captures of signed-in API responses. The 10-cent entry and status variants are UI demonstration cases, not assertions about persisted records.
 
 It does not make live API requests, implement authentication, or submit contribution forms.
 
@@ -86,7 +86,7 @@ Install:
 
 For regenerating API contracts, the RondiTrack backend must also be running and exposing its OpenAPI document at:
 
-`http://localhost:8080/openapi/v1.json`
+`http://localhost:8081/openapi/v1.json`
 
 ## 5. Installation
 
@@ -126,14 +126,14 @@ Start the backend before generating the TypeScript API contracts.
 From the `web` directory:
 
 ```powershell
-npm.cmd run generate:api
+npx.cmd openapi-typescript http://localhost:8081/openapi/v1.json -o src/api/schema.d.ts
 ```
 
 This retrieves the backend OpenAPI specification and regenerates:
 
 `src/api/schema.d.ts`
 
-The generated schema should be committed whenever relevant backend response contracts change.
+The generated schema should be committed whenever relevant backend response contracts change. **Important:** Docker/WSL may already serve an older API on port 8080. For the updated local API, run `dotnet run --project API --urls http://localhost:8081` from the repository root and use the 8081 command above. The package script still targets port 8080 unless changed separately.
 
 ## 8. Testing and Validation
 
@@ -161,7 +161,7 @@ Create a production build:
 npm.cmd run build
 ```
 
-At the time of the Assignment 7.1 implementation, all 14 frontend unit tests passed, along with TypeScript checking, linting, and the production build.
+During the Assignment 7.1 review, the user reported 14 passing frontend unit tests, a successful TypeScript check, a successful lint run, and a successful production build before the illustrative fixture updates. Re-run these commands after applying the review package.
 
 The tests cover money formatting, invalid monetary inputs, Johannesburg timezone conversion, and date formatting.
 
@@ -215,7 +215,7 @@ The following functionality is outside the current frontend implementation:
 
 The Treasurer tools area is a visual placeholder only.
 
-The contribution status is displayed as "Recorded" because the current contribution response contract does not provide a separate status field.
+Contribution status is read from the generated API response contract and shown as text (for example, Pending, Paid, or Confirmed).
 
 ## 12. Repository
 
@@ -232,3 +232,12 @@ The backend is located in the repository root, while the React frontend is locat
 **Frontend:** React, TypeScript, Vite
 
 **Status:** Sample-data dashboard implemented and validated
+
+## 13. Assignment handoff and remaining evidence
+
+- `StokvelCard` and `ContributionCard` are presentational components; no frontend API calls are made.
+- Treasurer-only content is hidden from Member cards. This is **not** a substitute for backend authorization; the backend must enforce permissions.
+- Sample records are **illustrative**, not verified API captures. To satisfy an assignment requirement for actual API samples, capture authorized responses from `/api/v1/me/home` and the contribution-list endpoint, anonymize any personal details, and replace these fixtures without changing the generated types.
+- Formatting helpers are reusable. React uses stable contribution IDs as keys. The cards are not individually memoized; add memoization only if profiling demonstrates a need.
+- The contribution-list API supplies the status, while the displayed cycle period is derived from the matching sample stokvel. For a future live implementation, resolve the cycle period from its actual cycle identifier rather than assuming the current cycle.
+- Backend status lifecycle and permissions should be verified against the running API; demonstration statuses do not establish actual persisted status transitions.

@@ -22,34 +22,6 @@ namespace RondiTrack.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("RondiTrack.Domain.Entities.PersistedIdempotencyRecord", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RequestHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("ResponseJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("ResponseStatus")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Key");
-
-                    b.HasIndex("CreatedAtUtc");
-
-                    b.ToTable("PersistedIdempotencyRecords");
-                });
-
             modelBuilder.Entity("RondiTrack.Domain.Entities.Contribution", b =>
                 {
                     b.Property<Guid>("Id")
@@ -64,6 +36,13 @@ namespace RondiTrack.Infrastructure.Migrations
 
                     b.Property<DateTime>("RecordedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Paid");
 
                     b.Property<Guid>("StokvelId")
                         .HasColumnType("uuid");
@@ -195,6 +174,34 @@ namespace RondiTrack.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Payouts");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.PersistedIdempotencyRecord", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ResponseJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ResponseStatus")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.ToTable("PersistedIdempotencyRecords");
                 });
 
             modelBuilder.Entity("RondiTrack.Domain.Entities.RefreshToken", b =>

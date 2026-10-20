@@ -4,6 +4,7 @@ import type {
   ContributionWithMemberResponse,
 } from '../api/types'
 
+// Illustrative typed fixtures. Replace with captured, anonymised API responses when available.
 export const sampleStokvels = [
   {
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187001',
@@ -48,10 +49,11 @@ export const sampleContributions = [
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187001',
     userId: 'e3c7c15b-7936-47bc-9355-39ac84277001',
     userName: 'Lerato Mokoena',
-    userEmail: 'lerato@example.com',
+    userEmail: 'lerato@example.test',
     memberRole: 'Member',
     contributionCycleId: '6e9d6d8e-6c30-4d73-93f0-9f2c61017001',
     amount: 12510,
+    status: 'Pending',
     recordedAtUtc: '2026-10-31T22:30:00Z',
     version: 1,
   },
@@ -60,11 +62,26 @@ export const sampleContributions = [
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187001',
     userId: 'e3c7c15b-7936-47bc-9355-39ac84277002',
     userName: 'Thabo Dlamini',
-    userEmail: 'thabo@example.com',
+    userEmail: 'thabo@example.test',
     memberRole: 'Treasurer',
     contributionCycleId: '6e9d6d8e-6c30-4d73-93f0-9f2c61017001',
     amount: 50000,
+    status: 'Paid',
     recordedAtUtc: '2026-10-19T08:15:00Z',
+    version: 1,
+  },
+  // Illustrative 10-cent edge case; not claimed to be a captured API record.
+  {
+    id: 'd9c745b4-b631-49cf-ae5d-b9814e719004',
+    stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187002',
+    userId: 'e3c7c15b-7936-47bc-9355-39ac84277004',
+    userName: 'Demo Contributor',
+    userEmail: 'demo@example.test',
+    memberRole: 'Member',
+    contributionCycleId: '6e9d6d8e-6c30-4d73-93f0-9f2c61017002',
+    amount: 10,
+    status: 'Paid',
+    recordedAtUtc: '2026-10-20T08:00:00Z',
     version: 1,
   },
   {
@@ -72,10 +89,11 @@ export const sampleContributions = [
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187002',
     userId: 'e3c7c15b-7936-47bc-9355-39ac84277003',
     userName: 'Nomsa Khumalo',
-    userEmail: 'nomsa@example.com',
+    userEmail: 'nomsa@example.test',
     memberRole: 'Member',
     contributionCycleId: '6e9d6d8e-6c30-4d73-93f0-9f2c61017002',
     amount: 72500,
+    status: 'Confirmed',
     recordedAtUtc: '2026-10-18T14:45:00Z',
     version: 1,
   },

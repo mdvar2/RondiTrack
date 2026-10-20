@@ -1,3 +1,4 @@
+
 namespace RondiTrack.Domain.Entities;
 
 public class Contribution
@@ -14,6 +15,8 @@ public class Contribution
 
     public decimal Amount { get; private set; }
 
+    public string Status { get; private set; } = "Paid";
+
     public DateTime RecordedAtUtc { get; private set; }
 
     public ContributionCycle Cycle { get; private set; } = null!;
@@ -27,16 +30,13 @@ public class Contribution
         decimal amount)
     {
         if (stokvelId == Guid.Empty)
-            throw new ArgumentException(
-                "Stokvel ID is required.");
+            throw new ArgumentException("Stokvel ID is required.");
 
         if (userId == Guid.Empty)
-            throw new ArgumentException(
-                "User ID is required.");
+            throw new ArgumentException("User ID is required.");
 
         if (contributionCycleId == Guid.Empty)
-            throw new ArgumentException(
-                "Contribution cycle ID is required.");
+            throw new ArgumentException("Contribution cycle ID is required.");
 
         if (amount <= 0)
             throw new ArgumentException(
@@ -47,6 +47,16 @@ public class Contribution
         UserId = userId;
         ContributionCycleId = contributionCycleId;
         Amount = amount;
+        Status = "Paid";
         RecordedAtUtc = DateTime.UtcNow;
+    }
+
+    public void UpdateStatus(string status)
+    {
+        if (status is not ("Pending" or "Paid" or "Confirmed"))
+            throw new ArgumentException(
+                "Status must be Pending, Paid or Confirmed.");
+
+        Status = status;
     }
 }

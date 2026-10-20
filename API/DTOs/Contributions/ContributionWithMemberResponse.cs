@@ -1,3 +1,4 @@
+
 using RondiTrack.Domain.Entities;
 
 namespace RondiTrack.DTOs.Contributions;
@@ -11,6 +12,7 @@ public record ContributionWithMemberResponse(
     string MemberRole,
     Guid ContributionCycleId,
     long Amount,
+    string Status,
     DateTime RecordedAtUtc,
     uint Version)
 {
@@ -26,6 +28,7 @@ public record ContributionWithMemberResponse(
             row.MemberRole,
             row.ContributionCycleId,
             ToCents(row.Amount),
+            row.Status,
             row.RecordedAtUtc,
             row.Version);
     }
@@ -42,6 +45,7 @@ public record ContributionWithMemberResponse(
             contribution.Member.Role,
             contribution.ContributionCycleId,
             ToCents(contribution.Amount),
+            contribution.Status,
             contribution.RecordedAtUtc,
             contribution.Version);
     }

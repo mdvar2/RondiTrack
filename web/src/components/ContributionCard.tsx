@@ -1,3 +1,4 @@
+
 import type {
   ContributionResponse,
   ContributionWithMemberResponse,
@@ -28,7 +29,7 @@ export function ContributionCard({
         </div>
 
         <span className="contribution-card__status">
-          Recorded
+          {contribution.status}
         </span>
       </div>
 

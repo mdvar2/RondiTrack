@@ -159,6 +159,13 @@ public class RondiTrackDbContext : DbContext
         // CONTRIBUTION CONFIGURATION
         // =====================================================
 
+        // Contribution payment status
+        modelBuilder.Entity<Contribution>()
+            .Property(contribution => contribution.Status)
+            .HasMaxLength(20)
+            .HasDefaultValue("Paid")
+            .IsRequired();
+
         modelBuilder.Entity<Contribution>()
             .HasOne(contribution => contribution.Member)
             .WithMany()
