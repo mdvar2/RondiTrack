@@ -1,4 +1,3 @@
-
 import type { components } from './schema'
 
 export type HomeResponse =
@@ -9,6 +8,9 @@ export type HomeStokvel =
 
 export type HomeCycle =
   components['schemas']['HomeCycleResponse']
+
+export type ContributionCycleResponse =
+  components['schemas']['ContributionCycleResponse']
 
 export type ContributionResponse =
   components['schemas']['ContributionResponse']

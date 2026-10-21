@@ -1,28 +1,24 @@
 
-/* Main Application */
-
 .app-shell {
   min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
 }
 
-/* Header */
-
 .app-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
 }
 
 .app-header__inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px 28px;
+  max-width: 1100px;
+  margin: auto;
+  padding: 16px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
 }
-
-/* Branding */
 
 .brand {
   display: flex;
@@ -31,398 +27,253 @@
 }
 
 .brand__mark {
-  width: 44px;
-  height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  background: #155e75;
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.brand > div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .brand strong {
-  font-size: 19px;
-  color: #0f172a;
+  font-size: 20px;
 }
 
-.brand > div > span {
-  color: #64748b;
-  font-size: 12px;
+.theme-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
 }
 
-.demo-badge {
-  background: #ecfeff;
-  color: #155e75;
-  border: 1px solid #a5f3fc;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+.theme-control select {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
 }
 
-/* Dashboard */
+.theme-control select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 
 .dashboard {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 48px 28px 70px;
+  max-width: 1100px;
+  margin: auto;
+  padding: 32px 24px 60px;
 }
 
-.dashboard__heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 30px;
-}
-
-.eyebrow {
-  color: #0e7490;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.6px;
-  margin: 0 0 10px;
-}
-
-.dashboard__heading h1 {
-  color: #0f172a;
-  font-size: clamp(28px, 4vw, 40px);
-  letter-spacing: -1.2px;
-  margin: 0 0 12px;
-}
-
-.dashboard__description {
-  color: #64748b;
-  max-width: 550px;
-  line-height: 1.7;
-  margin: 0;
-}
-
-.dashboard__count {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px 24px;
-  min-width: 110px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.dashboard__count strong {
-  font-size: 28px;
-  color: #155e75;
-}
-
-.dashboard__count span {
-  color: #64748b;
-  font-size: 13px;
-}
-
-/* Stokvel Grid */
-
-.stokvel-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
-}
-
-/* Stokvel Cards */
-
-.stokvel-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 24px;
-  min-width: 0;
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.04);
-}
-
-.stokvel-card__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.stokvel-card__header h2 {
-  color: #0f172a;
-  font-size: 19px;
-  line-height: 1.4;
-  margin: 0 0 6px;
-}
-
-.stokvel-card__subtitle {
-  color: #94a3b8;
-  font-size: 12px;
-  margin: 0;
-}
-
-.role-badge {
-  flex-shrink: 0;
-  padding: 6px 10px;
-  background: #f1f5f9;
-  color: #334155;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-/* Stokvel Details */
-
-.stokvel-card__section {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 20px;
-  margin-top: 20px;
-}
-
-.stokvel-card__section h3 {
-  color: #334155;
-  font-size: 14px;
-  margin: 0 0 18px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-  font-size: 13px;
-}
-
-.detail-row span {
-  color: #64748b;
-}
-
-.detail-row strong {
-  color: #0f172a;
-  text-align: right;
-}
-
-/* Contribution Summary Within Stokvel Card */
-
-.contribution-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 22px;
-}
-
-.contribution-summary > div {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 15px;
-  background: #f0fdfa;
-  border-radius: 12px;
-  min-width: 0;
-}
-
-.contribution-summary span {
-  font-size: 11px;
-  color: #475569;
-}
-
-.contribution-summary strong {
-  font-size: 16px;
-  color: #115e59;
-  overflow-wrap: anywhere;
-}
-
-.stokvel-card__section > p {
-  color: #334155;
-  font-size: 14px;
-  margin: 0;
-}
-
-/* Empty States */
-
-.empty-state {
-  padding: 18px;
-  border-radius: 12px;
-  background: #f8fafc;
-  color: #64748b !important;
-}
-
-/* Treasurer Panel */
-
-.treasurer-panel {
-  margin-top: 22px;
-  padding: 16px;
-  border: 1px dashed #67e8f9;
-  border-radius: 12px;
-  background: #ecfeff;
-}
-
-.treasurer-panel strong {
-  color: #155e75;
-  font-size: 13px;
-}
-
-.treasurer-panel p {
-  color: #475569;
-  font-size: 12px;
-  line-height: 1.6;
-  margin: 7px 0 0;
-}
-
-/* Recent Contributions Section */
-
-.contributions-section {
-  margin-top: 56px;
-}
-
+.dashboard__heading,
 .contributions-section__heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 28px;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard__heading h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
 }
 
 .contributions-section__heading h2 {
-  color: #0f172a;
-  font-size: clamp(24px, 3vw, 30px);
-  letter-spacing: -0.8px;
-  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
 }
 
-/* Contribution Card Grid */
+.dashboard__count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
 
+.dashboard__count strong {
+  color: var(--foreground);
+  font-size: 16px;
+}
+
+.stokvel-grid,
 .contribution-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
+  gap: 16px;
 }
 
-/* Individual Contribution Card */
-
+.stokvel-card,
 .contribution-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 24px;
   min-width: 0;
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.04);
+  padding: 20px;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
+.stokvel-card__header,
 .contribution-card__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+.stokvel-card__header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.role-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stokvel-card__section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.stokvel-card__section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.detail-row span,
+.contribution-card__details dt {
+  color: var(--muted-foreground);
+}
+
+.detail-row strong,
+.contribution-card__details dd {
+  color: var(--foreground);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.contribution-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.contribution-summary > div {
+  min-width: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--secondary);
+  border-radius: 8px;
+}
+
+.contribution-summary span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.contribution-summary strong {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.stokvel-card__section > p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.empty-state {
+  padding: 12px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border-radius: 8px;
+}
+
+.contributions-section {
+  margin-top: 40px;
 }
 
 .contribution-card__eyebrow {
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 12px;
-  font-weight: 700;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
 .contribution-card__header h3 {
-  color: #115e59;
-  font-size: clamp(20px, 2.5vw, 26px);
-  letter-spacing: -0.5px;
-  line-height: 1.3;
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
-
-/* Recorded Status */
-
-.contribution-card__status {
-  flex-shrink: 0;
-  background: #f0fdfa;
-  color: #115e59;
-  border: 1px solid #99f6e4;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-/* Contribution Details */
 
 .contribution-card__details {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
   margin: 0;
-}
-
-.contribution-card__details .detail-row {
-  align-items: flex-start;
-}
-
-.contribution-card__details dt {
-  color: #64748b;
-  flex-shrink: 0;
 }
 
 .contribution-card__details dd {
-  color: #0f172a;
-  font-weight: 600;
   margin: 0;
-  text-align: right;
-  overflow-wrap: anywhere;
+  font-weight: 500;
 }
 
 .contribution-card__details .detail-row:last-child {
   margin-bottom: 0;
 }
 
-/* Dashboard Notice */
-
-.dashboard__notice {
-  margin-top: 30px;
-  color: #64748b;
-  font-size: 12px;
-  text-align: center;
-}
-
-/* Tablet Layout */
-
-@media (max-width: 1000px) {
+@media (max-width: 900px) {
   .stokvel-grid,
   .contribution-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* Mobile Layout */
-
-@media (max-width: 700px) {
+@media (max-width: 600px) {
   .app-header__inner {
-    padding: 16px;
-  }
-
-  .demo-badge {
-    font-size: 10px;
-    padding: 7px 9px;
+    padding: 14px 16px;
   }
 
   .dashboard {
-    padding: 30px 16px 50px;
+    padding: 24px 16px 40px;
   }
 
-  .dashboard__heading,
-  .contributions-section__heading {
-    align-items: flex-start;
+  .dashboard__heading h1 {
+    font-size: 24px;
   }
 
-  .dashboard__count {
-    display: none;
+  .contributions-section__heading h2 {
+    font-size: 21px;
   }
 
   .stokvel-grid,
@@ -432,10 +283,10 @@
 
   .stokvel-card,
   .contribution-card {
-    padding: 20px;
+    padding: 16px;
   }
 
-  .contributions-section {
-    margin-top: 42px;
+  .dashboard__count {
+    display: none;
   }
 }

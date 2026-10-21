@@ -3,6 +3,7 @@ import type {
   ContributionResponse,
   ContributionWithMemberResponse,
 } from '../api/types'
+import { StatusBadge } from './StatusBadge'
 import { formatCents } from '../lib/money'
 import { formatJohannesburgDateTime } from '../lib/dates'
 
@@ -28,9 +29,7 @@ export function ContributionCard({
           <h3>{formatCents(contribution.amount)}</h3>
         </div>
 
-        <span className="contribution-card__status">
-          {contribution.status}
-        </span>
+        <StatusBadge status={contribution.status} />
       </div>
 
       <dl className="contribution-card__details">

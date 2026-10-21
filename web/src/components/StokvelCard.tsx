@@ -1,4 +1,7 @@
+
 import type { HomeStokvel } from '../api/types'
+import { StatusBadge } from './StatusBadge'
+import { DueCountdown } from './DueCountdown'
 import { formatCents } from '../lib/money'
 import {
   formatCycleDueDate,
@@ -19,18 +22,10 @@ export function StokvelCard({ stokvel }: StokvelCardProps) {
     nextPayoutDate,
   } = stokvel
 
-  const isTreasurer = role === 'Treasurer'
-
   return (
     <article className="stokvel-card">
       <header className="stokvel-card__header">
-        <div>
-          <h2>{stokvelName}</h2>
-          <p className="stokvel-card__subtitle">
-            Community savings group
-          </p>
-        </div>
-
+        <h2>{stokvelName}</h2>
         <span className="role-badge">{role}</span>
       </header>
 
@@ -46,7 +41,7 @@ export function StokvelCard({ stokvel }: StokvelCardProps) {
 
             <div className="detail-row">
               <span>Status</span>
-              <strong>{currentCycle.status}</strong>
+              <StatusBadge status={currentCycle.status} />
             </div>
 
             <div className="detail-row">
@@ -57,6 +52,11 @@ export function StokvelCard({ stokvel }: StokvelCardProps) {
                   : 'No due date set'}
               </strong>
             </div>
+
+            <DueCountdown
+              dueDate={currentCycle.dueDate}
+              status={currentCycle.status}
+            />
 
             <div className="contribution-summary">
               <div>
@@ -83,23 +83,12 @@ export function StokvelCard({ stokvel }: StokvelCardProps) {
 
       <section className="stokvel-card__section">
         <h3>Next payout</h3>
-
         <p>
           {nextPayoutDate
             ? formatJohannesburgDate(nextPayoutDate)
             : 'No payout scheduled'}
         </p>
       </section>
-
-      {isTreasurer && (
-        <footer className="treasurer-panel">
-          <strong>Treasurer tools</strong>
-          <p>
-            Contribution management will be available
-            in a future assignment.
-          </p>
-        </footer>
-      )}
     </article>
   )
 }

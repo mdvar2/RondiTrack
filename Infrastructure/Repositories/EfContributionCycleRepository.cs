@@ -1,3 +1,4 @@
+
 using RondiTrack.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using RondiTrack.Infrastructure.Data;
@@ -17,34 +18,30 @@ public class EfContributionCycleRepository
     }
 
     public async Task<IEnumerable<ContributionCycle>>
-        GetAllByStokvelAsync(
-            Guid stokvelId)
+        GetAllByStokvelAsync(Guid stokvelId)
     {
         return await _dbContext.ContributionCycles
             .AsNoTracking()
-            .Where(
-                cycle =>
-                    cycle.StokvelId == stokvelId)
+            .Include(cycle => cycle.Contributions)
+            .Where(cycle => cycle.StokvelId == stokvelId)
+            .OrderByDescending(cycle => cycle.Period)
+            .ThenByDescending(cycle => cycle.Id)
             .ToListAsync();
     }
 
-    public async Task<ContributionCycle?> GetByIdAsync(
-        Guid id)
+    public async Task<ContributionCycle?> GetByIdAsync(Guid id)
     {
         return await _dbContext.ContributionCycles
-            .FirstOrDefaultAsync(
-                cycle =>
-                    cycle.Id == id);
+            .Include(cycle => cycle.Contributions)
+            .FirstOrDefaultAsync(cycle => cycle.Id == id);
     }
 
-    public async Task<ContributionCycle?> GetByIdReadOnlyAsync(
-        Guid id)
+    public async Task<ContributionCycle?> GetByIdReadOnlyAsync(Guid id)
     {
         return await _dbContext.ContributionCycles
             .AsNoTracking()
-            .FirstOrDefaultAsync(
-                cycle =>
-                    cycle.Id == id);
+            .Include(cycle => cycle.Contributions)
+            .FirstOrDefaultAsync(cycle => cycle.Id == id);
     }
 
     public async Task AddAsync(
@@ -65,20 +62,15 @@ public class EfContributionCycleRepository
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<bool> DeleteAsync(
-        Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
-        var cycle =
-            await _dbContext.ContributionCycles
-                .FirstOrDefaultAsync(
-                    cycle =>
-                        cycle.Id == id);
+        var cycle = await _dbContext.ContributionCycles
+            .FirstOrDefaultAsync(cycle => cycle.Id == id);
 
         if (cycle is null)
             return false;
 
-        _dbContext.ContributionCycles.Remove(
-            cycle);
+        _dbContext.ContributionCycles.Remove(cycle);
 
         await _dbContext.SaveChangesAsync();
 

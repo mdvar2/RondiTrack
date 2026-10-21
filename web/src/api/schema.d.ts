@@ -1376,7 +1376,14 @@ export interface components {
             /** Format: uint32 */
             version: number;
             /** Format: date */
-            endDate?: null | string;
+            endDate: null | string;
+            status: string;
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: int64 */
+            totalCollectedCents: number;
+            /** Format: int64 */
+            amountDueCents: number;
         };
         ContributionResponse: {
             /** Format: uuid */
