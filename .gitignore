@@ -494,3 +494,7 @@ $RECYCLE.BIN/
 .env
 .env.*
 !.env.example
+# Local assignment review artifacts
+/assignment71-frontend-review.zip
+/assignment71-review.zip
+/contribution-review.txt
