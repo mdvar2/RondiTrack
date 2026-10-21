@@ -408,3 +408,51 @@ These are local verification results, **not** a claim that the latest changes ha
 ### Limitations and handoff
 
 The dashboard does not yet provide login, authenticated API requests, payment submission or working Treasurer controls. The demonstration statuses and records should not be mistaken for independently captured production or signed-in API responses. The final rubric check should confirm the required sample-data provenance and UI edge cases before declaring Assignment 7.1 fully complete. Backend authorization must remain enforced by the API; hiding a frontend control is not authorization.
+
+## Assignment 7.2 — A Styled, Responsive Stokvel View
+
+Assignment 7.2 extends the RondiTrack React frontend with responsive styling, contribution-cycle grouping, status badges, South African due-date countdowns, and theme selection.
+
+### Implemented features
+
+- Responsive StokvelCard and ContributionCard components.
+- Light, Dark and System theme options.
+- Contribution cycles grouped and ordered, including Open, Closed and PaidOut statuses.
+- Expandable contribution-cycle sections.
+- Contribution status badges for Pending, Paid and Confirmed.
+- Arrears indicators for members with outstanding contributions.
+- South African currency and Johannesburg-local date formatting.
+- Due-date countdowns based on Johannesburg calendar days.
+- Additional backend support for retrieving the authenticated member's persisted arrears.
+- Automated tests for contribution grouping, date boundaries and arrears behaviour.
+
+### Running the frontend
+
+From the repository root:
+
+```powershell
+cd web
+npm ci
+npm run dev
+```
+
+Open the local URL displayed by Vite, normally `http://localhost:3000/`.
+
+### Verification
+
+The latest local verification completed successfully:
+
+- Backend: 132 tests passed.
+- Frontend: 23 tests passed.
+- TypeScript, ESLint and production build passed.
+- Production dependency audit: 0 vulnerabilities.
+
+### Current limitations
+
+The dashboard uses illustrative demonstration data rather than live authenticated API requests. The interface and backend implementation should be reviewed separately when verifying database-backed scenarios.
+
+The contribution-group controls and the required mobile screenshots, contrast measurements and other assignment evidence have not all been verified as fully compliant.
+
+### Further documentation
+
+See [Assignment 7.2 frontend README](web/README.md) and [Assignment 7.2 backend/UI notes](docs/assignment-7-2-stage2.md).
