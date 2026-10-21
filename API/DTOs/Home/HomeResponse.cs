@@ -1,4 +1,3 @@
-
 namespace RondiTrack.DTOs.Home;
 
 public record HomeResponse(IReadOnlyList<HomeStokvelResponse> Stokvels);
@@ -10,7 +9,8 @@ public record HomeStokvelResponse(
     HomeCycleResponse? CurrentCycle,
     long AmountPaid,
     long AmountOwed,
-    DateTimeOffset? NextPayoutDate);
+    DateTimeOffset? NextPayoutDate,
+    long ArrearsCents = 0);
 
 public record HomeCycleResponse(
     string Period,

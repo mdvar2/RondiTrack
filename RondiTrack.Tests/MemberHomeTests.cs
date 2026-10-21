@@ -188,7 +188,7 @@ public class MemberHomeTests(PostgresApiFactory factory)
             stokvel =>
             {
                 Assert.Equal(
-                    7,
+                    8,
                     stokvel.EnumerateObject().Count());
 
                 var stokvelId = stokvel

@@ -290,3 +290,13 @@
     display: none;
   }
 }
+/* Assignment 7.2 mobile resilience additions. */
+.app-shell { min-width: 0; }
+.app-header__inner, .dashboard, .stokvel-card, .contribution-card { min-width: 0; }
+.stokvel-card__header, .contribution-card__header { flex-wrap: wrap; }
+.role-badge { white-space: normal; overflow-wrap: anywhere; margin: 0; }
+.contribution-card__details dd, .stokvel-card h2, .contribution-card { overflow-wrap: anywhere; }
+.contribution-summary { grid-template-columns: minmax(0, 1fr); }
+.contribution-summary strong { white-space: nowrap; font-size: clamp(0.75rem, 3vw, 0.9375rem); }
+@media (min-width: 640px) { .contribution-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+

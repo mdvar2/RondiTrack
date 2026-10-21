@@ -1,243 +1,56 @@
-# RondiTrack — React Frontend
+# RondiTrack — Assignment 7.2 frontend
 
-RondiTrack is a stokvel management application designed to help members view their savings groups, contribution cycles, payments, and upcoming payouts.
+RondiTrack's responsive React/TypeScript stokvel dashboard uses Tailwind CSS v4 and shadcn/ui. The repository's `web/` folder is the frontend; the ASP.NET Core API and PostgreSQL infrastructure live in the repository root.
 
-This frontend was developed as part of **Bitcube Backend Curriculum — Week 7, Assignment 7.1: StokvelCard & ContributionCard**.
+## Start and verify
 
-## 1. Technology Stack
-
-- React 19 with React Compiler
-- TypeScript 5 in strict mode
-- Vite 8
-- Node.js 24
-- CSS for responsive layouts
-- OpenAPI TypeScript for generated API contracts
-- Vitest for unit testing
-- ESLint for code quality
-
-Dependency versions are pinned in `package.json` and `package-lock.json`.
-
-## 2. Implemented Features
-
-### StokvelCard
-
-Displays an overview of each savings group, including:
-
-- Stokvel name and member role
-- Current contribution cycle and status
-- Contribution due date
-- Amount paid and amount outstanding
-- Next scheduled payout date
-- Treasurer-only tools placeholder
-
-The component handles the following scenarios:
-
-- When no contribution cycle exists, payment amounts are hidden.
-- When the outstanding amount is zero, the card displays "All paid up".
-- When no payout date is available, the card displays "No payout scheduled".
-- Treasurer-only information is not displayed to ordinary members.
-
-### ContributionCard
-
-Displays contribution information, including:
-
-- Contribution amount in South African rand
-- Recorded contribution status
-- Contribution cycle
-- Date and time recorded
-- Contributor name when available in the supplied data
-
-Contribution cards use stable contribution IDs as React keys.
-
-### South African Formatting
-
-The application includes reusable formatting utilities:
-
-- `formatCents()` formats integer-cent amounts in ZAR.
-- `formatJohannesburgDate()` formats dates for South Africa.
-- `formatJohannesburgDateTime()` converts UTC timestamps into Africa/Johannesburg local time.
-- `formatCycleDueDate()` formats calendar-based cycle due dates.
-
-For example, the UTC timestamp `2026-10-31T22:30:00Z` displays as `01 Nov 2026, 00:30` in Johannesburg.
-
-## 3. Frontend Data and API Contracts
-
-The dashboard currently uses **illustrative typed sample data** from `src/data/sample.ts`. These fixtures are not verified captures of signed-in API responses. The 10-cent entry and status variants are UI demonstration cases, not assertions about persisted records.
-
-It does not make live API requests, implement authentication, or submit contribution forms.
-
-The frontend uses TypeScript interfaces generated from the backend's OpenAPI document. These are stored in:
-
-`src/api/schema.d.ts`
-
-Reusable type aliases are defined in:
-
-`src/api/types.ts`
-
-This approach allows the components to follow backend response contracts without requiring a live API connection during the demonstration.
-
-## 4. Prerequisites
-
-Install:
-
-- Node.js 24
-- npm
-- Git
-
-For regenerating API contracts, the RondiTrack backend must also be running and exposing its OpenAPI document at:
-
-`http://localhost:8081/openapi/v1.json`
-
-## 5. Installation
-
-From the repository root:
-
-```bash
+```powershell
 cd web
-npm ci
-```
-
-On Windows PowerShell, use `npm.cmd` if the PowerShell execution policy prevents `npm` from running.
-
-```powershell
 npm.cmd ci
-```
-
-## 6. Run the Frontend
-
-Start the development server:
-
-```powershell
+npm.cmd run lint
+npm.cmd run typecheck
+npm.cmd run build
+npx.cmd vitest run
+npm.cmd audit --omit=dev
 npm.cmd run dev
 ```
 
-Open:
+The development server uses `http://localhost:3000/`. The generated API contract is `src/api/schema.d.ts`; regenerate it with `npm.cmd run generate:api` only when the updated backend's OpenAPI document is accessible at `http://localhost:8080/openapi/v1.json`. The production Docker API can return 401 for this development-only document.
 
-`http://localhost:3000`
+**Data provenance:** The dashboard currently renders typed, illustrative fixtures in `src/data/sample.ts` and `src/data/sampleCycles.ts`, not live authenticated API responses. The cycle totals are supplied by the cycle response objects and are never recomputed from contribution rows in the browser. For a complete API demonstration, capture authorized, anonymized data in Scalar and replace the fixtures; do not claim these fixtures are database seed records.
 
-The Vite development server is configured to use port 3000.
+## Assignment 7.2 design decisions
 
-The dashboard displays sample stokvels and recent contributions.
+### Grouping and expand/collapse state
 
-## 7. Generate OpenAPI Types
+`groupContributionsByCycle` is a pure function in `src/lib/`. It sorts cycles newest-first and contribution entries newest-first, retains empty cycles and puts unmatched contributions in a final `Unknown cycle` group. The group list derives from props at render time, not from React state. `ContributionList` owns the expanded-state dictionary because both individual group buttons and the list-level Expand all / Collapse all buttons need access to it. Keys are cycle IDs rather than array positions, so adding a new cycle cannot transfer another cycle's expanded state to the wrong group. Open cycles default to expanded; others default to collapsed.
 
-Start the backend before generating the TypeScript API contracts.
+### Johannesburg due dates and timer
 
-From the `web` directory:
+The API's `dueDate` is a South African calendar date (`YYYY-MM-DD`), not an instant. `getJohannesburgDeadlineUtc` interprets `2026-10-31` as the exclusive deadline `2026-10-31T22:00:00Z` (the beginning of 1 November SAST), not UTC midnight on 31 October. `getDueCountdown` compares calendar dates in Johannesburg, preventing a premature overdue message on the due date. The effect in `DueCountdown` depends on `[dueDate, status]`: it schedules only for Open cycles, clears the timeout on cleanup and schedules a new timeout after each Johannesburg midnight. A per-second interval would waste battery without changing a day-based display. The user's device clock drives the informational countdown, but the API's server-side cycle-close and arrears decisions are authoritative. South Africa's fixed UTC+02:00 offset makes the next-midnight helper deterministic without DST adjustments.
 
-```powershell
-npx.cmd openapi-typescript http://localhost:8081/openapi/v1.json -o src/api/schema.d.ts
-```
+### Badge meaning, roles and privacy
 
-This retrieves the backend OpenAPI specification and regenerates:
+`StatusBadge` uses status text and an icon, not colour alone. `Paid` denotes a contribution claim; `Confirmed` denotes a treasurer-verified payment; `Paid out` denotes the entire cycle's payout. Unknown statuses are displayed neutrally with their raw label and an icon. The arrears badge accepts integer cents and is absent for zero. Role is not a status: it must be displayed as contextual text such as `You're the Treasurer`. Personal arrears must come from the authenticated caller's API response, never from another member's contribution or a browser-side sum. The present frontend does **not** yet demonstrate authenticated caller arrears because that backend contract has not been verified.
 
-`src/api/schema.d.ts`
+### Theme and storage
 
-The generated schema should be committed whenever relevant backend response contracts change. **Important:** Docker/WSL may already serve an older API on port 8080. For the updated local API, run `dotnet run --project API --urls http://localhost:8081` from the repository root and use the 8081 command above. The package script still targets port 8080 unless changed separately.
+Light, Dark and System use CSS theme tokens. The inline `index.html` script applies the stored preference before the first React paint, and the React effect follows operating-system theme changes while the page is open. Storage access is wrapped in `try/catch`. A theme preference is device-wide and not personal; future per-user pinned stokvels must be scoped to the authenticated account and cleared on logout.
 
-## 8. Testing and Validation
+### Dependency audit
 
-Run the frontend unit tests:
+The initial production audit reported seven high-severity transitive findings associated with the shadcn CLI when `shadcn` was installed as a production dependency. Moving `shadcn` to pinned `devDependencies` resulted in `npm audit --omit=dev` reporting **0 production vulnerabilities** on the user's last run. Development-tool findings are distinct from runtime production dependency exposure.
 
-```powershell
-npm.cmd run test -- --run
-```
+## Evidence still required before full sign-off
 
-Check TypeScript types:
+Do not present unmeasured results as complete:
 
-```powershell
-npm.cmd run typecheck
-```
+1. **StrictMode evidence:** Temporarily add `console.count` to the timer scheduling and cleanup paths; capture console output with cleanup enabled and temporarily disabled, compare the duplicate StrictMode setup/cleanup behaviour, then remove the logging. This evidence has not been captured.
+2. **Contrast:** In DevTools measure foreground/background ratios for every badge (Open, Closed, Paid out, Pending, Paid, Confirmed, arrears, unknown) in Light and Dark; each must be at least 4.5:1. Add the measured table here. Measurements have not been captured.
+3. **360px screenshots:** In DevTools set width 360px, expand every group, capture Light and Dark screenshots, verify no horizontal scrolling, names wrap, amounts do not break, buttons are at least 24×24px and grayscale meaning survives. Screenshots have not been captured or embedded.
+4. **API handoff:** Existing backend cycle DTO/repository changes expose status, due date, collected and due totals and were previously reported to pass backend tests. Dedicated new tests and actual seeded Open/Closed/PaidOut and caller-arrears API evidence have not been supplied. Do not infer caller arrears from the cycle outstanding amount.
+5. **Real API data:** Replace illustrative fixtures with captured anonymized authenticated API responses or implement authenticated fetching, and confirm the caller's own arrears are supplied in cents by `/api/v1/me/home`.
 
-Run ESLint:
+## Current scope
 
-```powershell
-npm.cmd run lint
-```
-
-Create a production build:
-
-```powershell
-npm.cmd run build
-```
-
-During the Assignment 7.1 review, the user reported 14 passing frontend unit tests, a successful TypeScript check, a successful lint run, and a successful production build before the illustrative fixture updates. Re-run these commands after applying the review package.
-
-The tests cover money formatting, invalid monetary inputs, Johannesburg timezone conversion, and date formatting.
-
-## 9. Project Structure
-
-```text
-web/
-├── public/
-├── src/
-│   ├── api/
-│   │   ├── schema.d.ts
-│   │   └── types.ts
-│   ├── components/
-│   │   ├── ContributionCard.tsx
-│   │   └── StokvelCard.tsx
-│   ├── data/
-│   │   └── sample.ts
-│   ├── lib/
-│   │   ├── dates.ts
-│   │   ├── dates.test.ts
-│   │   ├── money.ts
-│   │   └── money.test.ts
-│   ├── App.tsx
-│   ├── App.css
-│   ├── index.css
-│   └── main.tsx
-├── package.json
-├── package-lock.json
-├── vite.config.ts
-├── tsconfig.json
-└── README.md
-```
-
-## 10. Responsive Design
-
-The dashboard uses responsive CSS layouts for desktop, tablet, and mobile screen sizes.
-
-On wider screens, stokvel and contribution cards appear in multiple columns. On smaller screens, the layout adjusts to fewer columns for improved readability.
-
-## 11. Current Scope and Limitations
-
-Assignment 7.1 focuses on displaying typed stokvel and contribution information.
-
-The following functionality is outside the current frontend implementation:
-
-- Live backend data fetching
-- User login and authentication
-- Creating or editing contributions through forms
-- Executable Treasurer management actions
-- Real-time payment updates
-
-The Treasurer tools area is a visual placeholder only.
-
-Contribution status is read from the generated API response contract and shown as text (for example, Pending, Paid, or Confirmed).
-
-## 12. Repository
-
-GitHub: https://github.com/mdvar2/RondiTrack
-
-The backend is located in the repository root, while the React frontend is located in the `web` directory.
-
----
-
-**Project:** RondiTrack
-
-**Assignment:** Bitcube Backend Curriculum — Week 7, Assignment 7.1
-
-**Frontend:** React, TypeScript, Vite
-
-**Status:** Sample-data dashboard implemented and validated
-
-## 13. Assignment handoff and remaining evidence
-
-- `StokvelCard` and `ContributionCard` are presentational components; no frontend API calls are made.
-- Treasurer-only content is hidden from Member cards. This is **not** a substitute for backend authorization; the backend must enforce permissions.
-- Sample records are **illustrative**, not verified API captures. To satisfy an assignment requirement for actual API samples, capture authorized responses from `/api/v1/me/home` and the contribution-list endpoint, anonymize any personal details, and replace these fixtures without changing the generated types.
-- Formatting helpers are reusable. React uses stable contribution IDs as keys. The cards are not individually memoized; add memoization only if profiling demonstrates a need.
-- The contribution-list API supplies the status, while the displayed cycle period is derived from the matching sample stokvel. For a future live implementation, resolve the cycle period from its actual cycle identifier rather than assuming the current cycle.
-- Backend status lifecycle and permissions should be verified against the running API; demonstration statuses do not establish actual persisted status transitions.
+This package strengthens frontend boundary tests, theme startup and status semantics, but does not itself establish production authentication, seed the PostgreSQL database, or complete the API arrears contract. Run the full verification suite and inspect the remaining evidence before submitting as fully compliant.

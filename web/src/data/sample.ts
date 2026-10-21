@@ -1,36 +1,26 @@
+import type { HomeStokvel, ContributionWithMemberResponse } from '../api/types'
 
-import type {
-  HomeStokvel,
-  ContributionWithMemberResponse,
-} from '../api/types'
-
-// Illustrative typed fixtures. Replace with captured, anonymised API responses when available.
+// Illustrative data only; replace with authenticated, anonymised Scalar responses.
 export const sampleStokvels = [
   {
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187001',
-    stokvelName: 'Ubuntu Savings Club',
+    stokvelName: 'Mokoena Family Burial and Savings Society (Soweto)',
     role: 'Treasurer',
-    currentCycle: {
-      period: '2026-10',
-      status: 'Open',
-      dueDate: '2026-10-31',
-    },
+    currentCycle: { period: '2026-10', status: 'Open', dueDate: '2026-10-31' },
     amountPaid: 12510,
     amountOwed: 37490,
-    nextPayoutDate: '2026-11-15T08:00:00Z',
+    nextPayoutDate: null,
+    ...{ arrearsCents: 15000 },
   },
   {
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187002',
     stokvelName: 'Masakhane Community Stokvel',
     role: 'Member',
-    currentCycle: {
-      period: '2026-10',
-      status: 'Open',
-      dueDate: '2026-10-25',
-    },
+    currentCycle: { period: '2026-10', status: 'Open', dueDate: '2026-10-25' },
     amountPaid: 72500,
     amountOwed: 0,
     nextPayoutDate: null,
+    ...{ arrearsCents: 0 },
   },
   {
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187003',
@@ -40,6 +30,7 @@ export const sampleStokvels = [
     amountPaid: 0,
     amountOwed: 0,
     nextPayoutDate: null,
+    ...{ arrearsCents: 0 },
   },
 ] satisfies HomeStokvel[]
 
@@ -48,12 +39,12 @@ export const sampleContributions = [
     id: 'd9c745b4-b631-49cf-ae5d-b9814e719001',
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187001',
     userId: 'e3c7c15b-7936-47bc-9355-39ac84277001',
-    userName: 'Lerato Mokoena',
+    userName: 'Lerato Mokoena-Sekgobela-Matlala',
     userEmail: 'lerato@example.test',
     memberRole: 'Member',
     contributionCycleId: '6e9d6d8e-6c30-4d73-93f0-9f2c61017001',
     amount: 12510,
-    status: 'Pending',
+    status: 'Paid',
     recordedAtUtc: '2026-10-31T22:30:00Z',
     version: 1,
   },
@@ -66,11 +57,10 @@ export const sampleContributions = [
     memberRole: 'Treasurer',
     contributionCycleId: '6e9d6d8e-6c30-4d73-93f0-9f2c61017001',
     amount: 50000,
-    status: 'Paid',
+    status: 'Confirmed',
     recordedAtUtc: '2026-10-19T08:15:00Z',
     version: 1,
   },
-  // Illustrative 10-cent edge case; not claimed to be a captured API record.
   {
     id: 'd9c745b4-b631-49cf-ae5d-b9814e719004',
     stokvelId: 'c9e2e0d5-0b8c-4b0c-b76b-4c4d9c187002',
