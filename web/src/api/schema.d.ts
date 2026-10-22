@@ -465,9 +465,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ContributionWithMemberResponse"][];
-                        "application/json": components["schemas"]["ContributionWithMemberResponse"][];
-                        "text/json": components["schemas"]["ContributionWithMemberResponse"][];
+                        "text/plain": components["schemas"]["PagedResultOfContributionWithMemberResponse"];
+                        "application/json": components["schemas"]["PagedResultOfContributionWithMemberResponse"];
+                        "text/json": components["schemas"]["PagedResultOfContributionWithMemberResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1463,10 +1463,22 @@ export interface components {
             amountOwed: number;
             /** Format: date-time */
             nextPayoutDate: null | string;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            arrearsCents: number;
         };
         LoginRequest: {
             email: string;
             password: string;
+        };
+        PagedResultOfContributionWithMemberResponse: {
+            items: components["schemas"]["ContributionWithMemberResponse"][];
+            nextPageToken: string;
+            /** Format: int32 */
+            pageSize: number;
+            hasMore?: boolean;
         };
         PagedResultOfStokvelMemberResponse: {
             items: components["schemas"]["StokvelMemberResponse"][];
