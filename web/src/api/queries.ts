@@ -8,6 +8,7 @@ export const queryKeys = {
   stokvel: (id: string) => ['stokvels', id] as const,
   cycles: (id: string) => ['stokvels', id, 'cycles'] as const,
   contributions: (id: string) => ['stokvels', id, 'contributions'] as const,
+  members: (id: string) => ['stokvels', id, 'members'] as const,
 }
 export function useHome() { return useQuery({ queryKey: queryKeys.home, queryFn: async () => unwrap(await api.GET('/api/v1/me/home')) }) }
 // The Week 6 API has /me/home but no /me; member data is provided by /me/home.
@@ -17,6 +18,10 @@ export function useStokvel(id: string) { const home = useHome(); return { ...hom
 export function useCycles(id: string) {
   return useQuery({ queryKey: queryKeys.cycles(id), enabled: !!id,
     queryFn: async () => unwrap(await api.GET('/api/v1/stokvels/{stokvelId}/cycles', { params: { path: { stokvelId: id } } })) })
+}
+export function useMembers(id: string, enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.members(id), enabled: !!id && enabled,
+    queryFn: async () => unwrap(await api.GET('/api/v1/stokvels/{stokvelId}/members', { params: { path: { stokvelId: id }, query: { pageSize: 100 } } })).items })
 }
 type Page = components['schemas']['PagedResultOfContributionWithMemberResponse']
 export function useContributions(id: string) {

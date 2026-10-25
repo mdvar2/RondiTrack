@@ -151,6 +151,12 @@ public class ContributionService
                 "Contribution cycle does not belong to this stokvel.");
         }
 
+        if (cycle.Status != "Open")
+        {
+            throw new BusinessRuleException(
+                "This contribution cycle is no longer open.");
+        }
+
         var existingContribution =
             await _contributionRepository
                 .GetByMemberAndCycleAsync(
@@ -169,7 +175,7 @@ public class ContributionService
                 stokvelId,
                 userId,
                 request.ContributionCycleId,
-                request.Amount);
+                request.AmountInCents / 100m);
 
         await _contributionRepository.AddAsync(
             contribution);
@@ -198,7 +204,7 @@ public class ContributionService
         RecordContributionRequest request)
     {
         var requestData =
-            $"{stokvelId}|{userId}|{request.Amount}|" +
+            $"{stokvelId}|{userId}|{request.AmountInCents}|" +
             $"{request.ContributionCycleId}";
 
         var bytes =

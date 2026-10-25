@@ -41,6 +41,11 @@ export function refreshAccessToken(): Promise<string> {
   void attempt.then(() => { if (pending === attempt) pending = null }, () => { if (pending === attempt) pending = null })
   return attempt
 }
+// The user's id is the "sub" claim of the access token.
+export function currentUserId(): string | null {
+  if (!token) return null
+  try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub ?? null } catch { return null }
+}
 export async function login(email: string, password: string): Promise<void> {
   const res = await fetch(`${BASE}/api/v1/auth/login`, {
     method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }),

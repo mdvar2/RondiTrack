@@ -85,8 +85,8 @@ public class ErrorContractTests(PostgresApiFactory factory)
             .GetProperty("contributionAmount").GetProperty("type").GetString());
         Assert.Equal("integer", schemas.GetProperty("UserResponse").GetProperty("properties")
             .GetProperty("version").GetProperty("type").GetString());
-        Assert.Equal("number", schemas.GetProperty("RecordContributionRequest").GetProperty("properties")
-            .GetProperty("amount").GetProperty("type").GetString());
+        Assert.Equal("integer", schemas.GetProperty("RecordContributionRequest").GetProperty("properties")
+            .GetProperty("amountInCents").GetProperty("type").GetString());
         foreach (var schema in schemas.EnumerateObject()) AssertNumericUnionsAbsent(schema.Value);
     }
 

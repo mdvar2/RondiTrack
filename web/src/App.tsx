@@ -17,6 +17,7 @@ import {
 
 import { ErrorView } from './components/ErrorView'
 import { StokvelCard } from './components/StokvelCard'
+import { ContributionForm } from './components/ContributionForm'
 import { ContributionList } from './components/ContributionList'
 import { describeError } from './lib/errorMessages'
 
@@ -166,6 +167,15 @@ function Dashboard({ onExit }: { onExit: () => void }) {
           {/* Selected stokvel summary */}
           {active && (
             <StokvelCard stokvel={active} />
+          )}
+
+          {/* Record a contribution (Assignment 7.4) */}
+          {active && cycles.isSuccess && (
+            <ContributionForm
+              key={`contribution-form-${id}`}
+              stokvel={active}
+              cycles={cycles.data}
+            />
           )}
 
           {/* Live contributions */}

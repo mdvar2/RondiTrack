@@ -88,7 +88,7 @@ public class ContributionServiceTests
 
         var request =
             new RecordContributionRequest(
-                500m,
+                50000,
                 cycle.Id);
 
         await service.RecordContributionAsync(
@@ -179,7 +179,7 @@ public class ContributionServiceTests
 
         var firstRequest =
             new RecordContributionRequest(
-                500m,
+                50000,
                 cycle.Id);
 
         await service.RecordContributionAsync(
@@ -190,7 +190,7 @@ public class ContributionServiceTests
 
         var secondRequest =
             new RecordContributionRequest(
-                600m,
+                60000,
                 cycle.Id);
 
         // Act

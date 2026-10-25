@@ -629,3 +629,90 @@ The frontend includes API error handling and automated tests for error messages,
 - No public production deployment is claimed; local Development and Docker Compose API instances may use different databases.
 
 The red/green test evidence is included in the `web/` directory. The historical results and limitations in earlier assignment sections remain intentionally preserved.
+
+
+## Assignment 7.4 — Record a Contribution
+
+A member can now record what they paid into the open cycle from a form on the dashboard, and a Treasurer or Chairperson can record it for any member of their own stokvel. The amount is typed in rands, becomes whole cents in the browser, and every retry of one payment carries the same `Idempotency-Key`.
+
+### What I built
+
+- **API:** `RecordContributionRequest` now takes `amountInCents` (a whole number) instead of a decimal `amount`. A contribution to a cycle that is not `Open` is refused with a 409. I updated the existing tests that posted the old field.
+- **Money:** `parseRandsToCents` and `centsToInput` in `web/src/lib/money.ts`. Only whole-number arithmetic is used. `"150.50"`, `"150.5"`, `"150,50"` and `"1 500,50"` are accepted. `"150.505"` (needs rounding) and `"1,500.50"` (is the comma a thousands separator or a decimal point?) are refused. A round-trip test checks every value from 0 to 100 000 cents.
+- **Form:** `web/src/components/ContributionForm.tsx` uses React Hook Form, Zod and `useMutation`. It is only shown for an Open cycle. For Closed or PaidOut it shows a sentence. The member picker only appears for a Treasurer or Chairperson, read from `/me/home` for this stokvel.
+- **Key logic:** `web/src/contributions/useRecordContribution.ts`.
+- **Tests:** `web/src/contributions/recordContribution.test.ts` (six MSW tests) and `RondiTrack.Tests/ContributionIdempotencyContractTests.cs`.
+
+The assignment names the route `/cycles/{cycleId}/contributions`. My API's real route is `POST /api/v1/stokvels/{stokvelId}/members/{userId}/contributions`, with the cycle in the body. I kept my route and used the generated client for it.
+
+### Idempotency contract
+
+I checked each answer against the real API with automated tests (Testcontainers PostgreSQL). All of these pass.
+
+| # | Question | Answer | Test |
+|---|---|---|---|
+| 1 | Same key, same request | The second call returns the same `201` and the identical body. Only one contribution is stored. There is **no** replay header, so the form cannot say "Already recorded". | `SameKeySameRequest_ReplaysTheSame201_WithoutAReplayHeader` |
+| 2 | Same key, different amount | `409 Conflict`, detail "Idempotency-Key was already used with a different request." The old response is not replayed. So a changed amount **must** get a new key. | `SameKeyDifferentAmount_Is409_AndRecordsNothingNew` |
+| 3 | New key, member already contributed | `409`, detail "A contribution already exists for this member and cycle." | `NewKeyForAMemberWhoAlreadyContributed_Is409WithAReason` |
+| 4 | Rate limit, then retry with the same key | The `429` does not store the key. After `Retry-After` the same key records once, and a further replay still gives one contribution. | `Contribution429_DoesNotStoreKey_ThenSucceedsAndReplaysExactlyOnce` (already existed) |
+| 5 | No key | `400`. The OpenAPI document lists `Idempotency-Key` as a header parameter, so the generated client has it. An operation transformer in `Program.cs` marks it **required** in the document (the C# parameter is nullable so the service can give its own 400 message), so the generated client now fails to compile without it. | `MissingKey_Is400_AndOpenApiDescribesTheHeader` |
+| 6 | Preflight from `http://localhost:3000` asking for `Idempotency-Key` | `204`, the origin is allowed, `Access-Control-Allow-Credentials: true`, and `idempotency-key` is in the allowed headers. | `Preflight_AllowsOnlyConfiguredOriginWithoutToken` (already existed) |
+
+The answers led to two API fixes, both with tests: the request body now uses `amountInCents`, and a closed cycle is refused (`ClosedCycle_Is409WithAReason`). Before that, the API accepted a contribution into a Closed cycle.
+
+Who may record for whom is enforced by the API, not by hiding the picker. `Member_CanRecordOwnContribution_ButCannotRecordForAnotherMember` shows a Member gets `403` for another member.
+
+### The key, and the decision table
+
+The key is made with `crypto.randomUUID()` inside the submit handler, and kept in a `useRef` inside the hook. Each form has its own, and it is not in a module variable or the TanStack cache. It is sent as the `Idempotency-Key` header through the generated client.
+
+- A new key is made when there is none, or when the member, cycle or amount differs from the last attempt. That covers the first submit and the first submit after a success.
+- The same key is reused after a network error, a 5xx, a 429 and a 401 that `authFetch` refreshes and retries (`authFetch` copies the request headers).
+- After a 201 the key is dropped, so the next contribution gets a new one.
+- **400, 409 or 422, then resubmit with nothing changed: I keep the same key.** None of those answers is stored by the API, so nothing was recorded. Resending the same intent gets the same answer again, and if the problem was fixed on the server meanwhile, it records once. Changing anything gives a new key, which question 2 shows is required.
+
+**StrictMode:** StrictMode renders twice, but the key is never made during rendering, only in the submit handler. The six tests run inside `<StrictMode>`.
+
+**Reload during a request:** the key is lost and the next attempt gets a new one. This is still safe, because the API allows one contribution per member per cycle (question 3). If the first request landed, the new attempt gets a `409` saying the contribution already exists, and nothing is recorded twice. If it did not land, it records once. Persisting the key (the stretch challenge) is not done.
+
+### Idempotency proof
+
+I made the deliberate mistake in `useRecordContribution.ts`: a new `crypto.randomUUID()` for every request instead of using the intent's key. Output is in `web/idempotency-failing.txt`:
+
+```
+ ❯ src/contributions/recordContribution.test.ts (6 tests | 2 failed) 141ms
+     × sends the same key when retrying after a network error 62ms
+     × keeps the key on a 429 and exposes the wait from Retry-After 21ms
+ ...
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed (6)
+```
+
+After restoring the code (`web/idempotency-passing.txt`):
+
+```
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+```
+
+The 401 test still passed with the bug. This is because `authFetch` resends the same `Request` object, so the key made for it is kept. The bug shows in the two tests where my own code makes a second request.
+
+What this bug would cost a real member: after a dropped connection, the retry would carry a new key, so the API would treat it as a new payment. The member would be told "already recorded" (409) at best, and where the amount changed or the first request had not landed, the money could be recorded twice or wrongly.
+
+### Optimistic or not
+
+I did not make recording optimistic. The server owns the contribution's id, its status, the cycle's new total and any arrears, so the browser could only guess them. A 409 or 422 is a normal answer here (already paid, cycle closed), so an optimistic "Recorded" would be shown and then taken away, and in between a member or Treasurer could act on a wrong total. "Recorded" in front of a treasurer at a meeting has to mean the API saved it. So the button says "Recording…" until the API has answered and the home, cycle and contribution queries have refetched, then the form says what was recorded.
+
+### Known gaps
+
+- I did not do the screen recording or a manual browser run against the live API. The form was exercised by automated tests only (MSW), plus a throwaway component smoke test that I deleted.
+- Treasurer prefill: the home endpoint only says what the signed-in person owes, so when a Treasurer picks another member the amount starts empty.
+- The member picker shows for a Chairperson too, since the API allows both roles to record for others.
+- The user id for "record for myself" is read from the access token's `sub` claim (`currentUserId` in `session.ts`), because `/me/home` does not return it.
+- No replay header, so there is no "Already recorded" message (stretch 3). Stretch 1, 2 and 4 are not done.
+- `clients/typescript/` (the Assignment 6.3 contract check) was not regenerated: it had already drifted from the API, and regenerating it breaks its own `check` step for reasons unrelated to this assignment. Only `web/src/api/schema.d.ts` was regenerated.
+
+### Results
+
+- Backend: `dotnet test RondiTrack.Tests` — 137 passed, 0 failed.
+- Frontend: `npm run lint` clean, `npm run build` succeeded, `npm test -- --run` — 8 files, 62 tests passed.

@@ -11,8 +11,9 @@ export function describeError(error: unknown): { message: string; correlationId?
   const id = error.problem?.correlationId
   if (error.status === 401) return { message: 'Email or password is incorrect.' }
   if (error.status === 404) return { message: 'Stokvel not found.' }
-  if (error.status === 429) return { message: 'Too many requests. Please try again later.', retryAfter: parseRetryAfter(error.retryAfter) ?? undefined }
-  if (error.status === 400) return { message: error.problem?.title || 'Please check the entered information.' }
+  if (error.status === 429) return { message: 'Too many requests. Please try again later.', retryAfter: parseRetryAfter(error.retryAfter) ?? undefined, correlationId: id }
+  if (error.status === 400) return { message: error.problem?.title || 'Please check the entered information.', correlationId: id }
+  if (error.status === 409 || error.status === 422) return { message: error.problem?.detail || error.problem?.title || 'Request failed.', correlationId: id }
   if (error.status >= 500) return { message: 'Something went wrong. Please try again.', correlationId: id }
   return { message: error.problem?.title || 'Request failed.', correlationId: id }
 }

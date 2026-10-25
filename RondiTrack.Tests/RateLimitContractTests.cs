@@ -71,7 +71,7 @@ public class RateLimitContractTests(PostgresApiFactory factory)
         await using var app = Limited("Contributions", seconds: 3);
         using var client = Client(app, scenario.Treasurer);
         var path = $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions";
-        var body = new { contributionCycleId = scenario.CycleId, amount = 250m };
+        var body = new { contributionCycleId = scenario.CycleId, amountInCents = 25000 };
         // Validly bound requests without a key consume permits but cannot write money.
         for (var i = 0; i < 2; i++)
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(path, body)).StatusCode);
@@ -111,7 +111,7 @@ public class RateLimitContractTests(PostgresApiFactory factory)
             ? $"/api/v1/stokvels/{scenario.StokvelId}/cycles/{scenario.CycleId}/payouts"
             : $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions";
         object body = policy == "Payouts" ? new { amount = 500m }
-            : new { amount = 500m, contributionCycleId = scenario.CycleId };
+            : new { amountInCents = 50000, contributionCycleId = scenario.CycleId };
         var expectedFirst = policy == "Payouts" ? HttpStatusCode.Created : HttpStatusCode.BadRequest;
         Assert.Equal(expectedFirst, (await first.PostAsJsonAsync(path, body)).StatusCode);
         Assert.Equal(policy == "Payouts" ? HttpStatusCode.Conflict : HttpStatusCode.BadRequest,

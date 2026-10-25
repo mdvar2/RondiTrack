@@ -1046,8 +1046,8 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: {
-                    "Idempotency-Key"?: string;
+                header: {
+                    "Idempotency-Key": string;
                 };
                 path: {
                     stokvelId: string;
@@ -1512,8 +1512,8 @@ export interface components {
             instance?: null | string;
         };
         RecordContributionRequest: {
-            /** Format: double */
-            amount: number;
+            /** Format: int64 */
+            amountInCents: number;
             /** Format: uuid */
             contributionCycleId: string;
         };

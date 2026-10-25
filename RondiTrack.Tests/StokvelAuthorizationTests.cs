@@ -36,7 +36,7 @@ public class StokvelAuthorizationTests(PostgresApiFactory factory)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post,
                 $"/api/v1/stokvels/{scenario.StokvelId}/members/{userId}/contributions")
-                { Content = JsonContent.Create(new { amount = 500m, contributionCycleId = scenario.CycleId }) };
+                { Content = JsonContent.Create(new { amountInCents = 50000, contributionCycleId = scenario.CycleId }) };
             request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
             Assert.Equal(expected, (await client.SendAsync(request)).StatusCode);
         }
