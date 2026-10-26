@@ -121,7 +121,7 @@ public class ContributionCyclesController : ControllerBase
     /// columns required by the API response are fetched.
     /// </remarks>
     [ProducesResponseType(
-        typeof(IEnumerable<ContributionWithMemberResponse>),
+        typeof(PagedResult<ContributionWithMemberResponse>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(
         typeof(ProblemDetails),

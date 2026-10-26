@@ -4,7 +4,7 @@
 
 RondiTrack is a stokvel management application I built during my Bitcube software development training. It includes an ASP.NET Core backend for managing members, contributions, savings cycles and payouts, alongside a React and TypeScript frontend for displaying stokvel and contribution information.
 
-I started with basic API endpoints and gradually added database relationships, security, testing and monitoring. The project progressed through frontend-facing API contracts, containerized deployment, scheduled processing, durable idempotency and automated CI verification. Assignment 7.1 introduced a responsive, sample-data React dashboard typed against the backend OpenAPI contract.
+I started with basic API endpoints and gradually added database relationships, security, testing and monitoring. The project progressed through frontend-facing API contracts, containerized deployment, scheduled processing, durable idempotency and automated CI verification. Assignment 7.1 introduced a responsive sample-data React dashboard typed against the backend OpenAPI contract; Assignment 7.3 subsequently connected it to live authenticated data.
 
 ## What the system does
 
@@ -20,50 +20,61 @@ I started with basic API endpoints and gradually added database relationships, s
 
 - Returns consistent error responses and includes tracing, logging and health checks.
 
-The project now includes both a backend API and a React frontend. I use Scalar to explore and test the API during development. The React dashboard currently uses typed sample data rather than live authenticated API requests.
+The project now includes both a backend API and a React frontend. I use Scalar to explore and test the API during development. As of Assignment 7.3, the React dashboard loads live authenticated data from the API. Earlier assignment sections below describe the previous sample-data versions.
 
 ## Technologies I used
 
 | Technology | How I used it |
-|---|---|
-| C# / ASP.NET Core 10 | Built the API endpoints and services |
-| EF Core 10 / PostgreSQL 17 | Stored and queried application data |
-| FluentValidation | Validated incoming requests |
-| JWT authentication | Protected endpoints and identified users |
-| xUnit / Testcontainers | Tested the API with disposable PostgreSQL databases |
-| OpenAPI / Scalar | Documented and explored the API |
-| OpenTelemetry / Aspire | Worked with tracing, metrics and logs |
-| React 19 / Vite 8 | Built the responsive StokvelCard and ContributionCard frontend |
-| TypeScript 5 / OpenAPI TypeScript | Generated typed frontend contracts from the API OpenAPI document |
-| Vitest / ESLint | Tested frontend formatting utilities and checked code quality |
 
-I separated the solution into **API**, **Domain**, **Infrastructure** and **RondiTrack.Tests** projects. The [architecture guide](docs/architecture.md) explains how they fit together.
+|---|---|
+
+| C# / ASP.NET Core 10 | Built the API endpoints and services |
+
+| EF Core 10 / PostgreSQL 17 | Stored and queried application data |
+
+| FluentValidation | Validated incoming requests |
+
+| JWT authentication | Protected endpoints and identified users |
+
+| xUnit / Testcontainers | Tested the API with disposable PostgreSQL databases |
+
+| OpenAPI / Scalar | Documented and explored the API |
+
+| OpenTelemetry / Aspire | Worked with tracing, metrics and logs |
+
+| React 19 / Vite 8 | Built the responsive StokvelCard and ContributionCard frontend |
+
+| TypeScript 5 / OpenAPI TypeScript | Generated typed frontend contracts from the API OpenAPI document |
+
+| Vitest / ESLint | Tested frontend formatting, session refresh, API errors, and query isolation; checked code quality |
+
+I separated the solution into ****API****, ****Domain****, ****Infrastructure**** and ****RondiTrack.Tests**** projects. The [architecture guide](docs/architecture.md) explains how they fit together.
 
 ## Assignment 6.3 — Frontend-Ready Backend
 
 For Assignment 6.3, I worked on the parts of the backend that a frontend would depend on:
 
-- **API versioning:** Controller endpoints now use `/api/v1`.
+- ****API versioning:**** Controller endpoints now use `/api/v1`.
 
-- **CORS:** The API allows the configured frontend origin rather than accepting requests from any origin.
+- ****CORS:**** The API allows the configured frontend origin rather than accepting requests from any origin.
 
-- **Rate limiting:** Login, contribution and payout requests have limits to reduce excessive requests.
+- ****Rate limiting:**** Login, contribution and payout requests have limits to reduce excessive requests.
 
-- **Contribution retries:** The existing idempotency handling works alongside rate limiting.
+- ****Contribution retries:**** The existing idempotency handling works alongside rate limiting.
 
-- **Member home endpoint:** `GET /api/v1/me/home` returns information for the logged-in member without exposing other members' contribution amounts.
+- ****Member home endpoint:**** `GET /api/v1/me/home` returns information for the logged-in member without exposing other members' contribution amounts.
 
-- **Consistent errors:** API errors follow a Problem Details response format.
+- ****Consistent errors:**** API errors follow a Problem Details response format.
 
-- **TypeScript contracts:** I generated types from the actual OpenAPI document and checked that a renamed backend property would cause a frontend compile error.
+- ****TypeScript contracts:**** I generated types from the actual OpenAPI document and checked that a renamed backend property would cause a frontend compile error.
 
-One feature is still incomplete: **`nextPayoutDate` returns `null`** because the system does not yet have a rule for scheduling future payouts. I have not made up a date for it.
+One feature is still incomplete: ****`nextPayoutDate` returns `null`**** because the system does not yet have a rule for scheduling future payouts. I have not made up a date for it.
 
 For a more detailed explanation of the changes, see the [Assignment 6.3 trainer notes](docs/assignment-6-3-stages.md) and [compliance matrix](docs/assignment-6-3-compliance.md).
 
 ## Testing and verification
 
-**On 14 October 2026, all 122 tests passed, with no failures or skipped tests.** The fresh solution build also completed with no warnings or errors.
+****On 14 October 2026, all 122 tests passed, with no failures or skipped tests.**** The fresh solution build also completed with no warnings or errors.
 
 I also checked that the tests could run without connecting to my development PostgreSQL database. I temporarily disabled new connections to that database, ran the test suite using Testcontainers, and then restored the original connection setting. I confirmed the database was accessible again with `SELECT 1`.
 
@@ -83,7 +94,7 @@ dotnet test RondiTrack.sln --no-restore -m:1
 
 ```
 
-These commands run the normal suite. They do **not** disable development database connections. The guarded isolation procedure is explained separately in the verification report.
+These commands run the normal suite. They do ****not**** disable development database connections. The guarded isolation procedure is explained separately in the verification report.
 
 ## Running the API locally
 
@@ -101,7 +112,7 @@ dotnet run --project API
 
 The development API documentation is available at `/scalar/v1` and the OpenAPI document at `/openapi/v1.json` on the port used by the running API.
 
-**Important database note:** My existing development database contains duplicate normalized emails that currently block an authentication migration. I am keeping that data intact rather than resetting the database to make the migration pass. See [development migration status](docs/development-migration-status.md) before attempting database updates.
+****Important database note:**** My existing development database contains duplicate normalized emails that currently block an authentication migration. I am keeping that data intact rather than resetting the database to make the migration pass. See [development migration status](docs/development-migration-status.md) before attempting database updates.
 
 For configuration, local secrets, HTTPS and migration steps, use the [detailed technical notes](docs/README-detailed-technical-notes.md#4-setup-and-running-the-api).
 
@@ -135,15 +146,15 @@ Assignment 6.4 focused on repeatable Docker deployment, continuous integration, 
 
 ### Delivered functionality
 
-- **Containerized deployment:** a root-level, multi-stage `Dockerfile` publishes the API using the .NET 10 SDK and runs it using the ASP.NET Core 10 runtime. `compose.yaml` defines PostgreSQL, a one-shot EF Core migration service and the API, with a persistent PostgreSQL volume. The API listens on port 8080.
+- ****Containerized deployment:**** a root-level, multi-stage `Dockerfile` publishes the API using the .NET 10 SDK and runs it using the ASP.NET Core 10 runtime. `compose.yaml` defines PostgreSQL, a one-shot EF Core migration service and the API, with a persistent PostgreSQL volume. The API listens on port 8080.
 
-- **Scheduled cycle closing:** a background processor uses `TimeProvider` and `Africa/Johannesburg` calendar dates to identify ended cycles. It records unpaid member contributions as arrears in integer cents, closes eligible cycles and creates successor cycles. Catch-up processing handles multiple overdue cycles. Per-stokvel transactions, PostgreSQL advisory locks and an arrears uniqueness constraint protect concurrent execution. Errors include the affected stokvel ID and are retried on later runs.
+- ****Scheduled cycle closing:**** a background processor uses `TimeProvider` and `Africa/Johannesburg` calendar dates to identify ended cycles. It records unpaid member contributions as arrears in integer cents, closes eligible cycles and creates successor cycles. Catch-up processing handles multiple overdue cycles. Per-stokvel transactions, PostgreSQL advisory locks and an arrears uniqueness constraint protect concurrent execution. Errors include the affected stokvel ID and are retried on later runs.
 
-- **Housekeeping:** expired refresh-token families are deleted after a configurable grace period, with related token rows removed by cascade. Persisted idempotency records older than the configured retention cutoff are also removed using set-based database operations.
+- ****Housekeeping:**** expired refresh-token families are deleted after a configurable grace period, with related token rows removed by cascade. Persisted idempotency records older than the configured retention cutoff are also removed using set-based database operations.
 
-- **Durable idempotency:** idempotency records are persisted in PostgreSQL instead of relying solely on an in-memory process-local response store.
+- ****Durable idempotency:**** idempotency records are persisted in PostgreSQL instead of relying solely on an in-memory process-local response store.
 
-- **Continuous integration:** `.github/workflows/ci.yml` restores and builds the solution, runs automated tests including PostgreSQL Testcontainers integration tests, and builds the Docker image.
+- ****Continuous integration:**** `.github/workflows/ci.yml` restores and builds the solution, runs automated tests including PostgreSQL Testcontainers integration tests, and builds the Docker image.
 
 ### Prerequisites and configuration
 
@@ -157,19 +168,30 @@ Copy-Item .env.example .env
 
 ```
 
-Replace the example values in `.env` with a strong PostgreSQL password and a random Base64 JWT signing key containing at least 32 decoded bytes. **Never commit `.env` or publish its secrets.**
+Replace the example values in `.env` with a strong PostgreSQL password and a random Base64 JWT signing key containing at least 32 decoded bytes. ****Never commit `.env` or publish its secrets.****
 
 | Variable or setting | Purpose | Default / source |
+
 | --- | --- | --- |
+
 | `POSTGRES_PASSWORD` | PostgreSQL password | Required in `.env` |
+
 | `JWT_SIGNING_KEY` | JWT signing key | Required in `.env` |
+
 | `ConnectionStrings__RondiTrackDb` | Internal PostgreSQL connection | Set by Compose, host `db` |
+
 | `Jwt__SigningKey` | API JWT configuration | Set by Compose |
+
 | `ASPNETCORE_ENVIRONMENT` | API runtime environment | `Production` in Compose |
+
 | `ASPNETCORE_HTTP_PORTS` | API HTTP listener | `8080` in Compose |
+
 | `CycleClose__IntervalSeconds` | Cycle-close polling interval | 60 seconds |
+
 | `Housekeeping__IntervalHours` | Housekeeping polling interval | 24 hours |
+
 | `Housekeeping__RefreshTokenGraceDays` | Expired token-family grace period | 7 days |
+
 | `Housekeeping__IdempotencyRetentionHours` | Persisted idempotency record retention | 24 hours |
 
 The `db` hostname is resolved on the Compose network; `localhost` inside the API container does not refer to PostgreSQL. The database is not published on a host port. Scalar and OpenAPI endpoints are mapped only in Development, not in the default Production Compose environment.
@@ -220,7 +242,7 @@ docker compose down
 
 ```
 
-**Warning:** `docker compose down -v` deletes named volumes, including PostgreSQL data.
+****Warning:**** `docker compose down -v` deletes named volumes, including PostgreSQL data.
 
 To build the image independently, use the Dockerfile at the repository root:
 
@@ -246,27 +268,37 @@ Integration tests use disposable PostgreSQL instances through Testcontainers, so
 
 ### Scheduled processing behaviour
 
-Cycle eligibility is based on Johannesburg local dates. For example, a cycle ending on **25 October 2026** remains open at 23:59 SAST that day and becomes eligible at **00:00 SAST on 26 October** (22:00 UTC on 25 October). Only cycles with a configured end date are eligible.
+Cycle eligibility is based on Johannesburg local dates. For example, a cycle ending on ****25 October 2026**** remains open at 23:59 SAST that day and becomes eligible at ****00:00 SAST on 26 October**** (22:00 UTC on 25 October). Only cycles with a configured end date are eligible.
 
 When several cycles are overdue, the processor catches up by closing each eligible cycle and creating the next until it reaches a cycle that has not yet ended. Processing is transactional per stokvel, and concurrent workers coordinate using PostgreSQL transaction-scoped advisory locks. The arrears table also has a unique index on `(StokvelId, UserId, ContributionCycleId)`.
 
-Housekeeping retains expired refresh-token families for seven additional days by default, supporting replay investigations before cleanup. Persisted idempotency records are removed when their creation timestamp is **older than** the configured 24-hour retention cutoff.
+Housekeeping retains expired refresh-token families for seven additional days by default, supporting replay investigations before cleanup. Persisted idempotency records are removed when their creation timestamp is ****older than**** the configured 24-hour retention cutoff.
 
 ### Verification evidence — 19 October 2026
 
 | Check | Observed result |
+
 | --- | --- |
-| Local automated tests | **130 passed, 0 failed, 0 skipped** |
-| Main-branch GitHub Actions workflow #24 (commit `451b786`) | **Passed** |
+
+| Local automated tests | ****130 passed, 0 failed, 0 skipped**** |
+
+| Main-branch GitHub Actions workflow #24 (commit `451b786`) | ****Passed**** |
+
 | `docker compose config --quiet` | Passed |
+
 | Standalone Docker image build | Passed, 19/19 steps |
+
 | Compose API image build | Passed |
+
 | PostgreSQL service | Healthy |
+
 | API service | Running on host port 8080 |
+
 | `GET /health/live` | `HTTP/1.1 200 OK` — `Healthy` |
+
 | `GET /health/ready` | `HTTP/1.1 200 OK` — `Healthy` |
 
-The initial health-check requests returned empty replies immediately after startup; repeating them once the API was running returned HTTP 200 for both endpoints. This is evidence of successful **local container startup and readiness**, not proof of a public production deployment.
+The initial health-check requests returned empty replies immediately after startup; repeating them once the API was running returned HTTP 200 for both endpoints. This is evidence of successful ****local container startup and readiness****, not proof of a public production deployment.
 
 The following repository resources support review:
 
@@ -295,20 +327,26 @@ The following repository resources support review:
 This section is for a frontend developer who has cloned the repository with Docker Desktop available. Use the Docker Compose startup and health-check commands above; the API base URL is `http://localhost:8080`.
 
 | Endpoint | URL | Availability |
+
 | --- | --- | --- |
+
 | API base | `http://localhost:8080/api/v1` | Production Compose |
+
 | Liveness | `http://localhost:8080/health/live` | Production Compose |
+
 | Readiness | `http://localhost:8080/health/ready` | Production Compose |
+
 | Scalar explorer | `/scalar/v1` on the development API host/port | Development only |
+
 | OpenAPI JSON | `/openapi/v1.json` on the development API host/port | Development only |
 
-The frontend should use the API v1 contract, respect configured CORS origins and rate limits, and send an `Idempotency-Key` for contribution requests that might be retried. Authentication uses JWT access tokens and a refresh-token cookie; keep cookies in the supported browser flow rather than reading their contents from JavaScript. Consult [API reference](docs/api-reference.md) and [detailed technical notes](docs/README-detailed-technical-notes.md) for existing route and configuration details. For Assignment 7.1, the TypeScript contract was successfully regenerated from a locally running Development API on port **8081**, because port 8080 was already occupied by Docker/WSL forwarding. See the frontend README for contract-generation instructions.
+The frontend should use the API v1 contract, respect configured CORS origins and rate limits, and send an `Idempotency-Key` for contribution requests that might be retried. Authentication uses JWT access tokens and a refresh-token cookie; keep cookies in the supported browser flow rather than reading their contents from JavaScript. Consult [API reference](docs/api-reference.md) and [detailed technical notes](docs/README-detailed-technical-notes.md) for existing route and configuration details. For Assignment 7.1, the TypeScript contract was successfully regenerated from a locally running Development API on port ****8081****, because port 8080 was already occupied by Docker/WSL forwarding. See the frontend README for contract-generation instructions.
 
-**Unverified handoff items:** seeded demo accounts (including one member in two stokvels), a step-by-step refresh replay walkthrough, and a frontend error-status table have not been independently verified in this README. Do not assume these are available. A peer fresh-clone test and its findings/fix commits have not yet been recorded.
+****Unverified handoff items:**** seeded demo accounts (including one member in two stokvels), a step-by-step refresh replay walkthrough, and a frontend error-status table have not been independently verified in this README. Do not assume these are available. A peer fresh-clone test and its findings/fix commits have not yet been recorded.
 
 ### Assignment 6.4 evidence still to collect
 
-The assignment also requires numeric image size, initial-versus-code-only rebuild timing, `docker history` and `docker inspect` environment output, and evidence that `.env` has never been committed. The successful Docker builds establish that the image builds, **not** these measurements or secret-history proofs. Collect and record actual outputs before marking these items complete.
+The assignment also requires numeric image size, initial-versus-code-only rebuild timing, `docker history` and `docker inspect` environment output, and evidence that `.env` has never been committed. The successful Docker builds establish that the image builds, ****not**** these measurements or secret-history proofs. Collect and record actual outputs before marking these items complete.
 
 ```powershell
 
@@ -338,72 +376,101 @@ No independent peer handover or public deployment is claimed here.
 
 ## Assignment 7.1 — StokvelCard & ContributionCard
 
-Assignment 7.1 adds a responsive React 19, TypeScript and Vite frontend in [`web/`](web/). The dashboard uses typed demonstration data, **not live authenticated API fetching**. See the [frontend README](web/README.md) for component-level setup and limitations.
+Assignment 7.1 adds a responsive React 19, TypeScript and Vite frontend in [`web/`](web/). The dashboard uses typed demonstration data, ****not live authenticated API fetching****. See the [frontend README](web/README.md) for component-level setup and limitations.
 
 ### Backend contract
 
 - The Development API exposes its OpenAPI document at `/openapi/v1.json`.
+
 - `GET /api/v1/me/home` provides member-specific stokvel details, including role, current cycle, amount paid, amount owed and a next payout date when available.
+
 - Contribution response types now include a `status` field. The generated frontend contract in `web/src/api/schema.d.ts` requires this field.
-- Home and contribution amounts are represented as **integer cents** in the frontend-facing API contract. Display formatting converts cents to ZAR.
+
+- Home and contribution amounts are represented as ****integer cents**** in the frontend-facing API contract. Display formatting converts cents to ZAR.
+
 - A missing payout schedule remains `null`; the UI must not imply that a payout date was calculated by the backend.
 
 ### Frontend components and sample cases
 
-- **`StokvelCard`** presents the stokvel name, member role, current cycle details, amount paid and owed, and payout scheduling information. The interface distinguishes amounts owed from an **All paid up** state. A Treasurer-only tools area is a nonfunctional UI placeholder, not an active privileged operation.
-- **`ContributionCard`** presents the amount, the contribution's `status` (Pending, Paid or Confirmed in the demonstration cases), cycle name, Johannesburg-local recorded timestamp and contributor name when available. Contributions are keyed by their IDs.
-- **Formatting:** integer cents are displayed as ZAR amounts; UTC timestamps are displayed in `Africa/Johannesburg`. For example, `2026-10-31T22:30:00Z` is 01 November 2026 at 00:30 SAST.
-- **Sample coverage:** the frontend demonstration includes Treasurer and Member roles, a zero-owed state, a small 10-cent amount and contribution status variants. The example records are **illustrative fixtures**, not verified captures of signed-in API responses. This provenance distinction remains a verification item against the assignment rubric.
-- **Types:** `web/src/api/schema.d.ts` is generated from the backend OpenAPI document; `web/src/api/types.ts` provides aliases for component use. No live frontend API calls are implemented for this assignment.
+- ****`StokvelCard`**** presents the stokvel name, member role, current cycle details, amount paid and owed, and payout scheduling information. The interface distinguishes amounts owed from an ****All paid up**** state. A Treasurer-only tools area is a nonfunctional UI placeholder, not an active privileged operation.
+
+- ****`ContributionCard`**** presents the amount, the contribution's `status` (Pending, Paid or Confirmed in the demonstration cases), cycle name, Johannesburg-local recorded timestamp and contributor name when available. Contributions are keyed by their IDs.
+
+- ****Formatting:**** integer cents are displayed as ZAR amounts; UTC timestamps are displayed in `Africa/Johannesburg`. For example, `2026-10-31T22:30:00Z` is 01 November 2026 at 00:30 SAST.
+
+- ****Sample coverage:**** the frontend demonstration includes Treasurer and Member roles, a zero-owed state, a small 10-cent amount and contribution status variants. The example records are ****illustrative fixtures****, not verified captures of signed-in API responses. This provenance distinction remains a verification item against the assignment rubric.
+
+- ****Types:**** `web/src/api/schema.d.ts` is generated from the backend OpenAPI document; `web/src/api/types.ts` provides aliases for component use. No live frontend API calls are implemented for this assignment.
 
 ### Run the frontend
 
 Install Node.js 24 (see `web/.nvmrc`), then run from the repository root:
 
 ```powershell
+
 cd web
+
 npm.cmd ci
+
 npm.cmd run dev
+
 ```
 
 Open the local URL printed by Vite. The sample-data dashboard does not require the API to be running.
 
-To **regenerate API types**, start the current Development API on a free port, for example from the repository root:
+To ****regenerate API types****, start the current Development API on a free port, for example from the repository root:
 
 ```powershell
+
 dotnet run --project API --urls http://localhost:8081
+
 ```
 
 In a second PowerShell terminal:
 
 ```powershell
+
 cd web
+
 npx.cmd openapi-typescript http://localhost:8081/openapi/v1.json -o src/api/schema.d.ts
+
 npm.cmd run typecheck
+
 ```
 
-**Port note:** Docker Compose uses host port 8080 for the containerized API. During the Assignment 7.1 verification, Docker Desktop/WSL occupied that port and served an older OpenAPI contract, so the updated development API was run on **8081**. The `npm.cmd run generate:api` script targets 8080; only use it when that port is serving the intended, up-to-date Development API.
+****Port note:**** Docker Compose uses host port 8080 for the containerized API. During the Assignment 7.1 verification, Docker Desktop/WSL occupied that port and served an older OpenAPI contract, so the updated development API was run on ****8081****. The `npm.cmd run generate:api` script targets 8080; only use it when that port is serving the intended, up-to-date Development API.
 
 ### Verification — 20 October 2026
 
 From `web/`:
 
 ```powershell
+
 npm.cmd run typecheck
+
 npm.cmd run build
+
 npm.cmd run lint
+
 npm.cmd run test -- --run
+
 ```
 
 | Check | Observed result |
-| --- | --- |
-| TypeScript typecheck | Passed |
-| Vite production build | Passed (24 modules transformed) |
-| ESLint | Passed |
-| Vitest | **14 passed**, across 2 test files |
-| Backend automated tests | **130 passed** in the previously reported local run |
 
-These are local verification results, **not** a claim that the latest changes have been committed, pushed or passed CI. The earlier commit history and Assignment 6.4 CI evidence above remain historical evidence for those earlier versions.
+| --- | --- |
+
+| TypeScript typecheck | Passed |
+
+| Vite production build | Passed (24 modules transformed) |
+
+| ESLint | Passed |
+
+| Vitest | ****14 passed****, across 2 test files |
+
+| Backend automated tests | ****130 passed**** in the previously reported local run |
+
+These are local verification results, ****not**** a claim that the latest changes have been committed, pushed or passed CI. The earlier commit history and Assignment 6.4 CI evidence above remain historical evidence for those earlier versions.
 
 ### Limitations and handoff
 
@@ -416,14 +483,23 @@ Assignment 7.2 extends the RondiTrack React frontend with responsive styling, co
 ### Implemented features
 
 - Responsive StokvelCard and ContributionCard components.
+
 - Light, Dark and System theme options.
+
 - Contribution cycles grouped and ordered, including Open, Closed and PaidOut statuses.
+
 - Expandable contribution-cycle sections.
+
 - Contribution status badges for Pending, Paid and Confirmed.
+
 - Arrears indicators for members with outstanding contributions.
+
 - South African currency and Johannesburg-local date formatting.
+
 - Due-date countdowns based on Johannesburg calendar days.
+
 - Additional backend support for retrieving the authenticated member's persisted arrears.
+
 - Automated tests for contribution grouping, date boundaries and arrears behaviour.
 
 ### Running the frontend
@@ -431,9 +507,13 @@ Assignment 7.2 extends the RondiTrack React frontend with responsive styling, co
 From the repository root:
 
 ```powershell
+
 cd web
+
 npm ci
+
 npm run dev
+
 ```
 
 Open the local URL displayed by Vite, normally `http://localhost:3000/`.
@@ -443,8 +523,11 @@ Open the local URL displayed by Vite, normally `http://localhost:3000/`.
 The latest local verification completed successfully:
 
 - Backend: 132 tests passed.
+
 - Frontend: 23 tests passed.
+
 - TypeScript, ESLint and production build passed.
+
 - Production dependency audit: 0 vulnerabilities.
 
 ### Current limitations
@@ -456,3 +539,93 @@ The contribution-group controls and the required mobile screenshots, contrast me
 ### Further documentation
 
 See [Assignment 7.2 frontend README](web/README.md) and [Assignment 7.2 backend/UI notes](docs/assignment-7-2-stage2.md).
+
+## Assignment 7.3 — Live RondiTrack Data
+
+Assignment 7.3 replaces the previous demonstration-data dashboard with authenticated requests to the ASP.NET Core API. The Assignment 7.1 and 7.2 sections above describe the implementation and test results **at those earlier stages**, not the current frontend.
+
+### Delivered functionality
+
+- Sign in and sign out, with JWT access tokens kept in memory and refresh-token cookies handled by the browser.
+- A single-flight refresh mechanism: concurrent requests receiving HTTP 401 share one refresh attempt rather than issuing separate refresh requests.
+- Typed API client and queries using the generated OpenAPI contract (`web/src/api/schema.d.ts`).
+- Live stokvel, contribution-cycle, and contribution data, including paginated contribution responses.
+- Switching between stokvels with query isolation, plus loading, empty, and error states.
+- Error handling for API failures, including HTTP 429, while retaining Light, Dark, and System theme options.
+
+### API contract notes
+
+The generated TypeScript contract comes from the running **Development** API's `/openapi/v1.json`. The contribution pagination response annotation was aligned with the paginated contribution-with-member response shape; the typed query layer uses that generated response type and its continuation token.
+
+During local verification, the Development API ran at `http://localhost:8081`; Docker Compose exposed a separate API at `http://localhost:8080`. Do not assume the two instances connect to the same database or expose identical development-only endpoints.
+
+### Run and verify
+
+Start the appropriate backend API with its required configuration. From the repository root, run:
+
+```powershell
+cd web
+npm.cmd ci
+npm.cmd run dev
+```
+
+Open `http://localhost:3000` and sign in with an existing valid account. To regenerate the contract from the Development API running on port 8081:
+
+```powershell
+cd web
+npx.cmd openapi-typescript http://localhost:8081/openapi/v1.json -o src/api/schema.d.ts
+npm.cmd run typecheck
+```
+
+For local verification:
+
+```powershell
+# From the repository root:
+dotnet test
+
+# From web/:
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+npm.cmd test -- --run
+```
+
+| Check | Recorded result |
+| --- | --- |
+| Backend automated tests | 132 passed |
+| Frontend automated tests | 35 passed across 7 test files |
+| TypeScript typecheck | Passed |
+| ESLint | Passed |
+| Vite production build | Passed |
+| Pull-request CI | Passed in the previously observed GitHub checks; verify again after documentation changes |
+
+### Single-flight proof
+
+The session tests verify that concurrent HTTP 401 responses share one token-refresh request. In a deliberate red/green test, temporarily disabling the guard made the test fail (multiple refresh requests); restoring the guard made it pass.
+
+Evidence: `web/src/auth/session.test.ts`, `web/single-flight-failing.txt`, and `web/single-flight-passing.txt`.
+
+### Stokvel switch proof
+
+The query tests cover pagination, an empty page, and a slow-loading stokvel switch. The isolation test failed when `keepPreviousData` was temporarily enabled and passed after it was removed, demonstrating protection against showing the previous stokvel's contributions under the newly selected stokvel.
+
+Evidence: `web/src/api/queries.pagination.test.tsx`, `web/stokvel-switch-failing.txt`, and `web/stokvel-switch-passing.txt`.
+
+Manual browser checks also showed the selected stokvel and its displayed amount changing between **RondiTrack Demo Emergency Fund (R250)** and **RondiTrack Demo Savings (R500)**, and switching back successfully.
+
+### Shared phone check
+
+The browser sign-out flow was exercised, and an attempted sign-in with invalid credentials was rejected. A complete shared-device demonstration with **two different successfully authenticated users** was **not completed**, because a second account with known credentials was unavailable. This remains a manual verification gap; automated session tests are not a substitute for that scenario.
+
+### API errors and HTTP 429
+
+The frontend includes API error handling and automated tests for error messages, including HTTP 429. A **real HTTP 429 response from the running API was not manually demonstrated**. Do not treat the automated error-handling test as evidence of a live rate-limit event.
+
+### Known gaps
+
+- Two-user shared-phone browser test not completed.
+- Unauthorized-stokvel access was not independently demonstrated in a manual browser/API check.
+- Live HTTP 429 response was not independently demonstrated.
+- No public production deployment is claimed; local Development and Docker Compose API instances may use different databases.
+
+The red/green test evidence is included in the `web/` directory. The historical results and limitations in earlier assignment sections remain intentionally preserved.

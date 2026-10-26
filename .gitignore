@@ -498,3 +498,6 @@ $RECYCLE.BIN/
 /assignment71-frontend-review.zip
 /assignment71-review.zip
 /contribution-review.txt
+
+# Exclude ZIP archives
+*.zip
