@@ -109,7 +109,7 @@ public class IdempotencyTests
 
         var contributionRequest = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 
@@ -256,7 +256,7 @@ public class IdempotencyTests
 
         var firstPayload = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 
@@ -279,7 +279,7 @@ public class IdempotencyTests
         // Act - same key but different payload
         var differentPayload = new
         {
-            amount = 600m,
+            amountInCents = 60000,
             contributionCycleId = cycleId
         };
 

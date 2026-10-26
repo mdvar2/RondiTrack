@@ -76,7 +76,7 @@ public class EndToEndLogLeakTests(PostgresApiFactory factory)
         var cycleId = cycleBody.RootElement.GetProperty("id").GetGuid();
         client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString());
         using var contribution = await client.PostAsJsonAsync($"/api/v1/stokvels/{stokvelId}/members/{userId}/contributions",
-            new { amount, contributionCycleId = cycleId });
+            new { amountInCents = 123456, contributionCycleId = cycleId });
         Assert.Equal(HttpStatusCode.Created, contribution.StatusCode);
         await using (var db = new RondiTrackDbContext(factory.CreateDbContextOptions()))
         {

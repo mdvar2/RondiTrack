@@ -8,7 +8,7 @@ public class RecordContributionRequestValidator
 {
     public RecordContributionRequestValidator()
     {
-        RuleFor(request => request.Amount)
+        RuleFor(request => request.AmountInCents)
             .GreaterThan(0)
             .WithMessage(
                 "Contribution amount must be greater than zero.");

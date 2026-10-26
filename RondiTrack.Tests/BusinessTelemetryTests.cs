@@ -123,7 +123,7 @@ public class BusinessTelemetryTests(PostgresApiFactory factory)
         var scenario = await AuthScenario.CreateAsync(factory);
         using var client = factory.CreateClientFor(scenario.Member);
         client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString());
-        var body = new { amount = 500m, contributionCycleId = scenario.CycleId };
+        var body = new { amountInCents = 50000, contributionCycleId = scenario.CycleId };
         using var capture = new Capture();
         var path = $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions";
         using var first = await client.PostAsJsonAsync(path, body);

@@ -1,0 +1,47 @@
+
+ RUN  v4.1.11 C:/Users/gwiny/RondiTrack/web
+
+ ❯ src/contributions/recordContribution.test.ts (6 tests | 2 failed) 141ms
+     × sends the same key when retrying after a network error 62ms
+     × keeps the key on a 429 and exposes the wait from Retry-After 21ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/contributions/recordContribution.test.ts > recording a contribution > sends the same key when retrying after a network error
+AssertionError: expected '35987e97-45fa-4ace-b955-cfba4891d2ad' to be '49530a65-0d04-45e8-9e32-38deaf2a0d25' // Object.is equality
+
+Expected: "49530a65-0d04-45e8-9e32-38deaf2a0d25"
+Received: "35987e97-45fa-4ace-b955-cfba4891d2ad"
+
+ ❯ src/contributions/recordContribution.test.ts:67:25
+     65|     expect(seen).toHaveLength(2)
+     66|     expect(seen[0].key).not.toBeNull()
+     67|     expect(seen[0].key).toBe(seen[1].key)
+       |                         ^
+     68|   })
+     69|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/contributions/recordContribution.test.ts > recording a contribution > keeps the key on a 429 and exposes the wait from Retry-After
+AssertionError: expected 'eb5ede89-3551-4cc1-ab98-ced4e1be3034' to be 'd5a672e5-8a71-40ae-892e-34e95212b51b' // Object.is equality
+
+Expected: "d5a672e5-8a71-40ae-892e-34e95212b51b"
+Received: "eb5ede89-3551-4cc1-ab98-ced4e1be3034"
+
+ ❯ src/contributions/recordContribution.test.ts:95:25
+     93|
+     94|     expect(seen).toHaveLength(2)
+     95|     expect(seen[0].key).toBe(seen[1].key)
+       |                         ^
+     96|   })
+     97|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed (6)
+   Start at  22:25:05
+   Duration  3.77s (transform 757ms, setup 0ms, import 1.57s, tests 141ms, environment 1.73s)
+

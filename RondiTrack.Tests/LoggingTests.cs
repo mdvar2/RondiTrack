@@ -302,7 +302,7 @@ public class LoggingTests(PostgresApiFactory factory)
         var baseline = factory.CapturedLogs.Entries.Count;
         using var response = await client.PostAsJsonAsync(
             $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions",
-            new { amount, contributionCycleId = scenario.CycleId });
+            new { amountInCents = 987654, contributionCycleId = scenario.CycleId });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var queries = spans.Where(span => span.TraceId.ToString() == id).ToArray();
         Assert.NotEmpty(queries);

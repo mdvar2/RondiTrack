@@ -75,7 +75,14 @@ builder.Services.AddScoped<IAuthorizationHandler, StokvelAccessHandler>();
 builder.Services.AddScoped<IClaimsTransformation, PlatformRoleClaimsTransformation>();
 builder.Services.AddScoped<StokvelAuthorization>();
 
-builder.Services.AddOpenApi();
+// The service answers 400 without the header, so the document says it is required.
+builder.Services.AddOpenApi(options => options.AddOperationTransformer((operation, _, _) =>
+{
+    foreach (var parameter in operation.Parameters ?? [])
+        if (parameter is Microsoft.OpenApi.OpenApiParameter { Name: "Idempotency-Key" } header)
+            header.Required = true;
+    return Task.CompletedTask;
+}));
 
 builder.Services.AddControllers(options =>
 {

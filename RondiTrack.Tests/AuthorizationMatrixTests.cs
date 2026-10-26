@@ -39,7 +39,7 @@ public class AuthorizationMatrixTests(PostgresApiFactory factory)
             using var request = new HttpRequestMessage(new HttpMethod(method), path);
             if (method is "POST" or "PUT")
                 request.Content = JsonContent.Create(new { name = "Updated", contributionAmount = 500m,
-                    role = Roles.Member, period = "2026-11", targetAmount = 500m, amount = 500m,
+                    role = Roles.Member, period = "2026-11", targetAmount = 500m, amount = 500m, amountInCents = 50000,
                     contributionCycleId = scenario.CycleId });
             var response = await client.SendAsync(request);
             Assert.Equal(expected, response.StatusCode);
@@ -73,7 +73,7 @@ public class AuthorizationMatrixTests(PostgresApiFactory factory)
         using var client = factory.CreateClientFor(chairperson ? scenario.Chairperson : scenario.Treasurer);
         using var contribution = new HttpRequestMessage(HttpMethod.Post,
             $"/api/v1/stokvels/{scenario.StokvelId}/members/{scenario.Member.Id}/contributions")
-        { Content = JsonContent.Create(new { amount = 500m, contributionCycleId = scenario.CycleId }) };
+        { Content = JsonContent.Create(new { amountInCents = 50000, contributionCycleId = scenario.CycleId }) };
         contribution.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
         Assert.Equal(HttpStatusCode.Created, (await client.SendAsync(contribution)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(

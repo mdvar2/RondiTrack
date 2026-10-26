@@ -308,7 +308,7 @@ public class HappyPathTests
         // Act - record the contribution
         var contributionRequest = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 

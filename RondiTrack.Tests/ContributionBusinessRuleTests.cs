@@ -87,7 +87,7 @@ public class ContributionBusinessRuleTests
 
         var contributionRequest = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 
@@ -227,7 +227,7 @@ public class ContributionBusinessRuleTests
 
         var contributionRequest = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 
@@ -345,7 +345,7 @@ public class ContributionBusinessRuleTests
 
         var contributionRequest = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 
@@ -476,7 +476,7 @@ public class ContributionBusinessRuleTests
 
         var contributionRequest = new
         {
-            amount = 500m,
+            amountInCents = 50000,
             contributionCycleId = cycleId
         };
 

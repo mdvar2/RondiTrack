@@ -93,7 +93,7 @@ public class EdgeCaseTests
         // contribution amount according to the validator.
         var contributionRequest = new
         {
-            amount = 0m,
+            amountInCents = 0,
             contributionCycleId = cycleId
         };
 

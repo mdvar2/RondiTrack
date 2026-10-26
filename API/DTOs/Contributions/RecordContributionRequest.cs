@@ -1,6 +1,6 @@
 namespace RondiTrack.DTOs.Contributions;
 
 public record RecordContributionRequest(
-    decimal Amount,
+    long AmountInCents,
     Guid ContributionCycleId
 );
