@@ -1,9 +1,9 @@
 # Architecture and dependency injection
 
-This is the detailed companion to [the main guide](../README.md#3-project-architecture). I
-separated these projects in Assignment 5.4 and kept their responsibilities while adding
-authentication and telemetry. A scoped service lasts for one request; a singleton lasts for
-the application process.
+This is the detailed companion to the [System Architecture](../README.md#system-architecture)
+section of the main README. I separated these projects in Assignment 5.4 and kept their
+responsibilities while adding authentication and telemetry. A scoped service lasts for one
+request; a singleton lasts for the application process.
 
 Open [RondiTrack.sln](../RondiTrack.sln) in VS Code from the repository root.
 
@@ -74,9 +74,14 @@ Registrations are in [API/Program.cs](../API/Program.cs).
 - **Lifetime:** Scoped
 - **Reason:** Transactional family locking.
 
-- **Registration:** MembershipService, ContributionService, PayoutService, AuthService
+- **Registration:** MembershipService, ContributionService, PayoutService, AuthService,
+  MemberHomeService, StokvelDetailService
 - **Lifetime:** Scoped
 - **Reason:** Scoped repository/DbContext dependencies.
+
+- **Registration:** CycleCloseProcessor, HousekeepingProcessor
+- **Lifetime:** Scoped, created per run by the hosted `CycleCloseWorker` and `HousekeepingWorker`
+- **Reason:** Each run uses its own DbContext.
 
 - **Registration:** `IPasswordHasher<User>` -> `PasswordHasher<User>`
 - **Lifetime:** Scoped
@@ -98,12 +103,31 @@ Registrations are in [API/Program.cs](../API/Program.cs).
 - **Lifetime:** Singleton
 - **Reason:** Configuration/signing without scoped dependencies.
 
-- **Registration:** IIdempotencyStore -> IdempotencyStore
-- **Lifetime:** Singleton
-- **Reason:** Process-local state without DbContext.
+- **Registration:** IIdempotencyStore -> PostgresIdempotencyStore
+- **Lifetime:** Scoped
+- **Reason:** Idempotency records are persisted in PostgreSQL (since Assignment 6.4), so they
+  survive restarts and are shared by every API instance. The earlier process-local
+  `IdempotencyStore` remains in the code but is not registered.
 
 The unregistered in-memory ContributionCycleRepository remains for service tests; production
 DI uses EfContributionCycleRepository.
+
+## The two frontends
+
+Both frontends use the same API contract, generated from the Development API's
+`/openapi/v1.json` with openapi-typescript, but they reach the API differently.
+
+| | [`web/`](../web/README.md) (React + Vite, Assignments 7.1–7.4) | [`web-next/`](../web-next/README.md) (Next.js, Assignment 8.1) |
+|---|---|---|
+| Who calls the API | The browser, cross-origin (CORS allows `http://localhost:3000`) | Only the Next.js server |
+| Access token | In browser memory | Inside an encrypted, HttpOnly `session` cookie; never readable by the browser |
+| Refresh token | `__Secure-ronditrack_refresh` cookie set by the API, sent by the browser | Read by the Next.js server from the login response and kept in the encrypted session |
+| Token refresh | Single-flight refresh on 401 | Not yet (Day 3); a 401 sends the person to `/login?expired=1` |
+| Data fetching | TanStack Query in the browser | Async Server Components |
+
+Request flow for `web-next/`: browser → Next.js Server Component → `src/lib/api.ts` (adds
+`Authorization: Bearer …` from the session) → API → PostgreSQL. `src/lib/session.ts` and
+`src/lib/api.ts` import `server-only`, so a Client Component that imports them fails the build.
 
 ## Observability registrations
 

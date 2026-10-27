@@ -1,10 +1,12 @@
 # API and authentication reference
 
-I implemented these routes and security rules in Assignment 6.1. This reference keeps the
-detailed contracts from the earlier main README. See the [current
-guide](../README.md#5-features-and-api-functionality) for an overview.
+I implemented these routes and security rules in Assignment 6.1 and have kept the reference
+current since. See the [main README](../README.md#features) for an overview. The browser
+configuration, error format and home contract were introduced in
+[Assignment 6.3](history/assignment-6.3.md).
 
-Current Assignment 6.3 browser configuration, errors and home contract: [README](../README.md#assignment-63--ready-for-the-frontend-14-october-2026).
+The authoritative, always-current contract is the Development API's OpenAPI document at
+`/openapi/v1.json` (browse it at `/scalar/v1`).
 
 ## Authentication routes
 
@@ -165,7 +167,28 @@ contribution.
 
 - **Required permission:** Any member of this stokvel
 
-- **Success:** 200
+- **Success:** 200 `StokvelDetailResponse` with an `ETag`: `id`, `name`, `contributionAmount`
+  (rands), `memberCount`, `version`, plus (since Assignment 8.1) `contributionAmountCents`,
+  `role` (the caller's role in this stokvel) and `currentCycle` (`period`, `status`, `dueDate`,
+  `membersPaid`, `collectedCents`, `targetCents`), or `null` when this Johannesburg month has
+  no cycle. A nonmember and an unknown id both get the same 404; a malformed id also gets 404
+  because the route only matches GUIDs.
+
+### GET /api/v1/me
+
+- **Required permission:** Any authenticated user
+
+- **Success:** 200 `UserResponse` (`id`, `name`, `email`, `version`) for the caller. It has no
+  role, because roles belong to each stokvel. Added in Assignment 8.1.
+
+### GET /api/v1/me/home
+
+- **Required permission:** Any authenticated user
+
+- **Success:** 200 `{ stokvels: [...] }`: each of the caller's stokvels with `role`,
+  `currentCycle`, `amountPaid`, `amountOwed`, `arrearsCents` (integer cents) and
+  `nextPayoutDate` (always `null` until a payout-scheduling rule exists). A user in no
+  stokvels gets `{ "stokvels": [] }`, not 404. Only the caller's own money is included.
 
 ### PUT /api/v1/stokvels/{id}
 

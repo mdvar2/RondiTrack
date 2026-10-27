@@ -13,6 +13,10 @@ public class AuthController(AuthService authService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("login")]
+    // Declaring any response type stops ASP.NET inferring the 200 from
+    // ActionResult<T>, so the success body has to be declared as well.
+    [ProducesResponseType<AccessTokenResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimitPolicies.Login)]
     public async Task<ActionResult<AccessTokenResponse>> Login(LoginRequest request)

@@ -1,56 +1,88 @@
-# RondiTrack — Assignment 7.2 frontend
+# RondiTrack web (React + Vite)
 
-RondiTrack's responsive React/TypeScript stokvel dashboard uses Tailwind CSS v4 and shadcn/ui. The repository's `web/` folder is the frontend; the ASP.NET Core API and PostgreSQL infrastructure live in the repository root.
+The original RondiTrack frontend: a React 19, TypeScript and Vite single-page app. It was built across Assignments 7.1 to 7.4 and shows **live, signed-in data from the RondiTrack API**. The browser calls the API directly.
 
-## Start and verify
+A second frontend, built on Next.js for Assignment 8.1, lives in [`../web-next/`](../web-next/README.md). In that one the browser never calls the API. The [root README](../README.md#current-implementation) compares the two.
+
+> This README describes `web/` as it is now, after Assignment 7.4. The Assignment 7.2 version, from when the dashboard used sample data, is preserved in [docs/history/web-readme-assignment-7.2.md](../docs/history/web-readme-assignment-7.2.md).
+
+## What it does
+
+| Area | Behaviour | Since |
+|---|---|---|
+| Sign in and out | JWT access token kept **in memory**. The refresh token is the API's `HttpOnly` cookie, which the browser sends and JavaScript can't read. | 7.3 |
+| Token refresh | On a 401, concurrent requests share **one** refresh call (single-flight), then retry | 7.3 |
+| Live data | `/me/home` for the person's stokvels, plus cycles and paginated contributions, through a typed `openapi-fetch` client and TanStack Query | 7.3 |
+| Switching stokvels | Each stokvel's data is cached separately, so one stokvel's contributions are never shown under another | 7.3 |
+| Recording a contribution | A form (React Hook Form + Zod) for an Open cycle. Rands are typed in and converted to whole cents. Every retry of one payment sends the same `Idempotency-Key`. A Treasurer or Chairperson can pick another member; the API enforces who may record for whom. | 7.4 |
+| Errors | The 7.3 messages, including 429 with `Retry-After`, plus the API's `correlationId` as a reference | 7.3 |
+| Presentation | Responsive `StokvelCard` and `ContributionCard`, cycles grouped by status, status and arrears badges, Johannesburg due-date countdown, Light/Dark/System theme | 7.1–7.2 |
+
+## Run it
+
+You need Node.js 24 (see [`.nvmrc`](.nvmrc)) and the RondiTrack API running in **Development**. The [root README](../README.md#running-the-application) explains how to start it.
 
 ```powershell
 cd web
-npm.cmd ci
-npm.cmd run lint
-npm.cmd run typecheck
-npm.cmd run build
-npx.cmd vitest run
-npm.cmd audit --omit=dev
-npm.cmd run dev
+npm ci
+Copy-Item .env.example .env.local   # then set VITE_API_BASE_URL (see below)
+npm run dev                          # http://localhost:3000
 ```
 
-The development server uses `http://localhost:3000/`. The generated API contract is `src/api/schema.d.ts`; regenerate it with `npm.cmd run generate:api` only when the updated backend's OpenAPI document is accessible at `http://localhost:8080/openapi/v1.json`. The production Docker API can return 401 for this development-only document.
+| Setting | Value |
+|---|---|
+| `VITE_API_BASE_URL` | The API's address. `.env.example` uses `http://localhost:8081`. Use `http://localhost:5101` if you started the API with its default `http` launch profile. `.env.local` is git-ignored. |
+| Port | **3000**, with `strictPort: true` in `vite.config.ts`, so Vite refuses to start if port 3000 is taken. `web-next/` also uses port 3000 by default, so **run only one frontend at a time**. |
+| CORS | The Development API allows `http://localhost:3000` (`API/appsettings.Development.json`). |
 
-**Data provenance:** The dashboard currently renders typed, illustrative fixtures in `src/data/sample.ts` and `src/data/sampleCycles.ts`, not live authenticated API responses. The cycle totals are supplied by the cycle response objects and are never recomputed from contribution rows in the browser. For a complete API demonstration, capture authorized, anonymized data in Scalar and replace the fixtures; do not claim these fixtures are database seed records.
+`VITE_` variables are compiled into the browser bundle, so only the API's address goes here, never a secret.
 
-## Assignment 7.2 design decisions
+## Scripts
 
-### Grouping and expand/collapse state
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server on port 3000 |
+| `npm run build` | `tsc -b` and a production build into `dist/` |
+| `npm run typecheck` | TypeScript only |
+| `npm run lint` | ESLint |
+| `npm test -- --run` | Vitest, once (`npm test` alone starts watch mode) |
+| `npm run api:types` | Regenerates `src/api/schema.d.ts` from `http://localhost:8081/openapi/v1.json` |
+| `npm run generate:api` | Same, from port **8080**. Use it only if a current *Development* API is on 8080; the Docker Compose API runs in Production and doesn't serve the OpenAPI document. |
 
-`groupContributionsByCycle` is a pure function in `src/lib/`. It sorts cycles newest-first and contribution entries newest-first, retains empty cycles and puts unmatched contributions in a final `Unknown cycle` group. The group list derives from props at render time, not from React state. `ContributionList` owns the expanded-state dictionary because both individual group buttons and the list-level Expand all / Collapse all buttons need access to it. Keys are cycle IDs rather than array positions, so adding a new cycle cannot transfer another cycle's expanded state to the wrong group. Open cycles default to expanded; others default to collapsed.
+## Where things are
 
-### Johannesburg due dates and timer
+| Path | Contents |
+|---|---|
+| `src/auth/session.ts` | Access token in memory, single-flight refresh, sign in and out |
+| `src/api/client.ts`, `queries.ts`, `schema.d.ts` | Typed client, TanStack Query hooks, generated contract |
+| `src/contributions/useRecordContribution.ts` | Idempotency-key rules for recording a contribution |
+| `src/components/` | `StokvelCard`, `ContributionCard`, `ContributionForm`, `ContributionList`, `StatusBadge`, `DueCountdown`, `ErrorView`, shadcn `ui/` |
+| `src/lib/` | `money.ts` (cents ↔ rands), `dates.ts` (Johannesburg dates), `errorMessages.ts`, `groupContributions.ts` |
 
-The API's `dueDate` is a South African calendar date (`YYYY-MM-DD`), not an instant. `getJohannesburgDeadlineUtc` interprets `2026-10-31` as the exclusive deadline `2026-10-31T22:00:00Z` (the beginning of 1 November SAST), not UTC midnight on 31 October. `getDueCountdown` compares calendar dates in Johannesburg, preventing a premature overdue message on the due date. The effect in `DueCountdown` depends on `[dueDate, status]`: it schedules only for Open cycles, clears the timeout on cleanup and schedules a new timeout after each Johannesburg midnight. A per-second interval would waste battery without changing a day-based display. The user's device clock drives the informational countdown, but the API's server-side cycle-close and arrears decisions are authoritative. South Africa's fixed UTC+02:00 offset makes the next-midnight helper deterministic without DST adjustments.
+## Verification
 
-### Badge meaning, roles and privacy
+| Check | Result | When |
+|---|---|---|
+| `npm test -- --run` | **63 passed** (9 files) | Re-run 27 October 2026 |
+| `npm run lint` | Clean | Re-run 27 October 2026 |
+| `npm run build` | Succeeded | Last recorded in [Assignment 7.4](../docs/history/assignment-7.4.md#results) |
 
-`StatusBadge` uses status text and an icon, not colour alone. `Paid` denotes a contribution claim; `Confirmed` denotes a treasurer-verified payment; `Paid out` denotes the entire cycle's payout. Unknown statuses are displayed neutrally with their raw label and an icon. The arrears badge accepts integer cents and is absent for zero. Role is not a status: it must be displayed as contextual text such as `You're the Treasurer`. Personal arrears must come from the authenticated caller's API response, never from another member's contribution or a browser-side sum. The present frontend does **not** yet demonstrate authenticated caller arrears because that backend contract has not been verified.
+CI (`.github/workflows/ci.yml`) builds and tests only the backend and Docker image. These frontend checks are run locally.
 
-### Theme and storage
+Red/green evidence files, each the output of a deliberately broken run and of the restored code:
 
-Light, Dark and System use CSS theme tokens. The inline `index.html` script applies the stored preference before the first React paint, and the React effect follows operating-system theme changes while the page is open. Storage access is wrapped in `try/catch`. A theme preference is device-wide and not personal; future per-user pinned stokvels must be scoped to the authenticated account and cleared on logout.
+| Proof | Failing | Passing | Explained in |
+|---|---|---|---|
+| Single-flight refresh | [single-flight-failing.txt](single-flight-failing.txt) | [single-flight-passing.txt](single-flight-passing.txt) | [Assignment 7.3](../docs/history/assignment-7.3.md#single-flight-proof) |
+| Stokvel switch isolation | [stokvel-switch-failing.txt](stokvel-switch-failing.txt) | [stokvel-switch-passing.txt](stokvel-switch-passing.txt) | [Assignment 7.3](../docs/history/assignment-7.3.md#stokvel-switch-proof) |
+| Idempotency key reuse | [idempotency-failing.txt](idempotency-failing.txt) | [idempotency-passing.txt](idempotency-passing.txt) | [Assignment 7.4](../docs/history/assignment-7.4.md#idempotency-proof) |
 
-### Dependency audit
+## Known gaps
 
-The initial production audit reported seven high-severity transitive findings associated with the shadcn CLI when `shadcn` was installed as a production dependency. Moving `shadcn` to pinned `devDependencies` resulted in `npm audit --omit=dev` reporting **0 production vulnerabilities** on the user's last run. Development-tool findings are distinct from runtime production dependency exposure.
+These are carried over from the 7.3 and 7.4 records and are still open:
 
-## Evidence still required before full sign-off
-
-Do not present unmeasured results as complete:
-
-1. **StrictMode evidence:** Temporarily add `console.count` to the timer scheduling and cleanup paths; capture console output with cleanup enabled and temporarily disabled, compare the duplicate StrictMode setup/cleanup behaviour, then remove the logging. This evidence has not been captured.
-2. **Contrast:** In DevTools measure foreground/background ratios for every badge (Open, Closed, Paid out, Pending, Paid, Confirmed, arrears, unknown) in Light and Dark; each must be at least 4.5:1. Add the measured table here. Measurements have not been captured.
-3. **360px screenshots:** In DevTools set width 360px, expand every group, capture Light and Dark screenshots, verify no horizontal scrolling, names wrap, amounts do not break, buttons are at least 24×24px and grayscale meaning survives. Screenshots have not been captured or embedded.
-4. **API handoff:** Existing backend cycle DTO/repository changes expose status, due date, collected and due totals and were previously reported to pass backend tests. Dedicated new tests and actual seeded Open/Closed/PaidOut and caller-arrears API evidence have not been supplied. Do not infer caller arrears from the cycle outstanding amount.
-5. **Real API data:** Replace illustrative fixtures with captured anonymized authenticated API responses or implement authenticated fetching, and confirm the caller's own arrears are supplied in cents by `/api/v1/me/home`.
-
-## Current scope
-
-This package strengthens frontend boundary tests, theme startup and status semantics, but does not itself establish production authentication, seed the PostgreSQL database, or complete the API arrears contract. Run the full verification suite and inspect the remaining evidence before submitting as fully compliant.
+- A two-user shared-device browser test and a live HTTP 429 from the running API were not demonstrated manually (7.3).
+- Recording a contribution was exercised by automated tests (MSW), not a recorded manual run against the live API (7.4).
+- When a Treasurer picks another member, the amount starts empty, because `/me/home` only reports the signed-in person's own amounts (7.4).
+- There's no "Already recorded" message, because the API doesn't send a replay header (7.4).
+- "Record for myself" reads the user id from the access token's `sub` claim (7.4). `GET /api/v1/me` now exists (8.1) but `web/` doesn't use it yet.

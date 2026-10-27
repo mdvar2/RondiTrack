@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* Theme tokens copied from web/src/index.css (7.1). Dark mode follows the
+   operating system here, because the 7.2 theme switcher is not ported. */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --destructive: oklch(0.48 0.19 27);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.55 0 0);
+  --radius: 0.625rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.75 0 0);
+    --destructive: oklch(0.78 0.13 22);
+    --border: oklch(1 0 0 / 18%);
+    --input: oklch(1 0 0 / 18%);
+    --ring: oklch(0.75 0 0);
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    min-width: 320px;
+  }
+}
+
+/* StokvelCard styles from web/src/App.css (7.1 and 7.2). */
+.stokvel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+
+.stokvel-card {
+  min-width: 0;
+  padding: 20px;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+.stokvel-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stokvel-card__header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.role-badge {
+  margin: 0;
+  padding: 4px 8px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stokvel-card__section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.stokvel-card__section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.stokvel-card__section > p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.detail-row span,
+.detail-row dt {
+  color: var(--muted-foreground);
+}
+
+.detail-row strong,
+.detail-row dd {
+  margin: 0;
+  color: var(--foreground);
+  text-align: right;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.contribution-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.contribution-summary > div {
+  min-width: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--secondary);
+  border-radius: 8px;
+}
+
+.contribution-summary span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.contribution-summary strong {
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: clamp(0.75rem, 3vw, 0.9375rem);
+}
+
+@media (min-width: 640px) {
+  .contribution-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.empty-state {
+  padding: 12px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border-radius: 8px;
+}

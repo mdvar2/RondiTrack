@@ -138,7 +138,7 @@ design rather than adding a repository just for the assignment.
 
 * Development migration blocked by duplicate normalized emails. The user chose
   to preserve development data. Private cleanup documents are excluded from
-  published history; see [the sanitized note](development-migration-status.md).
+  published history; see [the sanitized note](../../development-migration-status.md).
   Authentication against the existing development database requires an approved
   duplicate resolution and schema upgrade.
 * Legacy passwordless users need an approved password-setup process. No public

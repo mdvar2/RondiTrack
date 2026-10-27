@@ -65,29 +65,36 @@ public class StokvelsController : ControllerBase
     /// Gets a stokvel by ID.
     /// </summary>
     /// <remarks>
-    /// Returns the requested stokvel when the ID matches an existing stokvel.
-    /// Returns 404 when no stokvel exists with the supplied ID.
+    /// Returns the stokvel with its member count, the caller's role in it and a
+    /// summary of the current Johannesburg-month cycle (null when there is none).
+    /// Returns 404 when no stokvel exists with the supplied ID, or when the caller
+    /// is not a member, so a non-member cannot learn that the stokvel exists.
     /// </remarks>
     [ProducesResponseType(
-        typeof(StokvelResponse),
+        typeof(StokvelDetailResponse),
         StatusCodes.Status200OK)]
     [ProducesResponseType(
         typeof(ProblemDetails),
         StatusCodes.Status404NotFound)]
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<StokvelResponse>> GetById(Guid id)
+    public async Task<ActionResult<StokvelDetailResponse>> GetById(
+        Guid id,
+        [FromServices] StokvelDetailService detailService,
+        CancellationToken cancellationToken)
     {
         await _stokvelAuthorization.EnsureAsync(User, id, Policies.StokvelView);
 
-        var stokvel =
-            await _stokvelRepository.GetByIdReadOnlyAsync(id);
+        var stokvel = await detailService.GetAsync(
+            id,
+            StokvelAuthorization.UserId(User),
+            cancellationToken);
 
         if (stokvel is null)
             throw new NotFoundException("Stokvel not found.");
 
         Response.Headers.ETag = $"\"{stokvel.Version}\"";
 
-        return Ok(StokvelResponse.FromEntity(stokvel));
+        return Ok(stokvel);
     }
 
     [ProducesResponseType(
