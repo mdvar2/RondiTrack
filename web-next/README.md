@@ -2,7 +2,7 @@
 
 RondiTrack's member pages, rebuilt on **Next.js 16.4.1** with the App Router. Every page is a Server Component that fetches from the ASP.NET Core API **on the server**. The browser only ever talks to this Next.js app: it holds one encrypted, `HttpOnly` cookie called `session` and never sees an access or refresh token.
 
-The Vite app in [`../web`](../web) is unchanged.
+The Vite app in [`../web`](../web/README.md) is unchanged. For the project as a whole, both frontends and the API, see the [root README](../README.md).
 
 ## Running it
 
@@ -39,6 +39,70 @@ npm run dev        # http://localhost:3000
 | `npm run generate:api` | Regenerates `src/lib/schema.d.ts` from `http://localhost:5101/openapi/v1.json` |
 
 Every version in `package.json` is pinned exactly, with no `^` or `~`. `npm audit` reports 0 vulnerabilities. Vitest is 4.1.12 because 4.1.11 (the version `web/` uses) has two moderate advisories in `@vitest/mocker`.
+
+**Port 3000 is shared** with the React/Vite app in `../web`. Run one frontend at a time.
+
+### Dependencies
+
+From `package.json`. The app was created with `create-next-app@16.4.1` (TypeScript, Tailwind, ESLint, App Router, `src/`, React Compiler, no AGENTS.md). `next.config.ts` sets `reactCompiler: true`, `cacheComponents: false` and `agentRules: false`.
+
+| Package | Version | Used for |
+|---|---|---|
+| `next` | 16.4.1 | App Router, Server Components, Server Actions |
+| `react`, `react-dom` | 19.3.0 | |
+| `jose` | 6.2.13 | Encrypting the session cookie (`dir` + `A256GCM`) |
+| `server-only` | 0.0.1 | Turns importing session or API code into a Client Component into a build error |
+| `openapi-fetch` | 0.17.0 | Typed API client, generated from the API's OpenAPI document |
+| `class-variance-authority`, `clsx`, `tailwind-merge` | 0.7.1, 2.1.1, 3.7.0 | Badge and button variants, copied from `web/` |
+| `lucide-react` | 1.60.0 | Status-badge icons |
+| `tailwindcss`, `@tailwindcss/turbopack` | 4.3.3 | Styling |
+| `typescript` | 5.9.3 | |
+| `eslint`, `eslint-config-next` | 9.39.5, 16.4.1 | `npm run lint` |
+| `babel-plugin-react-compiler` | 1.0.0 | React Compiler |
+| `openapi-typescript` | 7.13.0 | `npm run generate:api` |
+| `vitest` | 4.1.12 | `npm test` |
+| `@types/node`, `@types/react`, `@types/react-dom` | 20.19.43, 19.3.0, 19.3.0 | |
+
+### Testing
+
+| Command | Result on 27 Oct 2026 |
+|---|---|
+| `npm run lint` | No problems |
+| `npm test` | **58 passed** in 7 files |
+| `npm run build` | Succeeded; 7 routes |
+| `npm audit` | 0 vulnerabilities |
+| `dotnet test RondiTrack.Tests` (repository root, Docker running) | **145 passed**, including the 8 tests added for the API fixes below |
+
+What the unit tests cover:
+
+| File | Checks |
+|---|---|
+| `src/lib/treasurer.test.ts` | The treasurer filter: a mixed list, Treasurer nowhere, an empty list, exact role spelling |
+| `src/lib/session.test.ts` | Encrypt/decrypt round trip; tampered, wrong-secret, wrong-shape and expired cookies all count as no session; no role is stored |
+| `src/lib/api.test.ts` | `readOrFail`: data, 401 → `/login?expired=1`, 404 → `notFound()`, other errors → `ApiError` with the reference |
+| `src/lib/errors.test.ts` | The 7.3 messages and the error digest |
+| `src/lib/refresh-cookie.test.ts` | Reading the refresh token from the login response's `Set-Cookie` headers |
+| `src/lib/money.test.ts`, `dates.test.ts` | Copied unchanged from `web/` |
+
+On 27 Oct 2026 I also checked the signed-in pages with a local script, which isn't part of the repository. It signed three accounts in against the real API, built real session cookies and fetched every page from the production build. **98 checks passed, 0 failed.** The checks covered roles, the treasurer filter, the not-found pages, and that no token, nothing JWT-shaped and no mention of the API's port appears in any page's HTML.
+
+## Security architecture
+
+```
+Browser ──(cookie: session, encrypted, HttpOnly, Secure, SameSite=Lax)──▶ Next.js server ──(Authorization: Bearer)──▶ API
+```
+
+| Concern | How it's handled | Where |
+|---|---|---|
+| Where tokens live | Only inside the encrypted `session` cookie. Browser JavaScript can't read it, and neither token appears in the page | `src/lib/session.ts` |
+| Tampering | `jose` `dir` + `A256GCM` with `SESSION_SECRET`. A cookie that fails to decrypt, has expired or has the wrong shape counts as no session | `decrypt()` in `session.ts` |
+| Who calls the API | Only server code. `api()` adds the bearer token from the session. No `NEXT_PUBLIC_` variable exists, so the browser doesn't know the API's address | `src/lib/api.ts` |
+| Server code leaking to the browser | `import 'server-only'` in `session.ts` and `api.ts` makes that a build error (see [Server-only proof](#server-only-proof)) | |
+| Client Component props | Only safe values cross the boundary: the login form's message, reference and email | `src/components/LoginForm.tsx` |
+| Error details | In production only a digest reaches the browser. `ApiError` puts just the status and `correlationId` in it, never a stack trace | `src/lib/errors.ts`, `(app)/error.tsx` |
+| Roles | Never stored in the session or read from the token. Each page uses the role the API returns for each stokvel, and the API still authorizes every request | `src/lib/treasurer.ts` |
+| Hiding that a stokvel exists | A non-member, an unknown id and a malformed id all get the same 404 page, which shows nothing from the URL | `stokvels/[id]/not-found.tsx` |
+| Signing out | Revokes the API's refresh session (the refresh token is sent as a `Cookie` header), then deletes the local session | `src/lib/auth-actions.ts` |
 
 ## API check
 

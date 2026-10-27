@@ -1,7 +1,7 @@
 # Supplementary verification-only diagnostics
 
 I kept the complete Stage 5 audit in the
-[README appendix](../README.md#appendix-a-complete-popia-logging-audit).
+[README appendix](../technical-notes-to-6.3.md#appendix-a-complete-popia-logging-audit).
 This companion preserves later test/script sites. They are not new production
 logger calls; raw fixture or third-party diagnostics are not published.
 

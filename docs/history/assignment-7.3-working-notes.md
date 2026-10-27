@@ -1,5 +1,7 @@
 # Assignment 7.3 — implementation notes
 
+> **Historical record, superseded.** These were the working notes kept in `ASSIGNMENT_7_3_NOTES.md` while Assignment 7.3 was in progress. Several TODOs here were completed later; see [Assignment 7.3](assignment-7.3.md) for what was delivered and proven. `GET /api/v1/me`, noted below as missing, was added in Assignment 8.1.
+
 ## API contract notes
 - CORS: `http://localhost:3000`, credentials enabled; `Retry-After` exposed (source `API/Common/CorsPolicies.cs`).
 - Refresh: HttpOnly, Secure, Strict cookie, scoped to `/api/v1/auth`; browser cookie behavior still requires verification.

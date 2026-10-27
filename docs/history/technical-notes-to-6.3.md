@@ -1,6 +1,8 @@
 # Detailed RondiTrack Technical Notes
 
-This document preserves the detailed implementation explanations, historical assignment evidence, and full POPIA logging audit previously included in the main README. For a shorter project introduction, see [the main README](../README.md).
+> **Historical record.** Detailed notes up to Assignment 6.3 (14 October 2026), moved from `docs/README-detailed-technical-notes.md` on 27 October 2026 with its links repaired. Test counts, setup steps and the migration-blocker note describe that time. For the current project, see the [root README](../../README.md); for current references, see the [documentation index](../README.md).
+
+This document preserves the detailed implementation explanations, historical assignment evidence, and full POPIA logging audit previously included in the main README. For a shorter project introduction, see [the main README](../../README.md).
 
 
 A .NET 10 API for managing stokvels, contributions and payouts.
@@ -10,7 +12,7 @@ A .NET 10 API for managing stokvels, contributions and payouts.
 **Development migration blocker:** duplicate normalized emails prevent the existing
 development database from applying the authentication migration. Do not update, reset or
 recreate it to bypass the blocker. Its data is preserved. See [the migration
-status](docs/development-migration-status.md).
+status](../development-migration-status.md).
 
 ## Assignment 6.3 — Ready for the Frontend (14 October 2026)
 
@@ -25,7 +27,7 @@ Assignment 6.3 prepares RondiTrack for frontend integration through versioned AP
 - The original development connection setting was restored, and `SELECT 1` succeeded afterward.
 - No development data, schemas, or migrations were changed during verification.
 
-See the [stage-by-stage trainer notes](docs/assignment-6-3-stages.md), [verification report](docs/assignment-6-3-verification.md), and [requirement compliance matrix](docs/assignment-6-3-compliance.md). The following sections describe the current v1 browser contract; earlier assignment evidence is identified as historical.
+See the [stage-by-stage trainer notes](evidence/assignment-6-3-stages.md), [verification report](evidence/assignment-6-3-verification.md), and [requirement compliance matrix](evidence/assignment-6-3-compliance.md). The following sections describe the current v1 browser contract; earlier assignment evidence is identified as historical.
 
 ### Versioning and the refresh cookie
 
@@ -146,7 +148,7 @@ npm run test:money
 src/home.ts(7,56): error TS2339: Property 'amountOwed' does not exist on type '{ stokvelName: string; role: string; currentCycle: { period: string; status: string; } | null; amountPaid: string; outstandingBalance: string; nextPayoutDate: string | null; }'.
 ```
 
-Restored AmountOwed, rebuilt, exported and regenerated; strict compilation exit 0. The first saved-file restore retained an old timestamp and reused a renamed DLL; refreshing the timestamp rebuilt it. The final generated document/types include amountOwed and no outstandingBalance. Full reproduction and real recovery details: [client README](clients/typescript/README.md). No test assertion was changed for the experiment.
+Restored AmountOwed, rebuilt, exported and regenerated; strict compilation exit 0. The first saved-file restore retained an old timestamp and reused a renamed DLL; refreshing the timestamp rebuilt it. The final generated document/types include amountOwed and no outstandingBalance. Full reproduction and real recovery details: [client README](../../clients/typescript/README.md). No test assertion was changed for the experiment.
 
 ### Final verification and submission gaps
 
@@ -155,9 +157,9 @@ dotnet build RondiTrack.sln --no-restore -m:1
 dotnet test RondiTrack.sln --no-restore -m:1 --logger "trx;LogFileName=final.trx" --results-directory obj/assignment-6-3
 ```
 
-Final actual full-suite result: **122 passed, 0 failed, 0 skipped**, 34 seconds. Actual API contracts regenerated and strictly compiled; exact-money checks passed. Existing 28 test-source files were compared to pre-assignment a733cc6: no differences beyond required URL changes. No tests were silently skipped or assertions weakened. Stage commits and the original baseline Docker failure are recorded in [trainer notes](docs/assignment-6-3-stages.md).
+Final actual full-suite result: **122 passed, 0 failed, 0 skipped**, 34 seconds. Actual API contracts regenerated and strictly compiled; exact-money checks passed. Existing 28 test-source files were compared to pre-assignment a733cc6: no differences beyond required URL changes. No tests were silently skipped or assertions weakened. Stage commits and the original baseline Docker failure are recorded in [trainer notes](evidence/assignment-6-3-stages.md).
 
-**Offline proof passed on 14 October 2026 at 06:26 SAST.** The approved guarded script freshly built the solution, required zero active development sessions, disabled connections to local `ronditrack`, proved real connection refusal, and ran all 122 tests using Testcontainers with zero failures/skips. It restored the original `ALLOW_CONNECTIONS=true`, checked admission metadata and verified `SELECT 1`. See [the actual run evidence and procedure](docs/assignment-6-3-verification.md#successful-offline-verification).
+**Offline proof passed on 14 October 2026 at 06:26 SAST.** The approved guarded script freshly built the solution, required zero active development sessions, disabled connections to local `ronditrack`, proved real connection refusal, and ran all 122 tests using Testcontainers with zero failures/skips. It restored the original `ALLOW_CONNECTIONS=true`, checked admission metadata and verified `SELECT 1`. See [the actual run evidence and procedure](evidence/assignment-6-3-verification.md#successful-offline-verification).
 
 Remaining gaps: no real payout schedule; current-cycle/obligation assumptions need domain confirmation; health/docs preserved operational contracts; no real-browser deployment verification; process-local limiting and idempotency; existing duplicate-email development migration blocker remains untouched. Assignment 6.3 implementation and offline-verification evidence are published on `main`. Submission repository remains https://github.com/mdvar2/RondiTrack.
 
@@ -208,7 +210,7 @@ and tests. There is no frontend; Development provides an interactive API referen
 
 Project files are the source of truth for versions. EF Core and its health-check package are
 10.0.4; the Npgsql provider and tracing package are 10.0.3. OpenTelemetry Hosting/OTLP are
-1.19.1; ASP.NET instrumentation is 1.19.0. See [the architecture guide](docs/architecture.md)
+1.19.1; ASP.NET instrumentation is 1.19.0. See [the architecture guide](../architecture.md)
 for remaining versions.
 
 ## 3. Project architecture
@@ -225,7 +227,7 @@ Controllers receive requests; services own operations such as payouts; repositor
 database access for most operations. I retained the payout service's direct context and
 explicit **transaction**, which commits or rolls back the payout and cycle update together.
 
-See [architecture and service lifetimes](docs/architecture.md) for dependencies and the
+See [architecture and service lifetimes](../architecture.md) for dependencies and the
 contribution request flow.
 
 ## 4. Setup and running the API
@@ -270,7 +272,7 @@ blocker.
 
 ### Step 3: Configure local secrets
 
-The [API project](API/RondiTrack.csproj) already defines `UserSecretsId`. Do not replace it or
+The [API project](../../API/RondiTrack.csproj) already defines `UserSecretsId`. Do not replace it or
 overwrite existing secrets. User Secrets keep configuration out of Git, but are not encrypted
 production secret storage.
 
@@ -323,7 +325,7 @@ dotnet dev-certs https --trust
 dotnet run --project API --launch-profile https
 ```
 
-The [launch settings](API/Properties/launchSettings.json) use `https://localhost:7125` and
+The [launch settings](../../API/Properties/launchSettings.json) use `https://localhost:7125` and
 `http://localhost:5101` in Development. Use HTTPS for the full session flow: the refresh
 cookie is `Secure`. HTTPS redirection is enabled.
 
@@ -352,12 +354,12 @@ An **ETag** represents a record's version. User, stokvel and cycle GET-by-ID res
 it. PUT requires `If-Match` to avoid overwriting newer data; DELETE does not require it.
 
 There is no standalone contribution CRUD/delete route, payout-list route, public
-role-management API or password-reset flow. The [API reference](docs/api-reference.md) lists
+role-management API or password-reset flow. The [API reference](../api-reference.md) lists
 all routes, inputs, status codes, pagination and business contracts.
 
 ## 6. Assignments and learning journey
 
-My assignments built on each other. The [historical README](README-history.md) preserves the
+My assignments built on each other. The [historical README](readme-archive-2026-10-11.md) preserves the
 earlier explanations and experiments.
 
 - **Early API work:** I built the request, validation and business-rule structure.
@@ -419,7 +421,7 @@ I preserved these decisions while adding telemetry. Unknown-account and wrong-pa
 failures retain the same safe detail. Their existing equality test supplies a shared caller
 trace and keeps its byte-for-byte assertion.
 
-See [the security/API reference](docs/api-reference.md) for token claims, cookie settings,
+See [the security/API reference](../api-reference.md) for token claims, cookie settings,
 refresh locking, validation limits and route permissions.
 
 ## 8. Database and migrations
@@ -440,7 +442,7 @@ databases.
 
 **Do not apply pending migrations to the existing development database.** Duplicate normalized
 emails block the unique-email migration. Authentication needs the new schema, even if
-connectivity is Healthy. See [the blocker](docs/development-migration-status.md).
+connectivity is Healthy. See [the blocker](../development-migration-status.md).
 
 Check `dotnet ef --version`. If the CLI is absent, install the matching EF tool:
 
@@ -529,14 +531,14 @@ Aspire dashboard. This authorized payout used disposable data; the screenshot is
 capture without image or page alterations.
 
 ![Genuine HTTP payout trace with nested business and SQL
-spans](docs/evidence/payout-trace.png)
+spans](evidence/artifacts/payout-trace.png)
 
 The image shows 14 spans, depth 3: HTTP, the business child, nine SQL children beneath it and
 three earlier security SQL spans beside it. The business span has only `outcome=success` and
 Source `RondiTrack.Business`. These individual development timings are not a benchmark.
 
-See [the safe manifest](docs/evidence/dashboard-verification.json) and [the exact
-procedure/image digest](docs/assignment-6-2-stage-8-verification.md).
+See [the safe manifest](evidence/artifacts/dashboard-verification.json) and [the exact
+procedure/image digest](evidence/assignment-6-2-stage-8-verification.md).
 
 ### Local dashboard setup
 
@@ -673,15 +675,15 @@ The `?` is the original provider redaction. Column names are not actual IDs. No 
 log was invented: its span/counter provide the outcome. The excerpt alone does not prove an
 SQL correlation property; the trace and listener tests establish that association.
 
-The [full excerpts](docs/evidence/sanitized-log-excerpts.txt) and [capture
-procedure](docs/assignment-6-2-stage-8-verification.md) contain no actual names, emails,
+The [full excerpts](evidence/artifacts/sanitized-log-excerpts.txt) and [capture
+procedure](evidence/assignment-6-2-stage-8-verification.md) contain no actual names, emails,
 passwords, tokens or financial fixture values.
 
 ### Complete audit and privacy limits
 
 The [appendix](#appendix-a-complete-popia-logging-audit) retains 181 original audit entries
 and all their fields. Later verification-only sites are in the [supplementary
-inventory](docs/assignment-6-2-supplementary-diagnostics.md).
+inventory](evidence/assignment-6-2-supplementary-diagnostics.md).
 
 Full unexpected 5xx exceptions may contain unforeseen sensitive diagnostics. EF can
 independently log failed commands/saves before the handler classifies a concurrent database
@@ -735,8 +737,8 @@ and container start/stop time. They are not benchmarks. Development and the shar
 database were not stopped. Connectivity health does not verify schema upgrades or business
 data.
 
-See [the original timing values](docs/assignment-6-2-stage-6-health-timings.json) and [health
-verification](docs/assignment-6-2-stage-6-verification.md).
+See [the original timing values](evidence/assignment-6-2-stage-6-health-timings.json) and [health
+verification](evidence/assignment-6-2-stage-6-verification.md).
 
 ## 12. Testing and verification
 
@@ -805,9 +807,9 @@ This optional script changes admission metadata. It is not ordinary setup or a r
 check; do not use it while development is in use. Machine/process termination or lost
 administrative connectivity cannot be guaranteed recoverable by an in-process `finally`.
 
-See [isolation evidence](docs/assignment-6-2-stage-8-isolation-evidence.txt),
-[failure-restoration evidence](docs/assignment-6-2-stage-8-restoration-evidence.txt) and [the
-complete report](docs/assignment-6-2-stage-8-verification.md).
+See [isolation evidence](evidence/assignment-6-2-stage-8-isolation-evidence.txt),
+[failure-restoration evidence](evidence/assignment-6-2-stage-8-restoration-evidence.txt) and [the
+complete report](evidence/assignment-6-2-stage-8-verification.md).
 
 ## 13. Challenges and future improvements
 
@@ -834,8 +836,8 @@ I kept these limits visible rather than claiming complete production infrastruct
 
 Targeted publication scans found no confirmed outgoing credential/token leak, but are not
 exhaustive detectors. No backup or earlier evidence was removed. The Assignment 6.3 implementation and offline-verification documentation are published on `main`. See [the final
-matrix](docs/assignment-6-2-final-compliance-matrix.md) and [safe-publication
-guidance](docs/safe-push-verification.md).
+matrix](evidence/assignment-6-2-final-compliance-matrix.md) and [safe-publication
+guidance](../safe-push-verification.md).
 
 ## 14. Detailed assignment evidence
 
@@ -847,17 +849,17 @@ current instructions. The archive is unchanged by this edit.
 
 ### Earlier assignments
 
-- [Historical README](README-history.md)
-- [5.3 performance evidence](docs/assignment-5-3-performance-evidence.md)
-- [5.3 query-plan script](scripts/assignment-5-3-performance.sql)
-- [5.4 initial audit](docs/assignment-5-4-phase-1-audit.md)
-- [5.4 phase record](docs/assignment-5-4-phase-verification.md)
-- [5.4 completion](docs/assignment-5-4-verification-report.md)
-- [5.4 isolation evidence](docs/assignment-5-4-isolation-evidence.txt)
-- [6.1 phase record](docs/assignment-6-1-phase-verification.md)
-- [6.1 verification](docs/assignment-6-1-verification-report.md)
-- [6.1 file manifest](docs/assignment-6-1-file-manifest.txt)
-- [6.1 isolation evidence](docs/assignment-6-1-isolation-evidence.txt)
+- [Historical README](readme-archive-2026-10-11.md)
+- [5.3 performance evidence](evidence/assignment-5-3-performance-evidence.md)
+- [5.3 query-plan script](../../scripts/assignment-5-3-performance.sql)
+- [5.4 initial audit](evidence/assignment-5-4-phase-1-audit.md)
+- [5.4 phase record](evidence/assignment-5-4-phase-verification.md)
+- [5.4 completion](evidence/assignment-5-4-verification-report.md)
+- [5.4 isolation evidence](evidence/assignment-5-4-isolation-evidence.txt)
+- [6.1 phase record](evidence/assignment-6-1-phase-verification.md)
+- [6.1 verification](evidence/assignment-6-1-verification-report.md)
+- [6.1 file manifest](evidence/assignment-6-1-file-manifest.txt)
+- [6.1 isolation evidence](evidence/assignment-6-1-isolation-evidence.txt)
 
 Assignment 5.4 recorded 25 passing tests. Assignment 6.1 recorded 62 (25 original plus 37
 additional), also 62 in the safe-publication rerun. The 11 October documentation checks
@@ -869,24 +871,24 @@ them.
 
 | Stage | Recorded result | Report |
 |---|---|---|
-| 2: Pipeline | See build/test record | [Stage 2](docs/assignment-6-2-stage-2-verification.md) |
-| 3: Correlation | 76 passed | [Stage 3](docs/assignment-6-2-stage-3-verification.md) |
-| 4: Business telemetry | 83 passed | [Stage 4](docs/assignment-6-2-stage-4-verification.md) |
-| 5: Logging/privacy | 95 passed | [Stage 5](docs/assignment-6-2-stage-5-verification.md) |
-| 6: Health probes | 99 passed | [Stage 6](docs/assignment-6-2-stage-6-verification.md) |
-| 7: Complete verification | 101 passed | [Stage 7](docs/assignment-6-2-stage-7-verification.md) |
-| 8: Final evidence | 101 passed | [Stage 8](docs/assignment-6-2-stage-8-verification.md) |
+| 2: Pipeline | See build/test record | [Stage 2](evidence/assignment-6-2-stage-2-verification.md) |
+| 3: Correlation | 76 passed | [Stage 3](evidence/assignment-6-2-stage-3-verification.md) |
+| 4: Business telemetry | 83 passed | [Stage 4](evidence/assignment-6-2-stage-4-verification.md) |
+| 5: Logging/privacy | 95 passed | [Stage 5](evidence/assignment-6-2-stage-5-verification.md) |
+| 6: Health probes | 99 passed | [Stage 6](evidence/assignment-6-2-stage-6-verification.md) |
+| 7: Complete verification | 101 passed | [Stage 7](evidence/assignment-6-2-stage-7-verification.md) |
+| 8: Final evidence | 101 passed | [Stage 8](evidence/assignment-6-2-stage-8-verification.md) |
 
 Earlier pending-evidence statements describe their stages, not current status. The final
 recorded result remains 101 passed, zero failed/skipped, and a build with zero
 warnings/errors.
 
-- [Final compliance matrix](docs/assignment-6-2-final-compliance-matrix.md)
-- [Architecture details](docs/architecture.md)
-- [API/security reference](docs/api-reference.md)
-- [Supplementary diagnostics](docs/assignment-6-2-supplementary-diagnostics.md)
-- [Stage 7 isolation evidence](docs/assignment-6-2-stage-7-isolation-evidence.txt)
-- [Safe-publication verification](docs/safe-push-verification.md)
+- [Final compliance matrix](evidence/assignment-6-2-final-compliance-matrix.md)
+- [Architecture details](../architecture.md)
+- [API/security reference](../api-reference.md)
+- [Supplementary diagnostics](evidence/assignment-6-2-supplementary-diagnostics.md)
+- [Stage 7 isolation evidence](evidence/assignment-6-2-stage-7-isolation-evidence.txt)
+- [Safe-publication verification](../safe-push-verification.md)
 
 ## Appendix A. Complete POPIA logging audit
 
@@ -904,7 +906,7 @@ controllers, repositories and the User entity; there is no separate user service
 ContributionService, PayoutService and MembershipService have no ILogger calls; their
 exceptions are included. StokvelAccessHandler has no logger/exception-message site; its
 refusal helper owns the security event. Later verification-only sites remain in [the
-supplementary inventory](docs/assignment-6-2-supplementary-diagnostics.md).
+supplementary inventory](evidence/assignment-6-2-supplementary-diagnostics.md).
 
 Provider safeguards follow the official [Npgsql
 parameters](https://www.npgsql.org/doc/connection-string-parameters.html), [Npgsql
@@ -1124,7 +1126,7 @@ value is included in these illustrative examples.
 
 ### Entry 001
 
-- **Site and method:** [API/Auth/AuthService.cs:27](API/Auth/AuthService.cs#L27) / LoginAsync
+- **Site and method:** [API/Auth/AuthService.cs:27](../../API/Auth/AuthService.cs#L27) / LoginAsync
 - **Diagnostic type:** AuthenticationFailedException
 - **Potential contents:** "Email or password is incorrect."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1136,7 +1138,7 @@ value is included in these illustrative examples.
 
 ### Entry 002
 
-- **Site and method:** [API/Auth/AuthService.cs:79](API/Auth/AuthService.cs#L79) /
+- **Site and method:** [API/Auth/AuthService.cs:79](../../API/Auth/AuthService.cs#L79) /
   RegisterAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "An account with this email already exists."
@@ -1149,7 +1151,7 @@ value is included in these illustrative examples.
 
 ### Entry 003
 
-- **Site and method:** [API/Auth/AuthService.cs:74](API/Auth/AuthService.cs#L74) /
+- **Site and method:** [API/Auth/AuthService.cs:74](../../API/Auth/AuthService.cs#L74) /
   InvalidRefresh
 - **Diagnostic type:** AuthenticationFailedException (target-typed)
 - **Potential contents:** "Refresh session is invalid. Please sign in again."
@@ -1160,7 +1162,7 @@ value is included in these illustrative examples.
 
 ### Entry 004
 
-- **Site and method:** [API/Auth/AuthService.cs:25](API/Auth/AuthService.cs#L25) / LoginAsync
+- **Site and method:** [API/Auth/AuthService.cs:25](../../API/Auth/AuthService.cs#L25) / LoginAsync
 - **Diagnostic type:** ILogger logger.LogInformation
 - **Potential contents:** "Security event {EventType} with {Outcome}. CorrelationId:
   {CorrelationId}", "sign_in", "failure", SecurityEvents.CorrelationId
@@ -1172,7 +1174,7 @@ value is included in these illustrative examples.
 
 ### Entry 005
 
-- **Site and method:** [API/Auth/AuthService.cs:38](API/Auth/AuthService.cs#L38) / LoginAsync
+- **Site and method:** [API/Auth/AuthService.cs:38](../../API/Auth/AuthService.cs#L38) / LoginAsync
 - **Diagnostic type:** ILogger logger.LogInformation
 - **Potential contents:** "Security event {EventType} with {Outcome}. CorrelationId:
   {CorrelationId}", "sign_in", "success", SecurityEvents.CorrelationId
@@ -1184,7 +1186,7 @@ value is included in these illustrative examples.
 
 ### Entry 006
 
-- **Site and method:** [API/Auth/AuthService.cs:53](API/Auth/AuthService.cs#L53) /
+- **Site and method:** [API/Auth/AuthService.cs:53](../../API/Auth/AuthService.cs#L53) /
   RefreshAsync
 - **Diagnostic type:** ILogger logger.LogWarning
 - **Potential contents:** "Security event {EventType}; session revoked. CorrelationId:
@@ -1197,7 +1199,7 @@ value is included in these illustrative examples.
 
 ### Entry 007
 
-- **Site and method:** [API/Auth/AuthService.cs:59](API/Auth/AuthService.cs#L59) /
+- **Site and method:** [API/Auth/AuthService.cs:59](../../API/Auth/AuthService.cs#L59) /
   RefreshAsync
 - **Diagnostic type:** ILogger logger.LogInformation
 - **Potential contents:** "Security event {EventType} with {Outcome}. CorrelationId:
@@ -1210,7 +1212,7 @@ value is included in these illustrative examples.
 
 ### Entry 008
 
-- **Site and method:** [API/Auth/AuthService.cs:68](API/Auth/AuthService.cs#L68) / LogoutAsync
+- **Site and method:** [API/Auth/AuthService.cs:68](../../API/Auth/AuthService.cs#L68) / LogoutAsync
 - **Diagnostic type:** ILogger logger.LogInformation
 - **Potential contents:** "Security event {EventType} completed. CorrelationId:
   {CorrelationId}", "logout", SecurityEvents.CorrelationId
@@ -1222,7 +1224,7 @@ value is included in these illustrative examples.
 
 ### Entry 009
 
-- **Site and method:** [API/Auth/JwtOptions.cs:13](API/Auth/JwtOptions.cs#L13) / Load
+- **Site and method:** [API/Auth/JwtOptions.cs:13](../../API/Auth/JwtOptions.cs#L13) / Load
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** guidance = "Configure Jwt:SigningKey in User Secrets as a
   base64-encoded random key of at least 32 bytes: dotnet user-secrets --project API set
@@ -1237,7 +1239,7 @@ value is included in these illustrative examples.
 
 ### Entry 010
 
-- **Site and method:** [API/Auth/JwtOptions.cs:14](API/Auth/JwtOptions.cs#L14) / Load
+- **Site and method:** [API/Auth/JwtOptions.cs:14](../../API/Auth/JwtOptions.cs#L14) / Load
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** guidance = "Configure Jwt:SigningKey in User Secrets as a
   base64-encoded random key of at least 32 bytes: dotnet user-secrets --project API set
@@ -1252,7 +1254,7 @@ value is included in these illustrative examples.
 
 ### Entry 011
 
-- **Site and method:** [API/Auth/JwtOptions.cs:18](API/Auth/JwtOptions.cs#L18) / Load
+- **Site and method:** [API/Auth/JwtOptions.cs:18](../../API/Auth/JwtOptions.cs#L18) / Load
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "Configure the non-secret Jwt:Issuer and Jwt:Audience settings."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1264,7 +1266,7 @@ value is included in these illustrative examples.
 
 ### Entry 012
 
-- **Site and method:** [API/Auth/JwtOptions.cs:23](API/Auth/JwtOptions.cs#L23) / Load
+- **Site and method:** [API/Auth/JwtOptions.cs:23](../../API/Auth/JwtOptions.cs#L23) / Load
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "JWT settings require access lifetime 1?15 minutes, ClockSkew 0?60
   seconds and refresh lifetime 1?30 days."
@@ -1278,7 +1280,7 @@ value is included in these illustrative examples.
 ### Entry 013
 
 - **Site and method:**
-  [API/Auth/StokvelAuthorization.cs:21](API/Auth/StokvelAuthorization.cs#L21) / EnsureAsync
+  [API/Auth/StokvelAuthorization.cs:21](../../API/Auth/StokvelAuthorization.cs#L21) / EnsureAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1291,7 +1293,7 @@ value is included in these illustrative examples.
 ### Entry 014
 
 - **Site and method:**
-  [API/Auth/StokvelAuthorization.cs:26](API/Auth/StokvelAuthorization.cs#L26) / EnsureAsync
+  [API/Auth/StokvelAuthorization.cs:26](../../API/Auth/StokvelAuthorization.cs#L26) / EnsureAsync
 - **Diagnostic type:** ForbiddenException
 - **Potential contents:** "You do not have permission for this operation."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1304,7 +1306,7 @@ value is included in these illustrative examples.
 ### Entry 015
 
 - **Site and method:**
-  [API/Auth/StokvelAuthorization.cs:31](API/Auth/StokvelAuthorization.cs#L31) / UserId
+  [API/Auth/StokvelAuthorization.cs:31](../../API/Auth/StokvelAuthorization.cs#L31) / UserId
 - **Diagnostic type:** AuthenticationFailedException
 - **Potential contents:** "Authentication is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1317,7 +1319,7 @@ value is included in these illustrative examples.
 ### Entry 016
 
 - **Site and method:**
-  [API/Auth/StokvelAuthorization.cs:19](API/Auth/StokvelAuthorization.cs#L19) / EnsureAsync
+  [API/Auth/StokvelAuthorization.cs:19](../../API/Auth/StokvelAuthorization.cs#L19) / EnsureAsync
 - **Diagnostic type:** ILogger logger.LogInformation
 - **Potential contents:** "Security event {EventType} with {Result}. CorrelationId:
   {CorrelationId}", "stokvel_refusal", "not_found", SecurityEvents.CorrelationId
@@ -1331,7 +1333,7 @@ value is included in these illustrative examples.
 ### Entry 017
 
 - **Site and method:**
-  [API/Auth/StokvelAuthorization.cs:24](API/Auth/StokvelAuthorization.cs#L24) / EnsureAsync
+  [API/Auth/StokvelAuthorization.cs:24](../../API/Auth/StokvelAuthorization.cs#L24) / EnsureAsync
 - **Diagnostic type:** ILogger logger.LogInformation
 - **Potential contents:** "Security event {EventType} with {Result}. CorrelationId:
   {CorrelationId}", "stokvel_refusal", "forbidden", SecurityEvents.CorrelationId
@@ -1345,7 +1347,7 @@ value is included in these illustrative examples.
 ### Entry 018
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:60](API/Controllers/ContributionCyclesController.cs#L60)
+  [API/Controllers/ContributionCyclesController.cs:60](../../API/Controllers/ContributionCyclesController.cs#L60)
   / GetAll
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1359,7 +1361,7 @@ value is included in these illustrative examples.
 ### Entry 019
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:97](API/Controllers/ContributionCyclesController.cs#L97)
+  [API/Controllers/ContributionCyclesController.cs:97](../../API/Controllers/ContributionCyclesController.cs#L97)
   / GetById
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1373,7 +1375,7 @@ value is included in these illustrative examples.
 ### Entry 020
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:103](API/Controllers/ContributionCyclesController.cs#L103)
+  [API/Controllers/ContributionCyclesController.cs:103](../../API/Controllers/ContributionCyclesController.cs#L103)
   / GetById
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Contribution cycle not found."
@@ -1387,7 +1389,7 @@ value is included in these illustrative examples.
 ### Entry 021
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:146](API/Controllers/ContributionCyclesController.cs#L146)
+  [API/Controllers/ContributionCyclesController.cs:146](../../API/Controllers/ContributionCyclesController.cs#L146)
   / GetContributions
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1401,7 +1403,7 @@ value is included in these illustrative examples.
 ### Entry 022
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:152](API/Controllers/ContributionCyclesController.cs#L152)
+  [API/Controllers/ContributionCyclesController.cs:152](../../API/Controllers/ContributionCyclesController.cs#L152)
   / GetContributions
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Contribution cycle not found."
@@ -1415,7 +1417,7 @@ value is included in these illustrative examples.
 ### Entry 023
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:157](API/Controllers/ContributionCyclesController.cs#L157)
+  [API/Controllers/ContributionCyclesController.cs:157](../../API/Controllers/ContributionCyclesController.cs#L157)
   / GetContributions
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page size cannot be negative."
@@ -1429,7 +1431,7 @@ value is included in these illustrative examples.
 ### Entry 024
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:211](API/Controllers/ContributionCyclesController.cs#L211)
+  [API/Controllers/ContributionCyclesController.cs:211](../../API/Controllers/ContributionCyclesController.cs#L211)
   / Create
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1443,7 +1445,7 @@ value is included in these illustrative examples.
 ### Entry 025
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:264](API/Controllers/ContributionCyclesController.cs#L264)
+  [API/Controllers/ContributionCyclesController.cs:264](../../API/Controllers/ContributionCyclesController.cs#L264)
   / Update
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1457,7 +1459,7 @@ value is included in these illustrative examples.
 ### Entry 026
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:270](API/Controllers/ContributionCyclesController.cs#L270)
+  [API/Controllers/ContributionCyclesController.cs:270](../../API/Controllers/ContributionCyclesController.cs#L270)
   / Update
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Contribution cycle not found."
@@ -1471,7 +1473,7 @@ value is included in these illustrative examples.
 ### Entry 027
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:275](API/Controllers/ContributionCyclesController.cs#L275)
+  [API/Controllers/ContributionCyclesController.cs:275](../../API/Controllers/ContributionCyclesController.cs#L275)
   / Update
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "If-Match header is required."
@@ -1485,7 +1487,7 @@ value is included in these illustrative examples.
 ### Entry 028
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:282](API/Controllers/ContributionCyclesController.cs#L282)
+  [API/Controllers/ContributionCyclesController.cs:282](../../API/Controllers/ContributionCyclesController.cs#L282)
   / Update
 - **Diagnostic type:** PreconditionFailedException
 - **Potential contents:** "The contribution cycle has changed. Refetch it and retry with the
@@ -1500,7 +1502,7 @@ value is included in these illustrative examples.
 ### Entry 029
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:319](API/Controllers/ContributionCyclesController.cs#L319)
+  [API/Controllers/ContributionCyclesController.cs:319](../../API/Controllers/ContributionCyclesController.cs#L319)
   / Delete
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1514,7 +1516,7 @@ value is included in these illustrative examples.
 ### Entry 030
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:325](API/Controllers/ContributionCyclesController.cs#L325)
+  [API/Controllers/ContributionCyclesController.cs:325](../../API/Controllers/ContributionCyclesController.cs#L325)
   / Delete
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Contribution cycle not found."
@@ -1528,7 +1530,7 @@ value is included in these illustrative examples.
 ### Entry 031
 
 - **Site and method:**
-  [API/Controllers/ContributionCyclesController.cs:356](API/Controllers/ContributionCyclesController.cs#L356)
+  [API/Controllers/ContributionCyclesController.cs:356](../../API/Controllers/ContributionCyclesController.cs#L356)
   / ParseIfMatch
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "If-Match header must contain a valid ETag value."
@@ -1542,7 +1544,7 @@ value is included in these illustrative examples.
 ### Entry 032
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:85](API/Controllers/StokvelsController.cs#L85) /
+  [API/Controllers/StokvelsController.cs:85](../../API/Controllers/StokvelsController.cs#L85) /
   GetById
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1556,7 +1558,7 @@ value is included in these illustrative examples.
 ### Entry 033
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:116](API/Controllers/StokvelsController.cs#L116) /
+  [API/Controllers/StokvelsController.cs:116](../../API/Controllers/StokvelsController.cs#L116) /
   GetMembers
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1570,7 +1572,7 @@ value is included in these illustrative examples.
 ### Entry 034
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:120](API/Controllers/StokvelsController.cs#L120) /
+  [API/Controllers/StokvelsController.cs:120](../../API/Controllers/StokvelsController.cs#L120) /
   GetMembers
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page size cannot be negative."
@@ -1584,7 +1586,7 @@ value is included in these illustrative examples.
 ### Entry 035
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:202](API/Controllers/StokvelsController.cs#L202) /
+  [API/Controllers/StokvelsController.cs:202](../../API/Controllers/StokvelsController.cs#L202) /
   Update
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1598,7 +1600,7 @@ value is included in these illustrative examples.
 ### Entry 036
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:206](API/Controllers/StokvelsController.cs#L206) /
+  [API/Controllers/StokvelsController.cs:206](../../API/Controllers/StokvelsController.cs#L206) /
   Update
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "If-Match header is required."
@@ -1612,7 +1614,7 @@ value is included in these illustrative examples.
 ### Entry 037
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:213](API/Controllers/StokvelsController.cs#L213) /
+  [API/Controllers/StokvelsController.cs:213](../../API/Controllers/StokvelsController.cs#L213) /
   Update
 - **Diagnostic type:** PreconditionFailedException
 - **Potential contents:** "The stokvel has changed. Refetch it and retry with the current
@@ -1627,7 +1629,7 @@ value is included in these illustrative examples.
 ### Entry 038
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:247](API/Controllers/StokvelsController.cs#L247) /
+  [API/Controllers/StokvelsController.cs:247](../../API/Controllers/StokvelsController.cs#L247) /
   Delete
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1641,7 +1643,7 @@ value is included in these illustrative examples.
 ### Entry 039
 
 - **Site and method:**
-  [API/Controllers/StokvelsController.cs:384](API/Controllers/StokvelsController.cs#L384) /
+  [API/Controllers/StokvelsController.cs:384](../../API/Controllers/StokvelsController.cs#L384) /
   ParseIfMatch
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "If-Match header must contain a valid ETag value."
@@ -1655,7 +1657,7 @@ value is included in these illustrative examples.
 ### Entry 040
 
 - **Site and method:**
-  [API/Controllers/UsersController.cs:65](API/Controllers/UsersController.cs#L65) / GetById
+  [API/Controllers/UsersController.cs:65](../../API/Controllers/UsersController.cs#L65) / GetById
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "User not found."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1668,7 +1670,7 @@ value is included in these illustrative examples.
 ### Entry 041
 
 - **Site and method:**
-  [API/Controllers/UsersController.cs:131](API/Controllers/UsersController.cs#L131) / Update
+  [API/Controllers/UsersController.cs:131](../../API/Controllers/UsersController.cs#L131) / Update
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "User not found."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1681,7 +1683,7 @@ value is included in these illustrative examples.
 ### Entry 042
 
 - **Site and method:**
-  [API/Controllers/UsersController.cs:135](API/Controllers/UsersController.cs#L135) / Update
+  [API/Controllers/UsersController.cs:135](../../API/Controllers/UsersController.cs#L135) / Update
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "If-Match header is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1694,7 +1696,7 @@ value is included in these illustrative examples.
 ### Entry 043
 
 - **Site and method:**
-  [API/Controllers/UsersController.cs:142](API/Controllers/UsersController.cs#L142) / Update
+  [API/Controllers/UsersController.cs:142](../../API/Controllers/UsersController.cs#L142) / Update
 - **Diagnostic type:** PreconditionFailedException
 - **Potential contents:** "The user has changed. Refetch it and retry with the current ETag."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1707,7 +1709,7 @@ value is included in these illustrative examples.
 ### Entry 044
 
 - **Site and method:**
-  [API/Controllers/UsersController.cs:174](API/Controllers/UsersController.cs#L174) / Delete
+  [API/Controllers/UsersController.cs:174](../../API/Controllers/UsersController.cs#L174) / Delete
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "User not found."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1720,7 +1722,7 @@ value is included in these illustrative examples.
 ### Entry 045
 
 - **Site and method:**
-  [API/Controllers/UsersController.cs:202](API/Controllers/UsersController.cs#L202) /
+  [API/Controllers/UsersController.cs:202](../../API/Controllers/UsersController.cs#L202) /
   ParseIfMatch
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "If-Match header must contain a valid ETag value."
@@ -1734,7 +1736,7 @@ value is included in these illustrative examples.
 ### Entry 046
 
 - **Site and method:**
-  [API/Filters/ValidationFilter.cs:23](API/Filters/ValidationFilter.cs#L23) /
+  [API/Filters/ValidationFilter.cs:23](../../API/Filters/ValidationFilter.cs#L23) /
   OnActionExecutionAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "The request body is invalid."
@@ -1748,7 +1750,7 @@ value is included in these illustrative examples.
 ### Entry 047
 
 - **Site and method:**
-  [API/Filters/ValidationFilter.cs:56](API/Filters/ValidationFilter.cs#L56) /
+  [API/Filters/ValidationFilter.cs:56](../../API/Filters/ValidationFilter.cs#L56) /
   OnActionExecutionAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** message
@@ -1763,7 +1765,7 @@ value is included in these illustrative examples.
 ### Entry 048
 
 - **Site and method:**
-  [API/Handlers/GlobalExceptionHandler.cs:60](API/Handlers/GlobalExceptionHandler.cs#L60) /
+  [API/Handlers/GlobalExceptionHandler.cs:60](../../API/Handlers/GlobalExceptionHandler.cs#L60) /
   TryHandleAsync
 - **Diagnostic type:** ILogger _logger.LogError
 - **Potential contents:** exception, "Request failed with {StatusCode}. CorrelationId:
@@ -1777,7 +1779,7 @@ value is included in these illustrative examples.
 ### Entry 049
 
 - **Site and method:**
-  [API/Handlers/GlobalExceptionHandler.cs:63](API/Handlers/GlobalExceptionHandler.cs#L63) /
+  [API/Handlers/GlobalExceptionHandler.cs:63](../../API/Handlers/GlobalExceptionHandler.cs#L63) /
   TryHandleAsync
 - **Diagnostic type:** ILogger _logger.LogInformation
 - **Potential contents:** "Request rejected with {StatusCode} ({ExceptionType}).
@@ -1792,7 +1794,7 @@ value is included in these illustrative examples.
 ### Entry 050
 
 - **Site and method:**
-  [API/Observability/Correlation.cs:14](API/Observability/Correlation.cs#L14) / GetId
+  [API/Observability/Correlation.cs:14](../../API/Observability/Correlation.cs#L14) / GetId
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "A W3C request activity is required for error correlation."
 - **Personal/financial risk:** No submitted values in literal.
@@ -1804,7 +1806,7 @@ value is included in these illustrative examples.
 
 ### Entry 051
 
-- **Site and method:** [API/Program.cs:106](API/Program.cs#L106) / startup / DbContext
+- **Site and method:** [API/Program.cs:106](../../API/Program.cs#L106) / startup / DbContext
   configuration
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "Connection string 'RondiTrackDb' was not found."
@@ -1817,7 +1819,7 @@ value is included in these illustrative examples.
 
 ### Entry 052
 
-- **Site and method:** [API/Program.cs:98](API/Program.cs#L98) / CustomizeProblemDetails
+- **Site and method:** [API/Program.cs:98](../../API/Program.cs#L98) / CustomizeProblemDetails
   callback
 - **Diagnostic type:** ILogger logger.Log
 - **Potential contents:** status &gt;= 500 ? LogLevel.Error : LogLevel.Information, "Request
@@ -1831,7 +1833,7 @@ value is included in these illustrative examples.
 
 ### Entry 053
 
-- **Site and method:** [API/Program.cs:180](API/Program.cs#L180) / status-code callback
+- **Site and method:** [API/Program.cs:180](../../API/Program.cs#L180) / status-code callback
 - **Diagnostic type:** ILogger .LogInformation
 - **Potential contents:** "Request rejected with {StatusCode}. CorrelationId:
   {CorrelationId}", http.Response.StatusCode, Correlation.GetId(http)
@@ -1844,7 +1846,7 @@ value is included in these illustrative examples.
 ### Entry 054
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:48](API/Services/ContributionService.cs#L48) /
+  [API/Services/ContributionService.cs:48](../../API/Services/ContributionService.cs#L48) /
   RecordContributionAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Idempotency-Key header is required."
@@ -1858,7 +1860,7 @@ value is included in these illustrative examples.
 ### Entry 055
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:66](API/Services/ContributionService.cs#L66) /
+  [API/Services/ContributionService.cs:66](../../API/Services/ContributionService.cs#L66) /
   RecordContributionAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "Idempotency-Key was already used with a different request."
@@ -1872,7 +1874,7 @@ value is included in these illustrative examples.
 ### Entry 056
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:79](API/Services/ContributionService.cs#L79) /
+  [API/Services/ContributionService.cs:79](../../API/Services/ContributionService.cs#L79) /
   RecordContributionAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1886,7 +1888,7 @@ value is included in these illustrative examples.
 ### Entry 057
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:89](API/Services/ContributionService.cs#L89) /
+  [API/Services/ContributionService.cs:89](../../API/Services/ContributionService.cs#L89) /
   RecordContributionAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "User not found."
@@ -1900,7 +1902,7 @@ value is included in these illustrative examples.
 ### Entry 058
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:100](API/Services/ContributionService.cs#L100) /
+  [API/Services/ContributionService.cs:100](../../API/Services/ContributionService.cs#L100) /
   RecordContributionAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "User is not a member of this stokvel."
@@ -1914,7 +1916,7 @@ value is included in these illustrative examples.
 ### Entry 059
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:110](API/Services/ContributionService.cs#L110) /
+  [API/Services/ContributionService.cs:110](../../API/Services/ContributionService.cs#L110) /
   RecordContributionAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Contribution cycle not found."
@@ -1928,7 +1930,7 @@ value is included in these illustrative examples.
 ### Entry 060
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:116](API/Services/ContributionService.cs#L116) /
+  [API/Services/ContributionService.cs:116](../../API/Services/ContributionService.cs#L116) /
   RecordContributionAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "Contribution cycle does not belong to this stokvel."
@@ -1942,7 +1944,7 @@ value is included in these illustrative examples.
 ### Entry 061
 
 - **Site and method:**
-  [API/Services/ContributionService.cs:129](API/Services/ContributionService.cs#L129) /
+  [API/Services/ContributionService.cs:129](../../API/Services/ContributionService.cs#L129) /
   RecordContributionAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "A contribution already exists for this member and cycle."
@@ -1956,7 +1958,7 @@ value is included in these illustrative examples.
 ### Entry 062
 
 - **Site and method:**
-  [API/Services/MembershipService.cs:33](API/Services/MembershipService.cs#L33) /
+  [API/Services/MembershipService.cs:33](../../API/Services/MembershipService.cs#L33) /
   AddMemberAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -1970,7 +1972,7 @@ value is included in these illustrative examples.
 ### Entry 063
 
 - **Site and method:**
-  [API/Services/MembershipService.cs:43](API/Services/MembershipService.cs#L43) /
+  [API/Services/MembershipService.cs:43](../../API/Services/MembershipService.cs#L43) /
   AddMemberAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "User not found."
@@ -1984,7 +1986,7 @@ value is included in these illustrative examples.
 ### Entry 064
 
 - **Site and method:**
-  [API/Services/MembershipService.cs:54](API/Services/MembershipService.cs#L54) /
+  [API/Services/MembershipService.cs:54](../../API/Services/MembershipService.cs#L54) /
   AddMemberAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "User is already a member of this stokvel."
@@ -1998,7 +2000,7 @@ value is included in these illustrative examples.
 ### Entry 065
 
 - **Site and method:**
-  [API/Services/MembershipService.cs:77](API/Services/MembershipService.cs#L77) /
+  [API/Services/MembershipService.cs:77](../../API/Services/MembershipService.cs#L77) /
   RemoveMemberAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Stokvel not found."
@@ -2012,7 +2014,7 @@ value is included in these illustrative examples.
 ### Entry 066
 
 - **Site and method:**
-  [API/Services/MembershipService.cs:89](API/Services/MembershipService.cs#L89) /
+  [API/Services/MembershipService.cs:89](../../API/Services/MembershipService.cs#L89) /
   RemoveMemberAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "User is not a member of this stokvel."
@@ -2025,7 +2027,7 @@ value is included in these illustrative examples.
 
 ### Entry 067
 
-- **Site and method:** [API/Services/PayoutService.cs:55](API/Services/PayoutService.cs#L55) /
+- **Site and method:** [API/Services/PayoutService.cs:55](../../API/Services/PayoutService.cs#L55) /
   CreatePayoutAsync
 - **Diagnostic type:** NotFoundException
 - **Potential contents:** "Contribution cycle not found."
@@ -2038,7 +2040,7 @@ value is included in these illustrative examples.
 
 ### Entry 068
 
-- **Site and method:** [API/Services/PayoutService.cs:61](API/Services/PayoutService.cs#L61) /
+- **Site and method:** [API/Services/PayoutService.cs:61](../../API/Services/PayoutService.cs#L61) /
   CreatePayoutAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "Contribution cycle is not open for payout."
@@ -2051,7 +2053,7 @@ value is included in these illustrative examples.
 
 ### Entry 069
 
-- **Site and method:** [API/Services/PayoutService.cs:67](API/Services/PayoutService.cs#L67) /
+- **Site and method:** [API/Services/PayoutService.cs:67](../../API/Services/PayoutService.cs#L67) /
   CreatePayoutAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "Payout amount must be greater than zero."
@@ -2064,7 +2066,7 @@ value is included in these illustrative examples.
 
 ### Entry 070
 
-- **Site and method:** [API/Services/PayoutService.cs:97](API/Services/PayoutService.cs#L97) /
+- **Site and method:** [API/Services/PayoutService.cs:97](../../API/Services/PayoutService.cs#L97) /
   CreatePayoutAsync
 - **Diagnostic type:** BusinessRuleException
 - **Potential contents:** "No eligible member is available for payout."
@@ -2077,7 +2079,7 @@ value is included in these illustrative examples.
 
 ### Entry 071
 
-- **Site and method:** [API/Services/PayoutService.cs:124](API/Services/PayoutService.cs#L124)
+- **Site and method:** [API/Services/PayoutService.cs:124](../../API/Services/PayoutService.cs#L124)
   / CreatePayoutAsync
 - **Diagnostic type:** rethrow
 - **Potential contents:** Original exception / message / inner chain
@@ -2088,7 +2090,7 @@ value is included in these illustrative examples.
 
 ### Entry 072
 
-- **Site and method:** [API/Services/PayoutService.cs:137](API/Services/PayoutService.cs#L137)
+- **Site and method:** [API/Services/PayoutService.cs:137](../../API/Services/PayoutService.cs#L137)
   / CreatePayoutAsync
 - **Diagnostic type:** rethrow
 - **Potential contents:** Original exception / message / inner chain
@@ -2100,7 +2102,7 @@ value is included in these illustrative examples.
 ### Entry 073
 
 - **Site and method:**
-  [API/Validators/CreateContributionCycleRequestValidator.cs:14](API/Validators/CreateContributionCycleRequestValidator.cs#L14)
+  [API/Validators/CreateContributionCycleRequestValidator.cs:14](../../API/Validators/CreateContributionCycleRequestValidator.cs#L14)
   / CreateContributionCycleRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Contribution cycle period is required."
@@ -2113,7 +2115,7 @@ value is included in these illustrative examples.
 ### Entry 074
 
 - **Site and method:**
-  [API/Validators/CreateContributionCycleRequestValidator.cs:16](API/Validators/CreateContributionCycleRequestValidator.cs#L16)
+  [API/Validators/CreateContributionCycleRequestValidator.cs:16](../../API/Validators/CreateContributionCycleRequestValidator.cs#L16)
   / CreateContributionCycleRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Period must use the YYYY-MM format."
@@ -2126,7 +2128,7 @@ value is included in these illustrative examples.
 ### Entry 075
 
 - **Site and method:**
-  [API/Validators/CreateContributionCycleRequestValidator.cs:20](API/Validators/CreateContributionCycleRequestValidator.cs#L20)
+  [API/Validators/CreateContributionCycleRequestValidator.cs:20](../../API/Validators/CreateContributionCycleRequestValidator.cs#L20)
   / CreateContributionCycleRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Target amount must be greater than zero."
@@ -2139,7 +2141,7 @@ value is included in these illustrative examples.
 ### Entry 076
 
 - **Site and method:**
-  [API/Validators/CreateStokvelRequestValidator.cs:13](API/Validators/CreateStokvelRequestValidator.cs#L13)
+  [API/Validators/CreateStokvelRequestValidator.cs:13](../../API/Validators/CreateStokvelRequestValidator.cs#L13)
   / CreateStokvelRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Stokvel name is required."
@@ -2152,7 +2154,7 @@ value is included in these illustrative examples.
 ### Entry 077
 
 - **Site and method:**
-  [API/Validators/CreateStokvelRequestValidator.cs:17](API/Validators/CreateStokvelRequestValidator.cs#L17)
+  [API/Validators/CreateStokvelRequestValidator.cs:17](../../API/Validators/CreateStokvelRequestValidator.cs#L17)
   / CreateStokvelRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Contribution amount must be greater than zero."
@@ -2165,7 +2167,7 @@ value is included in these illustrative examples.
 ### Entry 078
 
 - **Site and method:**
-  [API/Validators/CreateUserRequestValidator.cs:13](API/Validators/CreateUserRequestValidator.cs#L13)
+  [API/Validators/CreateUserRequestValidator.cs:13](../../API/Validators/CreateUserRequestValidator.cs#L13)
   / CreateUserRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Name is required."
@@ -2178,7 +2180,7 @@ value is included in these illustrative examples.
 ### Entry 079
 
 - **Site and method:**
-  [API/Validators/CreateUserRequestValidator.cs:17](API/Validators/CreateUserRequestValidator.cs#L17)
+  [API/Validators/CreateUserRequestValidator.cs:17](../../API/Validators/CreateUserRequestValidator.cs#L17)
   / CreateUserRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Email is required."
@@ -2191,7 +2193,7 @@ value is included in these illustrative examples.
 ### Entry 080
 
 - **Site and method:**
-  [API/Validators/CreateUserRequestValidator.cs:19](API/Validators/CreateUserRequestValidator.cs#L19)
+  [API/Validators/CreateUserRequestValidator.cs:19](../../API/Validators/CreateUserRequestValidator.cs#L19)
   / CreateUserRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "A valid email is required."
@@ -2204,7 +2206,7 @@ value is included in these illustrative examples.
 ### Entry 081
 
 - **Site and method:**
-  [API/Validators/LoginRequestValidator.cs:10](API/Validators/LoginRequestValidator.cs#L10) /
+  [API/Validators/LoginRequestValidator.cs:10](../../API/Validators/LoginRequestValidator.cs#L10) /
   LoginRequestValidator
 - **Diagnostic type:** FluentValidation default NotEmpty message
 - **Potential contents:** Email NotEmpty()
@@ -2217,7 +2219,7 @@ value is included in these illustrative examples.
 ### Entry 082
 
 - **Site and method:**
-  [API/Validators/LoginRequestValidator.cs:10](API/Validators/LoginRequestValidator.cs#L10) /
+  [API/Validators/LoginRequestValidator.cs:10](../../API/Validators/LoginRequestValidator.cs#L10) /
   LoginRequestValidator
 - **Diagnostic type:** FluentValidation default EmailAddress message
 - **Potential contents:** Email EmailAddress()
@@ -2230,7 +2232,7 @@ value is included in these illustrative examples.
 ### Entry 083
 
 - **Site and method:**
-  [API/Validators/LoginRequestValidator.cs:11](API/Validators/LoginRequestValidator.cs#L11) /
+  [API/Validators/LoginRequestValidator.cs:11](../../API/Validators/LoginRequestValidator.cs#L11) /
   LoginRequestValidator
 - **Diagnostic type:** FluentValidation default NotEmpty message
 - **Potential contents:** Password NotEmpty()
@@ -2243,7 +2245,7 @@ value is included in these illustrative examples.
 ### Entry 084
 
 - **Site and method:**
-  [API/Validators/RecordContributionRequestValidator.cs:13](API/Validators/RecordContributionRequestValidator.cs#L13)
+  [API/Validators/RecordContributionRequestValidator.cs:13](../../API/Validators/RecordContributionRequestValidator.cs#L13)
   / RecordContributionRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Contribution amount must be greater than zero."
@@ -2256,7 +2258,7 @@ value is included in these illustrative examples.
 ### Entry 085
 
 - **Site and method:**
-  [API/Validators/RecordContributionRequestValidator.cs:18](API/Validators/RecordContributionRequestValidator.cs#L18)
+  [API/Validators/RecordContributionRequestValidator.cs:18](../../API/Validators/RecordContributionRequestValidator.cs#L18)
   / RecordContributionRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Contribution cycle ID is required."
@@ -2269,7 +2271,7 @@ value is included in these illustrative examples.
 ### Entry 086
 
 - **Site and method:**
-  [API/Validators/RegisterRequestValidator.cs:10](API/Validators/RegisterRequestValidator.cs#L10)
+  [API/Validators/RegisterRequestValidator.cs:10](../../API/Validators/RegisterRequestValidator.cs#L10)
   / RegisterRequestValidator
 - **Diagnostic type:** FluentValidation default NotEmpty message
 - **Potential contents:** Name NotEmpty()
@@ -2282,7 +2284,7 @@ value is included in these illustrative examples.
 ### Entry 087
 
 - **Site and method:**
-  [API/Validators/RegisterRequestValidator.cs:11](API/Validators/RegisterRequestValidator.cs#L11)
+  [API/Validators/RegisterRequestValidator.cs:11](../../API/Validators/RegisterRequestValidator.cs#L11)
   / RegisterRequestValidator
 - **Diagnostic type:** FluentValidation default NotEmpty message
 - **Potential contents:** Email NotEmpty()
@@ -2295,7 +2297,7 @@ value is included in these illustrative examples.
 ### Entry 088
 
 - **Site and method:**
-  [API/Validators/RegisterRequestValidator.cs:11](API/Validators/RegisterRequestValidator.cs#L11)
+  [API/Validators/RegisterRequestValidator.cs:11](../../API/Validators/RegisterRequestValidator.cs#L11)
   / RegisterRequestValidator
 - **Diagnostic type:** FluentValidation default EmailAddress message
 - **Potential contents:** Email EmailAddress()
@@ -2308,7 +2310,7 @@ value is included in these illustrative examples.
 ### Entry 089
 
 - **Site and method:**
-  [API/Validators/RegisterRequestValidator.cs:12](API/Validators/RegisterRequestValidator.cs#L12)
+  [API/Validators/RegisterRequestValidator.cs:12](../../API/Validators/RegisterRequestValidator.cs#L12)
   / RegisterRequestValidator
 - **Diagnostic type:** FluentValidation default NotEmpty message
 - **Potential contents:** Password NotEmpty()
@@ -2321,7 +2323,7 @@ value is included in these illustrative examples.
 ### Entry 090
 
 - **Site and method:**
-  [API/Validators/RegisterRequestValidator.cs:12](API/Validators/RegisterRequestValidator.cs#L12)
+  [API/Validators/RegisterRequestValidator.cs:12](../../API/Validators/RegisterRequestValidator.cs#L12)
   / RegisterRequestValidator
 - **Diagnostic type:** FluentValidation default MinimumLength message
 - **Potential contents:** Password MinimumLength(12)
@@ -2334,7 +2336,7 @@ value is included in these illustrative examples.
 ### Entry 091
 
 - **Site and method:**
-  [API/Validators/UpdateContributionCycleRequestValidator.cs:14](API/Validators/UpdateContributionCycleRequestValidator.cs#L14)
+  [API/Validators/UpdateContributionCycleRequestValidator.cs:14](../../API/Validators/UpdateContributionCycleRequestValidator.cs#L14)
   / UpdateContributionCycleRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Contribution cycle period is required."
@@ -2347,7 +2349,7 @@ value is included in these illustrative examples.
 ### Entry 092
 
 - **Site and method:**
-  [API/Validators/UpdateContributionCycleRequestValidator.cs:16](API/Validators/UpdateContributionCycleRequestValidator.cs#L16)
+  [API/Validators/UpdateContributionCycleRequestValidator.cs:16](../../API/Validators/UpdateContributionCycleRequestValidator.cs#L16)
   / UpdateContributionCycleRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Period must use the YYYY-MM format."
@@ -2360,7 +2362,7 @@ value is included in these illustrative examples.
 ### Entry 093
 
 - **Site and method:**
-  [API/Validators/UpdateContributionCycleRequestValidator.cs:20](API/Validators/UpdateContributionCycleRequestValidator.cs#L20)
+  [API/Validators/UpdateContributionCycleRequestValidator.cs:20](../../API/Validators/UpdateContributionCycleRequestValidator.cs#L20)
   / UpdateContributionCycleRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Target amount must be greater than zero."
@@ -2373,7 +2375,7 @@ value is included in these illustrative examples.
 ### Entry 094
 
 - **Site and method:**
-  [API/Validators/UpdateStokvelRequestValidator.cs:13](API/Validators/UpdateStokvelRequestValidator.cs#L13)
+  [API/Validators/UpdateStokvelRequestValidator.cs:13](../../API/Validators/UpdateStokvelRequestValidator.cs#L13)
   / UpdateStokvelRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Stokvel name is required."
@@ -2386,7 +2388,7 @@ value is included in these illustrative examples.
 ### Entry 095
 
 - **Site and method:**
-  [API/Validators/UpdateStokvelRequestValidator.cs:17](API/Validators/UpdateStokvelRequestValidator.cs#L17)
+  [API/Validators/UpdateStokvelRequestValidator.cs:17](../../API/Validators/UpdateStokvelRequestValidator.cs#L17)
   / UpdateStokvelRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Contribution amount must be greater than zero."
@@ -2399,7 +2401,7 @@ value is included in these illustrative examples.
 ### Entry 096
 
 - **Site and method:**
-  [API/Validators/UpdateUserRequestValidator.cs:13](API/Validators/UpdateUserRequestValidator.cs#L13)
+  [API/Validators/UpdateUserRequestValidator.cs:13](../../API/Validators/UpdateUserRequestValidator.cs#L13)
   / UpdateUserRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Name is required."
@@ -2412,7 +2414,7 @@ value is included in these illustrative examples.
 ### Entry 097
 
 - **Site and method:**
-  [API/Validators/UpdateUserRequestValidator.cs:17](API/Validators/UpdateUserRequestValidator.cs#L17)
+  [API/Validators/UpdateUserRequestValidator.cs:17](../../API/Validators/UpdateUserRequestValidator.cs#L17)
   / UpdateUserRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "Email is required."
@@ -2425,7 +2427,7 @@ value is included in these illustrative examples.
 ### Entry 098
 
 - **Site and method:**
-  [API/Validators/UpdateUserRequestValidator.cs:19](API/Validators/UpdateUserRequestValidator.cs#L19)
+  [API/Validators/UpdateUserRequestValidator.cs:19](../../API/Validators/UpdateUserRequestValidator.cs#L19)
   / UpdateUserRequestValidator
 - **Diagnostic type:** FluentValidation message
 - **Potential contents:** "A valid email is required."
@@ -2438,7 +2440,7 @@ value is included in these illustrative examples.
 ### Entry 099
 
 - **Site and method:**
-  [Domain/Entities/Contribution.cs:30](Domain/Entities/Contribution.cs#L30) / Contribution
+  [Domain/Entities/Contribution.cs:30](../../Domain/Entities/Contribution.cs#L30) / Contribution
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Stokvel ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2451,7 +2453,7 @@ value is included in these illustrative examples.
 ### Entry 100
 
 - **Site and method:**
-  [Domain/Entities/Contribution.cs:34](Domain/Entities/Contribution.cs#L34) / Contribution
+  [Domain/Entities/Contribution.cs:34](../../Domain/Entities/Contribution.cs#L34) / Contribution
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "User ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2464,7 +2466,7 @@ value is included in these illustrative examples.
 ### Entry 101
 
 - **Site and method:**
-  [Domain/Entities/Contribution.cs:38](Domain/Entities/Contribution.cs#L38) / Contribution
+  [Domain/Entities/Contribution.cs:38](../../Domain/Entities/Contribution.cs#L38) / Contribution
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution cycle ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2477,7 +2479,7 @@ value is included in these illustrative examples.
 ### Entry 102
 
 - **Site and method:**
-  [Domain/Entities/Contribution.cs:42](Domain/Entities/Contribution.cs#L42) / Contribution
+  [Domain/Entities/Contribution.cs:42](../../Domain/Entities/Contribution.cs#L42) / Contribution
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution amount must be greater than zero."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2490,7 +2492,7 @@ value is included in these illustrative examples.
 ### Entry 103
 
 - **Site and method:**
-  [Domain/Entities/ContributionCycle.cs:28](Domain/Entities/ContributionCycle.cs#L28) /
+  [Domain/Entities/ContributionCycle.cs:28](../../Domain/Entities/ContributionCycle.cs#L28) /
   ContributionCycle
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Stokvel ID is required."
@@ -2504,7 +2506,7 @@ value is included in these illustrative examples.
 ### Entry 104
 
 - **Site and method:**
-  [Domain/Entities/ContributionCycle.cs:32](Domain/Entities/ContributionCycle.cs#L32) /
+  [Domain/Entities/ContributionCycle.cs:32](../../Domain/Entities/ContributionCycle.cs#L32) /
   ContributionCycle
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution cycle period is required."
@@ -2518,7 +2520,7 @@ value is included in these illustrative examples.
 ### Entry 105
 
 - **Site and method:**
-  [Domain/Entities/ContributionCycle.cs:36](Domain/Entities/ContributionCycle.cs#L36) /
+  [Domain/Entities/ContributionCycle.cs:36](../../Domain/Entities/ContributionCycle.cs#L36) /
   ContributionCycle
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Target amount must be greater than zero."
@@ -2532,7 +2534,7 @@ value is included in these illustrative examples.
 ### Entry 106
 
 - **Site and method:**
-  [Domain/Entities/ContributionCycle.cs:51](Domain/Entities/ContributionCycle.cs#L51) /
+  [Domain/Entities/ContributionCycle.cs:51](../../Domain/Entities/ContributionCycle.cs#L51) /
   UpdateDetails
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution cycle period is required."
@@ -2546,7 +2548,7 @@ value is included in these illustrative examples.
 ### Entry 107
 
 - **Site and method:**
-  [Domain/Entities/ContributionCycle.cs:55](Domain/Entities/ContributionCycle.cs#L55) /
+  [Domain/Entities/ContributionCycle.cs:55](../../Domain/Entities/ContributionCycle.cs#L55) /
   UpdateDetails
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Target amount must be greater than zero."
@@ -2559,7 +2561,7 @@ value is included in these illustrative examples.
 
 ### Entry 108
 
-- **Site and method:** [Domain/Entities/Payout.cs:30](Domain/Entities/Payout.cs#L30) / Payout
+- **Site and method:** [Domain/Entities/Payout.cs:30](../../Domain/Entities/Payout.cs#L30) / Payout
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Stokvel ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2571,7 +2573,7 @@ value is included in these illustrative examples.
 
 ### Entry 109
 
-- **Site and method:** [Domain/Entities/Payout.cs:34](Domain/Entities/Payout.cs#L34) / Payout
+- **Site and method:** [Domain/Entities/Payout.cs:34](../../Domain/Entities/Payout.cs#L34) / Payout
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Recipient user ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2583,7 +2585,7 @@ value is included in these illustrative examples.
 
 ### Entry 110
 
-- **Site and method:** [Domain/Entities/Payout.cs:38](Domain/Entities/Payout.cs#L38) / Payout
+- **Site and method:** [Domain/Entities/Payout.cs:38](../../Domain/Entities/Payout.cs#L38) / Payout
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution cycle ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2595,7 +2597,7 @@ value is included in these illustrative examples.
 
 ### Entry 111
 
-- **Site and method:** [Domain/Entities/Payout.cs:42](Domain/Entities/Payout.cs#L42) / Payout
+- **Site and method:** [Domain/Entities/Payout.cs:42](../../Domain/Entities/Payout.cs#L42) / Payout
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Payout amount must be greater than zero."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2607,7 +2609,7 @@ value is included in these illustrative examples.
 
 ### Entry 112
 
-- **Site and method:** [Domain/Entities/Payout.cs:57](Domain/Entities/Payout.cs#L57) /
+- **Site and method:** [Domain/Entities/Payout.cs:57](../../Domain/Entities/Payout.cs#L57) /
   UpdateAmount
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Payout amount must be greater than zero."
@@ -2620,7 +2622,7 @@ value is included in these illustrative examples.
 
 ### Entry 113
 
-- **Site and method:** [Domain/Entities/Stokvel.cs:26](Domain/Entities/Stokvel.cs#L26) /
+- **Site and method:** [Domain/Entities/Stokvel.cs:26](../../Domain/Entities/Stokvel.cs#L26) /
   Stokvel
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Stokvel name is required."
@@ -2633,7 +2635,7 @@ value is included in these illustrative examples.
 
 ### Entry 114
 
-- **Site and method:** [Domain/Entities/Stokvel.cs:29](Domain/Entities/Stokvel.cs#L29) /
+- **Site and method:** [Domain/Entities/Stokvel.cs:29](../../Domain/Entities/Stokvel.cs#L29) /
   Stokvel
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution amount must be greater than zero."
@@ -2646,7 +2648,7 @@ value is included in these illustrative examples.
 
 ### Entry 115
 
-- **Site and method:** [Domain/Entities/Stokvel.cs:42](Domain/Entities/Stokvel.cs#L42) /
+- **Site and method:** [Domain/Entities/Stokvel.cs:42](../../Domain/Entities/Stokvel.cs#L42) /
   UpdateDetails
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Stokvel name is required."
@@ -2659,7 +2661,7 @@ value is included in these illustrative examples.
 
 ### Entry 116
 
-- **Site and method:** [Domain/Entities/Stokvel.cs:46](Domain/Entities/Stokvel.cs#L46) /
+- **Site and method:** [Domain/Entities/Stokvel.cs:46](../../Domain/Entities/Stokvel.cs#L46) /
   UpdateDetails
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Contribution amount must be greater than zero."
@@ -2672,7 +2674,7 @@ value is included in these illustrative examples.
 
 ### Entry 117
 
-- **Site and method:** [Domain/Entities/Stokvel.cs:57](Domain/Entities/Stokvel.cs#L57) /
+- **Site and method:** [Domain/Entities/Stokvel.cs:57](../../Domain/Entities/Stokvel.cs#L57) /
   AddMember
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "User is already a member of this stokvel."
@@ -2685,7 +2687,7 @@ value is included in these illustrative examples.
 
 ### Entry 118
 
-- **Site and method:** [Domain/Entities/Stokvel.cs:72](Domain/Entities/Stokvel.cs#L72) /
+- **Site and method:** [Domain/Entities/Stokvel.cs:72](../../Domain/Entities/Stokvel.cs#L72) /
   RemoveMember
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "User is not a member of this stokvel."
@@ -2699,7 +2701,7 @@ value is included in these illustrative examples.
 ### Entry 119
 
 - **Site and method:**
-  [Domain/Entities/StokvelMember.cs:18](Domain/Entities/StokvelMember.cs#L18) / ChangeRole
+  [Domain/Entities/StokvelMember.cs:18](../../Domain/Entities/StokvelMember.cs#L18) / ChangeRole
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Unknown stokvel role."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2712,7 +2714,7 @@ value is included in these illustrative examples.
 ### Entry 120
 
 - **Site and method:**
-  [Domain/Entities/StokvelMember.cs:38](Domain/Entities/StokvelMember.cs#L38) / StokvelMember
+  [Domain/Entities/StokvelMember.cs:38](../../Domain/Entities/StokvelMember.cs#L38) / StokvelMember
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Stokvel ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2725,7 +2727,7 @@ value is included in these illustrative examples.
 ### Entry 121
 
 - **Site and method:**
-  [Domain/Entities/StokvelMember.cs:42](Domain/Entities/StokvelMember.cs#L42) / StokvelMember
+  [Domain/Entities/StokvelMember.cs:42](../../Domain/Entities/StokvelMember.cs#L42) / StokvelMember
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "User ID is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2738,7 +2740,7 @@ value is included in these illustrative examples.
 ### Entry 122
 
 - **Site and method:**
-  [Domain/Entities/StokvelMember.cs:46](Domain/Entities/StokvelMember.cs#L46) / StokvelMember
+  [Domain/Entities/StokvelMember.cs:46](../../Domain/Entities/StokvelMember.cs#L46) / StokvelMember
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Role is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2750,7 +2752,7 @@ value is included in these illustrative examples.
 
 ### Entry 123
 
-- **Site and method:** [Domain/Entities/User.cs:23](Domain/Entities/User.cs#L23) /
+- **Site and method:** [Domain/Entities/User.cs:23](../../Domain/Entities/User.cs#L23) /
   SetPlatformRole
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Unknown platform role."
@@ -2763,7 +2765,7 @@ value is included in these illustrative examples.
 
 ### Entry 124
 
-- **Site and method:** [Domain/Entities/User.cs:32](Domain/Entities/User.cs#L32) /
+- **Site and method:** [Domain/Entities/User.cs:32](../../Domain/Entities/User.cs#L32) /
   SetPasswordHash
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Password hash is required."
@@ -2776,7 +2778,7 @@ value is included in these illustrative examples.
 
 ### Entry 125
 
-- **Site and method:** [Domain/Entities/User.cs:44](Domain/Entities/User.cs#L44) / User
+- **Site and method:** [Domain/Entities/User.cs:44](../../Domain/Entities/User.cs#L44) / User
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Name is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2788,7 +2790,7 @@ value is included in these illustrative examples.
 
 ### Entry 126
 
-- **Site and method:** [Domain/Entities/User.cs:47](Domain/Entities/User.cs#L47) / User
+- **Site and method:** [Domain/Entities/User.cs:47](../../Domain/Entities/User.cs#L47) / User
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "A valid email is required."
 - **Personal/financial risk:** No submitted values in literal.
@@ -2800,7 +2802,7 @@ value is included in these illustrative examples.
 
 ### Entry 127
 
-- **Site and method:** [Domain/Entities/User.cs:58](Domain/Entities/User.cs#L58) /
+- **Site and method:** [Domain/Entities/User.cs:58](../../Domain/Entities/User.cs#L58) /
   UpdateDetails
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "Name is required."
@@ -2813,7 +2815,7 @@ value is included in these illustrative examples.
 
 ### Entry 128
 
-- **Site and method:** [Domain/Entities/User.cs:61](Domain/Entities/User.cs#L61) /
+- **Site and method:** [Domain/Entities/User.cs:61](../../Domain/Entities/User.cs#L61) /
   UpdateDetails
 - **Diagnostic type:** ArgumentException
 - **Potential contents:** "A valid email is required."
@@ -2827,7 +2829,7 @@ value is included in these illustrative examples.
 ### Entry 129
 
 - **Site and method:**
-  [Domain/Exceptions/AuthenticationFailedException.cs:3](Domain/Exceptions/AuthenticationFailedException.cs#L3)
+  [Domain/Exceptions/AuthenticationFailedException.cs:3](../../Domain/Exceptions/AuthenticationFailedException.cs#L3)
   / AuthenticationFailedException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2839,7 +2841,7 @@ value is included in these illustrative examples.
 ### Entry 130
 
 - **Site and method:**
-  [Domain/Exceptions/BusinessRuleException.cs:6](Domain/Exceptions/BusinessRuleException.cs#L6)
+  [Domain/Exceptions/BusinessRuleException.cs:6](../../Domain/Exceptions/BusinessRuleException.cs#L6)
   / BusinessRuleException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2851,7 +2853,7 @@ value is included in these illustrative examples.
 ### Entry 131
 
 - **Site and method:**
-  [Domain/Exceptions/ForbiddenException.cs:3](Domain/Exceptions/ForbiddenException.cs#L3) /
+  [Domain/Exceptions/ForbiddenException.cs:3](../../Domain/Exceptions/ForbiddenException.cs#L3) /
   ForbiddenException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2863,7 +2865,7 @@ value is included in these illustrative examples.
 ### Entry 132
 
 - **Site and method:**
-  [Domain/Exceptions/NotFoundException.cs:6](Domain/Exceptions/NotFoundException.cs#L6) /
+  [Domain/Exceptions/NotFoundException.cs:6](../../Domain/Exceptions/NotFoundException.cs#L6) /
   NotFoundException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2875,7 +2877,7 @@ value is included in these illustrative examples.
 ### Entry 133
 
 - **Site and method:**
-  [Domain/Exceptions/PreconditionFailedException.cs:6](Domain/Exceptions/PreconditionFailedException.cs#L6)
+  [Domain/Exceptions/PreconditionFailedException.cs:6](../../Domain/Exceptions/PreconditionFailedException.cs#L6)
   / PreconditionFailedException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2887,7 +2889,7 @@ value is included in these illustrative examples.
 ### Entry 134
 
 - **Site and method:**
-  [Domain/Exceptions/RequestValidationException.cs:7](Domain/Exceptions/RequestValidationException.cs#L7)
+  [Domain/Exceptions/RequestValidationException.cs:7](../../Domain/Exceptions/RequestValidationException.cs#L7)
   / RequestValidationException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2899,7 +2901,7 @@ value is included in these illustrative examples.
 ### Entry 135
 
 - **Site and method:**
-  [Domain/Exceptions/RondiTrackException.cs:6](Domain/Exceptions/RondiTrackException.cs#L6) /
+  [Domain/Exceptions/RondiTrackException.cs:6](../../Domain/Exceptions/RondiTrackException.cs#L6) /
   RondiTrackException.ctor
 - **Diagnostic type:** exception constructor forwarding
 - **Potential contents:** Caller-supplied message
@@ -2911,7 +2913,7 @@ value is included in these illustrative examples.
 ### Entry 136
 
 - **Site and method:**
-  [Infrastructure/Repositories/ContributionRepository.cs:59](Infrastructure/Repositories/ContributionRepository.cs#L59)
+  [Infrastructure/Repositories/ContributionRepository.cs:59](../../Infrastructure/Repositories/ContributionRepository.cs#L59)
   / GetByCyclePagedAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Sort direction must be 'asc' or 'desc'."
@@ -2925,7 +2927,7 @@ value is included in these illustrative examples.
 ### Entry 137
 
 - **Site and method:**
-  [Infrastructure/Repositories/ContributionRepository.cs:72](Infrastructure/Repositories/ContributionRepository.cs#L72)
+  [Infrastructure/Repositories/ContributionRepository.cs:72](../../Infrastructure/Repositories/ContributionRepository.cs#L72)
   / GetByCyclePagedAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Unsupported sort field for contributions."
@@ -2939,7 +2941,7 @@ value is included in these illustrative examples.
 ### Entry 138
 
 - **Site and method:**
-  [Infrastructure/Repositories/ContributionRepository.cs:212](Infrastructure/Repositories/ContributionRepository.cs#L212)
+  [Infrastructure/Repositories/ContributionRepository.cs:212](../../Infrastructure/Repositories/ContributionRepository.cs#L212)
   / ApplySort
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Unsupported sort field for contributions."
@@ -2953,7 +2955,7 @@ value is included in these illustrative examples.
 ### Entry 139
 
 - **Site and method:**
-  [Infrastructure/Repositories/ContributionRepository.cs:319](Infrastructure/Repositories/ContributionRepository.cs#L319)
+  [Infrastructure/Repositories/ContributionRepository.cs:319](../../Infrastructure/Repositories/ContributionRepository.cs#L319)
   / ParseToken
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page token is invalid."
@@ -2967,7 +2969,7 @@ value is included in these illustrative examples.
 ### Entry 140
 
 - **Site and method:**
-  [Infrastructure/Repositories/ContributionRepository.cs:329](Infrastructure/Repositories/ContributionRepository.cs#L329)
+  [Infrastructure/Repositories/ContributionRepository.cs:329](../../Infrastructure/Repositories/ContributionRepository.cs#L329)
   / ParseToken
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page token does not match the current sort or filter."
@@ -2981,7 +2983,7 @@ value is included in these illustrative examples.
 ### Entry 141
 
 - **Site and method:**
-  [Infrastructure/Repositories/ContributionRepository.cs:337](Infrastructure/Repositories/ContributionRepository.cs#L337)
+  [Infrastructure/Repositories/ContributionRepository.cs:337](../../Infrastructure/Repositories/ContributionRepository.cs#L337)
   / ParseToken
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page token is invalid."
@@ -2995,7 +2997,7 @@ value is included in these illustrative examples.
 ### Entry 142
 
 - **Site and method:**
-  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:45](Infrastructure/Repositories/EfStokvelMemberRepository.cs#L45)
+  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:45](../../Infrastructure/Repositories/EfStokvelMemberRepository.cs#L45)
   / GetByStokvelPagedAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Sort direction must be 'asc' or 'desc'."
@@ -3009,7 +3011,7 @@ value is included in these illustrative examples.
 ### Entry 143
 
 - **Site and method:**
-  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:58](Infrastructure/Repositories/EfStokvelMemberRepository.cs#L58)
+  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:58](../../Infrastructure/Repositories/EfStokvelMemberRepository.cs#L58)
   / GetByStokvelPagedAsync
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Unsupported sort field for stokvel members."
@@ -3023,7 +3025,7 @@ value is included in these illustrative examples.
 ### Entry 144
 
 - **Site and method:**
-  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:143](Infrastructure/Repositories/EfStokvelMemberRepository.cs#L143)
+  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:143](../../Infrastructure/Repositories/EfStokvelMemberRepository.cs#L143)
   / ApplySort
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Unsupported sort field for stokvel members."
@@ -3037,7 +3039,7 @@ value is included in these illustrative examples.
 ### Entry 145
 
 - **Site and method:**
-  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:234](Infrastructure/Repositories/EfStokvelMemberRepository.cs#L234)
+  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:234](../../Infrastructure/Repositories/EfStokvelMemberRepository.cs#L234)
   / ParseToken
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page token is invalid."
@@ -3051,7 +3053,7 @@ value is included in these illustrative examples.
 ### Entry 146
 
 - **Site and method:**
-  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:241](Infrastructure/Repositories/EfStokvelMemberRepository.cs#L241)
+  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:241](../../Infrastructure/Repositories/EfStokvelMemberRepository.cs#L241)
   / ParseToken
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page token does not match the current sort or filter."
@@ -3065,7 +3067,7 @@ value is included in these illustrative examples.
 ### Entry 147
 
 - **Site and method:**
-  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:249](Infrastructure/Repositories/EfStokvelMemberRepository.cs#L249)
+  [Infrastructure/Repositories/EfStokvelMemberRepository.cs:249](../../Infrastructure/Repositories/EfStokvelMemberRepository.cs#L249)
   / ParseToken
 - **Diagnostic type:** RequestValidationException
 - **Potential contents:** "Page token is invalid."
@@ -3079,7 +3081,7 @@ value is included in these illustrative examples.
 ### Entry 148
 
 - **Site and method:**
-  [RondiTrack.Tests/BusinessTelemetryTests.cs:156](RondiTrack.Tests/BusinessTelemetryTests.cs#L156)
+  [RondiTrack.Tests/BusinessTelemetryTests.cs:156](../../RondiTrack.Tests/BusinessTelemetryTests.cs#L156)
   / ReaderExecutingAsync
 - **Diagnostic type:** NpgsqlException
 - **Potential contents:** "Synthetic transient test failure.", new TimeoutException()
@@ -3091,7 +3093,7 @@ value is included in these illustrative examples.
 ### Entry 149
 
 - **Site and method:**
-  [RondiTrack.Tests/BusinessTelemetryTests.cs:156](RondiTrack.Tests/BusinessTelemetryTests.cs#L156)
+  [RondiTrack.Tests/BusinessTelemetryTests.cs:156](../../RondiTrack.Tests/BusinessTelemetryTests.cs#L156)
   / ReaderExecutingAsync
 - **Diagnostic type:** TimeoutException
 - **Potential contents:** (default message)
@@ -3102,7 +3104,7 @@ value is included in these illustrative examples.
 ### Entry 150
 
 - **Site and method:**
-  [RondiTrack.Tests/BusinessTelemetryTests.cs:166](RondiTrack.Tests/BusinessTelemetryTests.cs#L166)
+  [RondiTrack.Tests/BusinessTelemetryTests.cs:166](../../RondiTrack.Tests/BusinessTelemetryTests.cs#L166)
   / TransactionCommittingAsync
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "Synthetic commit refusal."
@@ -3113,7 +3115,7 @@ value is included in these illustrative examples.
 ### Entry 151
 
 - **Site and method:**
-  [RondiTrack.Tests/CorrelationTests.cs:176](RondiTrack.Tests/CorrelationTests.cs#L176) /
+  [RondiTrack.Tests/CorrelationTests.cs:176](../../RondiTrack.Tests/CorrelationTests.cs#L176) /
   Unexpected500_ReturnsGenericDetailAndMatchingStructuredCorrelation
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "private-internal-diagnostic"
@@ -3124,7 +3126,7 @@ value is included in these illustrative examples.
 ### Entry 152
 
 - **Site and method:**
-  [RondiTrack.Tests/LoggingTests.cs:229](RondiTrack.Tests/LoggingTests.cs#L229) /
+  [RondiTrack.Tests/LoggingTests.cs:229](../../RondiTrack.Tests/LoggingTests.cs#L229) /
   Unexpected500_KeepsFullExceptionInternally_AndGenericClientDetail
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "Synthetic diagnostic failure."
@@ -3135,7 +3137,7 @@ value is included in these illustrative examples.
 ### Entry 153
 
 - **Site and method:**
-  [RondiTrack.Tests/PayoutTransactionTests.cs:186](RondiTrack.Tests/PayoutTransactionTests.cs#L186)
+  [RondiTrack.Tests/PayoutTransactionTests.cs:186](../../RondiTrack.Tests/PayoutTransactionTests.cs#L186)
   / PayoutTransaction_WhenFailureOccursPartway_RollsBackAllChanges
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "Simulated payout failure."
@@ -3146,7 +3148,7 @@ value is included in these illustrative examples.
 ### Entry 154
 
 - **Site and method:**
-  [RondiTrack.Tests/TestSupport/PostgresApiFactory.cs:73](RondiTrack.Tests/TestSupport/PostgresApiFactory.cs#L73)
+  [RondiTrack.Tests/TestSupport/PostgresApiFactory.cs:73](../../RondiTrack.Tests/TestSupport/PostgresApiFactory.cs#L73)
   / InitializeAsync
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "Tests must use the disposable PostgreSQL container."
@@ -3157,7 +3159,7 @@ value is included in these illustrative examples.
 ### Entry 155
 
 - **Site and method:**
-  [RondiTrack.Tests/TestSupport/PostgresApiFactory.cs:86](RondiTrack.Tests/TestSupport/PostgresApiFactory.cs#L86)
+  [RondiTrack.Tests/TestSupport/PostgresApiFactory.cs:86](../../RondiTrack.Tests/TestSupport/PostgresApiFactory.cs#L86)
   / InitializeAsync
 - **Diagnostic type:** InvalidOperationException
 - **Potential contents:** "The API connected to an unexpected database."
@@ -3168,7 +3170,7 @@ value is included in these illustrative examples.
 ### Entry 156
 
 - **Site and method:**
-  [RondiTrack.Tests/TestSupport/PostgresApiFactory.cs:93](RondiTrack.Tests/TestSupport/PostgresApiFactory.cs#L93)
+  [RondiTrack.Tests/TestSupport/PostgresApiFactory.cs:93](../../RondiTrack.Tests/TestSupport/PostgresApiFactory.cs#L93)
   / InitializeAsync
 - **Diagnostic type:** rethrow
 - **Potential contents:** Original exception / message / inner chain
@@ -3180,7 +3182,7 @@ value is included in these illustrative examples.
 ### Entry 157
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:12](scripts/verify-assignment-5-4-isolation.ps1#L12)
+  [scripts/verify-assignment-5-4-isolation.ps1:12](../../scripts/verify-assignment-5-4-isolation.ps1#L12)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Development connection string is required for the isolation
@@ -3193,7 +3195,7 @@ value is included in these illustrative examples.
 ### Entry 158
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:21](scripts/verify-assignment-5-4-isolation.ps1#L21)
+  [scripts/verify-assignment-5-4-isolation.ps1:21](../../scripts/verify-assignment-5-4-isolation.ps1#L21)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** This proof only permits the local ronditrack development database.
@@ -3205,7 +3207,7 @@ value is included in these illustrative examples.
 ### Entry 159
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:23](scripts/verify-assignment-5-4-isolation.ps1#L23)
+  [scripts/verify-assignment-5-4-isolation.ps1:23](../../scripts/verify-assignment-5-4-isolation.ps1#L23)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** PostgreSQL psql was not found.
@@ -3217,7 +3219,7 @@ value is included in these illustrative examples.
 ### Entry 160
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:36](scripts/verify-assignment-5-4-isolation.ps1#L36)
+  [scripts/verify-assignment-5-4-isolation.ps1:36](../../scripts/verify-assignment-5-4-isolation.ps1#L36)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Development database must initially accept connections.
@@ -3229,7 +3231,7 @@ value is included in these illustrative examples.
 ### Entry 161
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:38](scripts/verify-assignment-5-4-isolation.ps1#L38)
+  [scripts/verify-assignment-5-4-isolation.ps1:38](../../scripts/verify-assignment-5-4-isolation.ps1#L38)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Close development API/database sessions before the isolation proof;
@@ -3242,7 +3244,7 @@ value is included in these illustrative examples.
 ### Entry 162
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:41](scripts/verify-assignment-5-4-isolation.ps1#L41)
+  [scripts/verify-assignment-5-4-isolation.ps1:41](../../scripts/verify-assignment-5-4-isolation.ps1#L41)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Could not temporarily disable development database connections.
@@ -3254,7 +3256,7 @@ value is included in these illustrative examples.
 ### Entry 163
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:44](scripts/verify-assignment-5-4-isolation.ps1#L44)
+  [scripts/verify-assignment-5-4-isolation.ps1:44](../../scripts/verify-assignment-5-4-isolation.ps1#L44)
   / top-level preflight / proof
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** A development session appeared during preflight; restore and retry
@@ -3267,7 +3269,7 @@ value is included in these illustrative examples.
 ### Entry 164
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:54](scripts/verify-assignment-5-4-isolation.ps1#L54)
+  [scripts/verify-assignment-5-4-isolation.ps1:54](../../scripts/verify-assignment-5-4-isolation.ps1#L54)
   / finally / restoration
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Development database unexpectedly accepted a connection.
@@ -3279,7 +3281,7 @@ value is included in these illustrative examples.
 ### Entry 165
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:56](scripts/verify-assignment-5-4-isolation.ps1#L56)
+  [scripts/verify-assignment-5-4-isolation.ps1:56](../../scripts/verify-assignment-5-4-isolation.ps1#L56)
   / finally / restoration
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Development probe failed for an unexpected reason; independence is
@@ -3292,7 +3294,7 @@ value is included in these illustrative examples.
 ### Entry 166
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:74](scripts/verify-assignment-5-4-isolation.ps1#L74)
+  [scripts/verify-assignment-5-4-isolation.ps1:74](../../scripts/verify-assignment-5-4-isolation.ps1#L74)
   / finally / restoration
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** RESTORATION FAILED: restore ALLOW_CONNECTIONS=true for ronditrack
@@ -3305,7 +3307,7 @@ value is included in these illustrative examples.
 ### Entry 167
 
 - **Site and method:**
-  [scripts/verify-assignment-5-4-isolation.ps1:76](scripts/verify-assignment-5-4-isolation.ps1#L76)
+  [scripts/verify-assignment-5-4-isolation.ps1:76](../../scripts/verify-assignment-5-4-isolation.ps1#L76)
   / finally / restoration
 - **Diagnostic type:** PowerShell throw
 - **Potential contents:** Development database restoration probe failed.

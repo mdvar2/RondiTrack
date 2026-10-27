@@ -4,7 +4,7 @@ This is the README snapshot retained from main before the documentation refresh
 on 11 October 2026. It preserves earlier assignment explanations, experiments,
 commands and recorded results; encoding and heading presentation were repaired.
 **Its setup commands, endpoint descriptions and test counts are historical and
-may be superseded. Use [README.md](README.md) for the current supported guide.**
+may be superseded. Use [README.md](../../README.md) for the current supported guide.**
 The existing development migration blocker remains unresolved. Nothing in this
 archive establishes that the development database has been upgraded.
 
@@ -1291,8 +1291,8 @@ single matching row rather than the new composite index. That is a normal
 cost-based choice for tiny data, not a bug: index setup and traversal can
 cost more than a short scan or an already-available narrower index. The full
 captured plans and reproducible SQL are in
-[docs/assignment-5-3-performance-evidence.md](docs/assignment-5-3-performance-evidence.md)
-and [scripts/assignment-5-3-performance.sql](scripts/assignment-5-3-performance.sql).
+[docs/assignment-5-3-performance-evidence.md](evidence/assignment-5-3-performance-evidence.md)
+and [scripts/assignment-5-3-performance.sql](../../scripts/assignment-5-3-performance.sql).
 
 Small-data plan excerpt:
 
@@ -1563,8 +1563,8 @@ DTOs; Domain query records and explicit API mappings removed that dependency.
 No CS1705 or missing EF Design error remained with the explicit version pins.
 
 The detailed audit, exact moved-file manifest, navigation, and phase verification
-are in [docs/assignment-5-4-phase-1-audit.md](docs/assignment-5-4-phase-1-audit.md)
-and [docs/assignment-5-4-phase-verification.md](docs/assignment-5-4-phase-verification.md).
+are in [docs/assignment-5-4-phase-1-audit.md](evidence/assignment-5-4-phase-1-audit.md)
+and [docs/assignment-5-4-phase-verification.md](evidence/assignment-5-4-phase-verification.md).
 
 
 ### Self-contained PostgreSQL tests
@@ -1648,10 +1648,10 @@ No tests failed or were skipped. The fixture proved the API connection used
 `127.0.0.1:8623/ronditrack_test`, applied all four migrations, and disposed the
 container. This port is assigned dynamically and will differ between runs.
 Sanitized evidence is in
-[docs/assignment-5-4-isolation-evidence.txt](docs/assignment-5-4-isolation-evidence.txt).
+[docs/assignment-5-4-isolation-evidence.txt](evidence/assignment-5-4-isolation-evidence.txt).
 The completion checklist, code navigation, commits, preserved migrations, and
 phase reports are in
-[docs/assignment-5-4-verification-report.md](docs/assignment-5-4-verification-report.md).
+[docs/assignment-5-4-verification-report.md](evidence/assignment-5-4-verification-report.md).
 
 Two local proof-script issues were resolved before the successful run: Windows
 PowerShell blocked script execution, so a child-process-only override was used;
@@ -1665,7 +1665,7 @@ Implementation and migration verification use disposable PostgreSQL 17. **The
 existing development database upgrade is blocked by duplicate normalized emails.**
 Development data is unchanged. Private cleanup records are stored outside this
 repository and are excluded from published history. See
-[the sanitized migration note](docs/development-migration-status.md). The new
+[the sanitized migration note](../development-migration-status.md). The new
 migrations require an approved resolution of those duplicates before authentication
 can work against the existing development schema.
 
@@ -1805,8 +1805,8 @@ JWT middleware and actual PostgreSQL repositories; no mock authentication scheme
 replaces validation. The shared Testcontainers fixture applies all seven migrations
 to a fresh database and verifies the actual API connection. Build and isolation
 commands are the same as Assignment 5.4 above. Actual logs/results, per-phase
-files and commits appear in [the Assignment 6.1 report](docs/assignment-6-1-verification-report.md)
-and [phase record](docs/assignment-6-1-phase-verification.md).
+files and commits appear in [the Assignment 6.1 report](evidence/assignment-6-1-verification-report.md)
+and [phase record](evidence/assignment-6-1-phase-verification.md).
 
 For demonstration, open AuthController.Register/Login/Refresh/Logout -> AuthService
 RegisterAsync/LoginAsync/RefreshAsync/LogoutAsync -> UserRepository or

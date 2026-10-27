@@ -174,7 +174,7 @@ The script uses the documented installed Windows Edge path and selectors for
 this pinned dashboard; another installation or dashboard version may need a
 path/selector adjustment. A human must still inspect the resulting screenshot.
 
-The [genuine screenshot](evidence/payout-trace.png) was visually inspected:
+The [genuine screenshot](artifacts/payout-trace.png) was visually inspected:
 one HTTP payout request, its business child, nine indented Npgsql command spans
 under the business child, and three authentication/authorization SQL spans as
 siblings before it. Total 14 spans, depth 3. Authentication database work correctly
@@ -187,7 +187,7 @@ tokens, amounts or member/stokvel identifiers appear in the captured view.
 
 Actual traces, structured login properties and the payout counter success series
 were received in Aspire over OTLP. See the safe
-[dashboard verification manifest](evidence/dashboard-verification.json).
+[dashboard verification manifest](artifacts/dashboard-verification.json).
 The screenshot's times are an individual development execution, not benchmark
 claims. No metric screenshot or failed-payout dashboard screenshot is claimed;
 automated listeners verify failure behaviour separately.
@@ -210,7 +210,7 @@ and manifest describe this actual run, not a newly regenerated run's IDs.
 
 ## Genuine sanitized logs
 
-[sanitized-log-excerpts.txt](evidence/sanitized-log-excerpts.txt) contains original
+[sanitized-log-excerpts.txt](artifacts/sanitized-log-excerpts.txt) contains original
 selected console lines from the real run, not invented templates. The two sign-in
 events are owner/outsider successful logins. The refusal and handler 404 share
 CorrelationId=`bafaae4972b0b8bf5cecc0a82143153d`, which was also asserted against
