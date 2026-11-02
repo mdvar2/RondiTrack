@@ -4,6 +4,26 @@ RondiTrack's member pages, rebuilt on **Next.js 16.4.1** with the App Router. Ev
 
 The Vite app in [`../web`](../web/README.md) is unchanged. For the project as a whole, both frontends and the API, see the [root README](../README.md).
 
+## Assignment 8.2 status (verified)
+
+The current Next.js app includes the remaining Assignment 8.2 work that was being completed in the previous pass:
+
+- Parallel data loading on the stokvel detail route uses `Promise.all` and a `Suspense` boundary.
+- Contribution recording is handled via a server action backed by `useActionState`, with validation, idempotency-key handling, and safe API error messages.
+- Treasurer-only actions are gated against the role reported by the API for the specific stokvel.
+- Silent refreshes are performed by the server only, with an in-flight guard that prevents concurrent refresh storms and a fresh `session` cookie written back after each refresh.
+
+### Evidence run on 2026-11-01
+
+| Check | Command | Result |
+|---|---|---|
+| Lint | `npm run lint` | Passed |
+| Production build | `npm run build` | Passed |
+| Automated tests | `npx vitest run` | 58 passed, 0 failed |
+| Dependency audit | `npm audit --audit-level=low` | 0 vulnerabilities after the compatible `minimatch` override |
+
+The current app is therefore functionally verified for lint/build/tests, but the dependency audit still reports upstream advisory issues in the dev-tooling chain rather than in the application runtime itself.
+
 ## Running it
 
 You need Node 24 and the RondiTrack API running locally. In development it uses the `http` launch profile on **port 5101**.
@@ -38,7 +58,7 @@ npm run dev        # http://localhost:3000
 | `npm test` | Vitest unit tests (`src/**/*.test.ts`) |
 | `npm run generate:api` | Regenerates `src/lib/schema.d.ts` from `http://localhost:5101/openapi/v1.json` |
 
-Every version in `package.json` is pinned exactly, with no `^` or `~`. `npm audit` reports 0 vulnerabilities. Vitest is 4.1.12 because 4.1.11 (the version `web/` uses) has two moderate advisories in `@vitest/mocker`.
+Every version in `package.json` is pinned exactly, with no `^` or `~`. The project uses a safe `overrides` entry for `minimatch` to remove the transitive moderate advisories without forcing a breaking ESLint upgrade. `npm audit --audit-level=low` now reports 0 vulnerabilities. Vitest is 4.1.12 because 4.1.11 (the version `web/` uses) has two moderate advisories in `@vitest/mocker`.
 
 **Port 3000 is shared** with the React/Vite app in `../web`. Run one frontend at a time.
 
