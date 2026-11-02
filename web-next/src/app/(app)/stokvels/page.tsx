@@ -3,6 +3,9 @@ import { api, readOrFail } from '@/lib/api'
 import { StokvelCard } from '@/components/StokvelCard'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeading } from '@/components/PageHeading'
+import { PinnedStokvelsList } from '@/components/PinnedStokvels'
+import { ActivityFeed } from '@/components/ActivityFeed'
+import { ContributionHistoryFilters } from '@/components/ContributionHistoryFilters'
 
 export const metadata: Metadata = { title: 'My stokvels · RondiTrack' }
 
@@ -15,12 +18,17 @@ export default async function StokvelsPage() {
   return (
     <>
       <PageHeading title="My stokvels">Each stokvel you belong to, and your role in it.</PageHeading>
+      <PinnedStokvelsList stokvels={stokvels} />
+      <ContributionHistoryFilters />
+      <div className="mt-6">
+        <ActivityFeed />
+      </div>
       {stokvels.length === 0 ? (
         <EmptyState title="You're not in any stokvels yet">
           Ask a stokvel&apos;s Chairperson to add you.
         </EmptyState>
       ) : (
-        <div className="stokvel-grid">
+        <div className="stokvel-grid mt-6">
           {stokvels.map((stokvel) => (
             <StokvelCard key={stokvel.stokvelId} stokvel={stokvel} href={`/stokvels/${stokvel.stokvelId}`} />
           ))}

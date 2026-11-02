@@ -4,6 +4,15 @@ RondiTrack's member pages, rebuilt on **Next.js 16.4.1** with the App Router. Ev
 
 The Vite app in [`../web`](../web/README.md) is unchanged. For the project as a whole, both frontends and the API, see the [root README](../README.md).
 
+## Assignment 8.3 additions
+
+The Next.js app includes the Assignment 8.3 frontend work for live activity views and session-aware state:
+
+- URL-based contribution-history filters are bound to the browser URL with `nuqs`, including search, status, and date-range controls.
+- Recent activity is sourced from the ASP.NET Core contribution records for each member's current cycle rather than generated demo data. If a member or stokvel has no recorded contributions, the feed intentionally shows an empty state instead of inventing payments.
+- Pinned stokvels are stored client-side in a shared Zustand store and surfaced at the top of the My Stokvels screen.
+- South African date formatting remains centralised in the existing `src/lib/dates.ts` helpers, so cycle dates and activity timestamps stay in SAST.
+
 ## Assignment 8.2 status (verified)
 
 The current Next.js app includes the remaining Assignment 8.2 work that was being completed in the previous pass:

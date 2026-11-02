@@ -4,6 +4,7 @@ import { StatusBadge } from './StatusBadge'
 import { DueCountdown } from './DueCountdown'
 import { formatCents } from '@/lib/money'
 import { formatCycleDueDate, formatJohannesburgDate } from '@/lib/dates'
+import { PinnedStokvelButton } from './PinnedStokvels'
 
 type StokvelCardProps = { stokvel: HomeStokvel; href?: string }
 
@@ -16,7 +17,10 @@ export function StokvelCard({ stokvel, href }: StokvelCardProps) {
     <article className="stokvel-card">
       <header className="stokvel-card__header">
         <h2>{href ? <Link href={href} className="underline-offset-4 hover:underline">{stokvelName}</Link> : stokvelName}</h2>
-        <p className="role-badge">You&apos;re the {role}</p>
+        <div className="flex items-center gap-2">
+          <p className="role-badge">You&apos;re the {role}</p>
+          {href && <PinnedStokvelButton stokvelId={String(stokvel.stokvelId)} label="Pin" />}
+        </div>
       </header>
       {arrearsCents > 0 && (
         <div className="mb-3"><StatusBadge arrearsCents={arrearsCents} /></div>
