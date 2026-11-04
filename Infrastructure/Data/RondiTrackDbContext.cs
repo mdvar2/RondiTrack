@@ -13,6 +13,7 @@ public class RondiTrackDbContext : DbContext
     }
 
     public DbSet<PersistedIdempotencyRecord> PersistedIdempotencyRecords => Set<PersistedIdempotencyRecord>();
+    public DbSet<CycleCloseIdempotency> CycleCloseIdempotencies => Set<CycleCloseIdempotency>();
 
     // Authentication
     public DbSet<RefreshToken> RefreshTokens =>
@@ -29,12 +30,16 @@ public class RondiTrackDbContext : DbContext
     public DbSet<StokvelMember> StokvelMembers =>
         Set<StokvelMember>();
 
+    public DbSet<StokvelInvite> StokvelInvites => Set<StokvelInvite>();
+
     // Contribution cycles and payments
     public DbSet<ContributionCycle> ContributionCycles =>
         Set<ContributionCycle>();
 
     public DbSet<Contribution> Contributions =>
         Set<Contribution>();
+
+    public DbSet<ContributionProof> ContributionProofs => Set<ContributionProof>();
 
     public DbSet<Payout> Payouts => Set<Payout>();
 
@@ -51,6 +56,15 @@ public class RondiTrackDbContext : DbContext
             entity.HasKey(x => x.Key);
             entity.Property(x => x.Key).HasMaxLength(256);
             entity.Property(x => x.RequestHash).HasMaxLength(64);
+            entity.HasIndex(x => x.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<CycleCloseIdempotency>(entity =>
+        {
+            entity.HasKey(x => x.Key);
+            entity.Property(x => x.Key).HasMaxLength(256);
+            entity.Property(x => x.RequestHash).HasMaxLength(64);
+            entity.Property(x => x.ResponseJson).HasColumnType("jsonb");
             entity.HasIndex(x => x.CreatedAtUtc);
         });
 
@@ -84,6 +98,17 @@ public class RondiTrackDbContext : DbContext
 
         modelBuilder.Entity<Stokvel>()
             .Ignore(stokvel => stokvel.Members);
+
+        modelBuilder.Entity<StokvelInvite>(entity =>
+        {
+            entity.HasKey(invite => invite.Code);
+            entity.Property(invite => invite.Code).HasMaxLength(32);
+            entity.HasIndex(invite => invite.StokvelId);
+            entity.HasOne(invite => invite.Stokvel)
+                .WithMany()
+                .HasForeignKey(invite => invite.StokvelId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         // =====================================================
         // USER CONFIGURATION
@@ -210,6 +235,19 @@ public class RondiTrackDbContext : DbContext
             .IsDescending(false, false, true, true)
             .HasDatabaseName(
                 "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id");
+
+        modelBuilder.Entity<ContributionProof>(entity =>
+        {
+            entity.HasKey(proof => proof.Id);
+            entity.Property(proof => proof.FileName).HasMaxLength(255);
+            entity.Property(proof => proof.ContentType).HasMaxLength(100);
+            entity.Property(proof => proof.Contents).HasColumnType("bytea");
+            entity.HasIndex(proof => proof.ContributionId).IsUnique();
+            entity.HasOne(proof => proof.Contribution)
+                .WithOne(contribution => contribution.Proof)
+                .HasForeignKey<ContributionProof>(proof => proof.ContributionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         // =====================================================
         // PAYOUT CONFIGURATION

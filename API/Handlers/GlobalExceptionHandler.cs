@@ -38,6 +38,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             NotFoundException =>
                 (StatusCodes.Status404NotFound, "Not Found"),
 
+            ExpiredException =>
+                (StatusCodes.Status410Gone, "Gone"),
+
             PreconditionFailedException =>
                 (StatusCodes.Status412PreconditionFailed,
                     "Precondition Failed"),

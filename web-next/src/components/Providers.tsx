@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { useState } from 'react'
+import { ToastProvider } from './ToastProvider'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -19,7 +20,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <NuqsAdapter>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <QueryClientProvider client={client}>
+        <ToastProvider>{children}</ToastProvider>
+      </QueryClientProvider>
     </NuqsAdapter>
   )
 }

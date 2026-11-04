@@ -1,11 +1,11 @@
 
 using System.Data;
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using RondiTrack.Domain.Entities;
 using RondiTrack.Infrastructure.Data;
 using RondiTrack.Observability;
+using RondiTrack.Services;
 
 namespace RondiTrack.BackgroundJobs;
 
@@ -138,7 +138,8 @@ public sealed class CycleCloseProcessor(
         var members = await db.StokvelMembers
             .AsNoTracking()
             .Where(member => member.StokvelId == stokvelId)
-            .Select(member => member.UserId)
+            .Join(db.Users, member => member.UserId, user => user.Id,
+                (member, user) => new CycleMemberForCalculation(member.UserId, user.Name))
             .ToListAsync(cancellationToken);
 
         // Process one overdue cycle at a time.
@@ -169,37 +170,19 @@ public sealed class CycleCloseProcessor(
                 })
                 .ToListAsync(cancellationToken);
 
-            var paidByMember = contributions
-                .GroupBy(item => item.UserId)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Sum(item => item.Amount));
+            var arrears = CycleArrearsCalculator.Calculate(
+                stokvel.ContributionAmount,
+                members,
+                contributions.Select(item => new CyclePaymentForCalculation(item.UserId, item.Amount)));
 
-            foreach (var memberId in members)
+            foreach (var arrear in arrears)
             {
-                var paid = paidByMember.GetValueOrDefault(memberId);
-
-                var shortfall = Math.Max(
-                    0m,
-                    stokvel.ContributionAmount - paid);
-
-                // Store financial shortfalls as integer cents.
-                var cents = checked((long)decimal.Round(
-                    shortfall * 100m,
-                    0,
-                    MidpointRounding.AwayFromZero));
-
-                if (cents > 0)
-                {
-                    arrearsCount++;
-
-                    db.ContributionArrears.Add(
-                        new ContributionArrear(
-                            stokvelId,
-                            memberId,
-                            cycle.Id,
-                            cents));
-                }
+                arrearsCount++;
+                db.ContributionArrears.Add(new ContributionArrear(
+                    stokvelId,
+                    arrear.UserId,
+                    cycle.Id,
+                    arrear.AmountCents));
             }
 
             cycle.Close();
@@ -213,9 +196,7 @@ public sealed class CycleCloseProcessor(
                 .AddMonths(1)
                 .AddDays(-1);
 
-            var nextPeriod = nextStart.ToString(
-                "yyyy-MM",
-                CultureInfo.InvariantCulture);
+            var nextPeriod = nextStart.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
 
             var nextCycleExists =
                 await db.ContributionCycles.AnyAsync(

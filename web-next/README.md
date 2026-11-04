@@ -2,6 +2,59 @@
 
 RondiTrack's member pages, rebuilt on **Next.js 16.4.1** with the App Router. Every page is a Server Component that fetches from the ASP.NET Core API **on the server**. The browser only ever talks to this Next.js app: it holds one encrypted, `HttpOnly` cookie called `session` and never sees an access or refresh token.
 
+## Assignment 9.1
+
+### API check
+
+The API check is now covered as follows:
+
+1. Invites: `POST /api/v1/stokvels/{stokvelId}/invites`, `GET /api/v1/invites/{code}` and `POST /api/v1/invites/{code}/join`; unknown is 404, expired is 410 and an existing membership is 409.
+2. Preview fields: only stokvel ID, name, contribution amount, schedule, rules and member count are serialized.
+3. Proofs: `POST/GET/DELETE /api/v1/contributions/{contributionId}/proof` and `GET .../proof/download`; files are limited to 5 MB and checked by PDF/JPEG/PNG signatures.
+4. Proof authorization: the uploader and a treasurer/chairperson of the contribution's stokvel may download; other users receive 404.
+5. Close preview: `GET /api/v1/stokvels/{stokvelId}/cycles/{cycleId}/close/preview` returns member arrears, integer cents, South African date and a contribution-derived version.
+6. Close mutation: `POST .../close` requires the preview version and `Idempotency-Key`; a changed contribution returns 409 and no arrears are written, while a repeated key returns the original result.
+
+### Join flow
+
+The flow lives at `/join?code=...&step=...`. The URL is the state machine, so reload, Back and the invite link preserve the code without asking for it twice.
+
+| Step | Shows | Moves on | Guard and URL behavior |
+|---|---|---|---|
+| Code | Invite code and validation result | Successful preview | `code`; invalid/expired/429 remain inline |
+| Rules | Name, amount, schedule, rules and member count | Continue | `step=rules`; preview is required |
+| Confirm | The same preview facts and a clear join button | Server Action posts one join | `step=confirm`; no second code/details prompt |
+
+`src/lib/join-state.ts` contains the discriminated union and transition function. Signed-out invite links use a validated local `next` path and return to the same invite URL after sign-in.
+
+### Uploads
+
+Proofs accept PDF, JPEG and PNG up to 5 MB. The browser checks type and size; the Next.js BFF streams the multipart body without exposing the API token; the API checks magic bytes and stores bytes in a private database table with a server-generated ID. Downloads use `nosniff` and `private, no-store`. The frontend hides controls for unauthorized users, but the API enforces the uploader/treasurer matrix and returns 404 for unauthorized or missing proofs.
+
+| Hop | Limit | Over-limit behavior |
+|---|---:|---|
+| Browser | 5 MB | Inline file-input validation |
+| Next.js BFF | Streamed request body | Backend response is passed through |
+| API | 5 MB file, 6 MB request envelope | Field validation problem response |
+
+### Closing a cycle
+
+The close dialog consumes the API preview, formats server-provided integer cents using `formatCents`, starts focus on Cancel and keeps the dialog open while closing. The API locks the stokvel transaction, compares the contribution-derived preview version, writes arrears once and creates the next cycle. Stale previews return 409 and are refreshed without an automatic retry.
+
+### Feedback
+
+Invalid invite and file states are inline messages. Join uses a Server Action. Upload success uses a dismissible toast; unexpected upload/close HTTP 500 and network failures use persistent toasts with a correlation ID when supplied, or “Reference unavailable” otherwise. Authorization failures remain inline and do not sign the user out.
+
+### Known gaps
+
+The dedicated 9.1 integration tests are present but require Docker Desktop's PostgreSQL container. The active Docker context is `desktop-linux`, but its daemon is unavailable in this environment. The scheduled processor and manual close now share `CycleArrearsCalculator`; the custom dialog includes a keyboard focus trap and the app has persistent error toasts.
+
+### Submission checklist
+
+- Run the API and Next.js commands in the “Running it” section.
+- Record: signed-out invite sign-in and Back navigation; 6 MB and renamed-executable rejection followed by a valid proof; uploader/treasurer/ordinary-member download authorization; stale close preview after a contribution; refreshed confirmation and exactly-once arrears.
+- PR title: `Assignment 9.1: Join flow, proof of payment and safe confirmations`.
+
 The Vite app in [`../web`](../web/README.md) is unchanged. For the project as a whole, both frontends and the API, see the [root README](../README.md).
 
 ## Assignment 8.3 additions
@@ -51,7 +104,7 @@ npm run dev        # http://localhost:3000
 ```
 
 | Variable | What it is |
-|---|---|
+|---|---|---|---|
 | `API_BASE_URL` | The API's address, e.g. `http://localhost:5101`. Only the Next.js server uses it. |
 | `SESSION_SECRET` | 32 random bytes, base64-encoded. It encrypts the `session` cookie. |
 

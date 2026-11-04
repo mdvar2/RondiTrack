@@ -23,6 +23,8 @@ public class Contribution
 
     public StokvelMember Member { get; private set; } = null!;
 
+    public ContributionProof? Proof { get; private set; }
+
     public Contribution(
         Guid stokvelId,
         Guid userId,
