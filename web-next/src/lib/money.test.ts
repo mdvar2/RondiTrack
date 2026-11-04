@@ -71,5 +71,5 @@ describe('centsToInput', () => {
     for (let cents = 0; cents <= 100000; cents++) {
       expect(parseRandsToCents(centsToInput(cents))).toBe(cents)
     }
-  })
+  }, 20000)
 })

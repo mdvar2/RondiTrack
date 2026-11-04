@@ -6,6 +6,7 @@ import { formatJohannesburgDate } from '@/lib/dates'
 import { StatusBadge } from '@/components/StatusBadge'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeading } from '@/components/PageHeading'
+import { ActivityFeed } from '@/components/ActivityFeed'
 
 export const metadata: Metadata = { title: 'Member dashboard · RondiTrack' }
 
@@ -43,6 +44,10 @@ export default async function MemberDashboardPage() {
           <dd className="text-xl font-semibold">{totalOwed === 0 ? 'All paid up' : formatCents(totalOwed)}</dd>
         </div>
       </dl>
+
+      <div className="mb-6">
+        <ActivityFeed />
+      </div>
 
       <ul className="space-y-3">
         {stokvels.map((stokvel) => (
