@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  // Day 2 turns this on.
-  cacheComponents: false,
+  // Cache Components makes the page cacheable by route and lets us opt back
+  // into partial data loading without prompting the whole route to block.
+  cacheComponents: true,
+  partialPrefetching: true,
   // No AGENTS.md written by `next dev`.
   agentRules: false,
   turbopack: {

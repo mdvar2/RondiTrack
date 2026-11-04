@@ -1,27 +1,25 @@
-'use client'
+﻿'use client'
 
-// useActionState keeps the Server Action's answer (an error message and its
-// reference) between submissions, and tells us when sign-in is in progress.
+import Link from 'next/link'
 import { useActionState } from 'react'
 import { signIn, type SignInState } from '@/lib/auth-actions'
 import { Button } from '@/components/ui/button'
 
 const inputClass = 'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring'
 
-export function LoginForm() {
+export function LoginForm({ next = '/dashboard/member' }: { next?: string }) {
   const [state, formAction, pending] = useActionState<SignInState, FormData>(signIn, null)
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      <input type="hidden" name="next" value={next} />
       <div className="space-y-1">
         <label htmlFor="email" className="text-sm font-medium">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" required
-          defaultValue={state?.email} className={inputClass} />
+        <input id="email" name="email" type="email" autoComplete="email" required defaultValue={state?.email} className={inputClass} />
       </div>
       <div className="space-y-1">
         <label htmlFor="password" className="text-sm font-medium">Password</label>
-        <input id="password" name="password" type="password" autoComplete="current-password" required
-          className={inputClass} />
+        <input id="password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
       </div>
       {state && (
         <div role="alert" className="space-y-1 rounded-lg border border-destructive p-3 text-sm">
@@ -33,6 +31,10 @@ export function LoginForm() {
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? 'Signing in…' : 'Sign in'}
       </Button>
+      <p className="text-center text-sm text-muted-foreground">
+        New here?{' '}
+        <Link href="/register" className="font-medium underline underline-offset-4">Create an account</Link>
+      </p>
     </form>
   )
 }

@@ -1,13 +1,14 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { LoginForm } from '@/components/LoginForm'
 
 export const metadata: Metadata = { title: 'Sign in · RondiTrack' }
+export const instant = false
 
-// Deliberately does not redirect a signed-in person away: after an expired
-// token (until Day 3 adds refresh) the old cookie is still there, and sending
-// them back to the dashboard would loop.
 export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
-  const { expired } = await searchParams
+  const { expired, next } = await searchParams
+  const safeNext = typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')
+    ? next
+    : '/dashboard/member'
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 py-12">
@@ -18,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
           Your session has expired. Please sign in again.
         </p>
       )}
-      <LoginForm />
+      <LoginForm next={safeNext} />
     </main>
   )
 }

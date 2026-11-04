@@ -139,6 +139,71 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.ToTable("ContributionCycles");
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.ContributionProof", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<byte[]>("Contents")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<Guid>("ContributionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("Length")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UploadedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContributionId")
+                        .IsUnique();
+
+                    b.ToTable("ContributionProofs");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.CycleCloseIdempotency", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ResponseJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("ResponseStatus")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.ToTable("CycleCloseIdempotencies");
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.Payout", b =>
                 {
                     b.Property<Guid>("Id")
@@ -289,6 +354,25 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.ToTable("Stokvels");
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.StokvelInvite", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("StokvelId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Code");
+
+                    b.HasIndex("StokvelId");
+
+                    b.ToTable("StokvelInvites");
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.StokvelMember", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -397,6 +481,17 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.Navigation("Cycle");
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.ContributionProof", b =>
+                {
+                    b.HasOne("RondiTrack.Domain.Entities.Contribution", "Contribution")
+                        .WithOne("Proof")
+                        .HasForeignKey("RondiTrack.Domain.Entities.ContributionProof", "ContributionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contribution");
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.Payout", b =>
                 {
                     b.HasOne("RondiTrack.Domain.Entities.StokvelMember", "RecipientMember")
@@ -426,6 +521,17 @@ namespace RondiTrack.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.StokvelInvite", b =>
+                {
+                    b.HasOne("RondiTrack.Domain.Entities.Stokvel", "Stokvel")
+                        .WithMany()
+                        .HasForeignKey("StokvelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Stokvel");
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.StokvelMember", b =>
                 {
                     b.HasOne("RondiTrack.Domain.Entities.Stokvel", "Stokvel")
@@ -443,6 +549,11 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.Navigation("Stokvel");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.Contribution", b =>
+                {
+                    b.Navigation("Proof");
                 });
 
             modelBuilder.Entity("RondiTrack.Domain.Entities.ContributionCycle", b =>

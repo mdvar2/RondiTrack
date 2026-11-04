@@ -11,7 +11,18 @@ export type Session = {
   user: { id: string; name: string; email: string }
 }
 
-const COOKIE_NAME = 'session'
+export const COOKIE_NAME = 'session'
+
+export function sessionCookieOptions(expiresAt: Date) {
+  return {
+    httpOnly: true,
+    // Browsers treat http://localhost as secure, so this also works in development.
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    expires: expiresAt,
+  } as const
+}
 
 function secretKey(): Uint8Array {
   const key = Buffer.from(process.env.SESSION_SECRET ?? '', 'base64')
@@ -56,14 +67,7 @@ function isSession(value: Record<string, unknown>): value is Session & Record<st
 
 export async function createSession(session: Session, expiresAt: Date): Promise<void> {
   const cookieStore = await cookies()
-  cookieStore.set(COOKIE_NAME, await encrypt(session, expiresAt), {
-    httpOnly: true,
-    // Browsers treat http://localhost as secure, so this also works in development.
-    secure: true,
-    sameSite: 'lax',
-    path: '/',
-    expires: expiresAt,
-  })
+  cookieStore.set(COOKIE_NAME, await encrypt(session, expiresAt), sessionCookieOptions(expiresAt))
 }
 
 export async function getSession(): Promise<Session | null> {
