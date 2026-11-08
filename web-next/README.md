@@ -221,8 +221,44 @@ The `<head>` a WhatsApp preview bot receives is in the PR description, and `seo.
 
 Saved sessions (`e2e/.auth/`), reports and `.env*` are git-ignored.
 
-- Red run (the deliberately broken PR): _link to add after it runs_
-- Green run (this PR): _link to add after it runs_
+#### CI evidence
+
+Both runs are real GitHub Actions runs of this workflow. Each result below was read from the GitHub API for that run.
+
+| | Red | Green |
+|---|---|---|
+| Pull request | [#10](https://github.com/mdvar2/RondiTrack/pull/10): `assignment-9.2-ci-red` → `assignment-9.2`, open, not to be merged | [#11](https://github.com/mdvar2/RondiTrack/pull/11): `assignment-9.2` → `assignment-9.1` |
+| Commit | `b3d0688`: renames the *Record contribution* button to *Save contribution* | `1ca4dcf` |
+| Run | [42517356298](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298): **failure** | [42518612947](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947): **success** |
+| `backend` | [success](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298/job/128843183779) | [success](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947/job/128846984321) |
+| `frontend` | [**failure**](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298/job/128843183727) at "Vitest, TZ=UTC". The Johannesburg step was skipped | [success](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947/job/128846984446) |
+| `e2e` | [**skipped**](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298/job/128843572437): `needs: [backend, frontend]` | [success](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947/job/128847350234): Compose startup, build, Playwright |
+
+**Why the red run failed.** GitHub reports 10 failures, all at `src/components/ContributionForm.test.tsx:44`, with this error:
+
+```text
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Record contribution"
+```
+
+The tests ask for the button by its accessible name, so renaming it broke them, as intended.
+
+**Green, on the second attempt.** The first green attempt on PR #11 (commit `39f4ed4`) passed `backend` and `frontend`. Its `e2e` job then failed while Compose was starting the stack, before Playwright ran:
+
+```text
+error mounting ".../src/Infrastructure/bin": mkdir .../src/Infrastructure/bin: read-only file system
+```
+
+- **The cause:** the `migrate` service bind-mounted the whole checkout read-only (`./:/src:ro`), then mounted named volumes over `API`, `Domain` and `Infrastructure` `bin/` and `obj/`.
+  - Docker has to create those mount points inside the read-only mount.
+  - That only worked where the checkout already had `bin/` and `obj/` folders from a local build. A fresh checkout doesn't have them, because they are git-ignored.
+  - The mount was in the base `compose.yaml`, not a development override, so every environment used it.
+- **The fix (commit `1ca4dcf`):** `migrate` is now built from a `migrate` stage in the `Dockerfile`, with the source and `dotnet-ef` 10.0.1 inside the image.
+  - Nothing is mounted from the host, and the six `bin`/`obj` volumes are gone.
+  - The runtime stage is unchanged, and `docker build .` never builds the new stage.
+- **Checked before pushing:**
+  - The error reproduced locally from a fresh clone of `39f4ed4`.
+  - From a fresh clone of `1ca4dcf`, migrations ran on an empty database, a second run changed nothing, and Playwright passed 25/25.
+  - The development stack kept its data: the same user count and the same 14 migrations.
 
 ### Bugs the tests found
 
@@ -243,7 +279,7 @@ Each of these was in the app before this assignment. None was a test mistake.
 - **INP is not under 200 ms on the 40-member stokvel.** It is 768 ms if you click immediately after load, and 280 ms once the page is idle. Both are at 4× CPU slowdown. The time is React work in the click: hydrating on demand, then rendering the dialog. Next steps: hydrate the Close Cycle dialog only when opened, and paginate the 40-row proofs list.
 - **Stokvel page LCP (simulated) is 3.1 s.** The 2.5 s target is for the home screen, which meets it (2.44 s). The stokvel `<h1>` is its name, which needs the API.
 - **The screen-reader pass (NVDA or VoiceOver) hasn't been done.** The two utterances above are still to be recorded.
-- **The red and green CI runs haven't been made yet.** They need the branches pushed and the PRs opened on GitHub.
+- **The five-minute demo recording hasn't been made yet.**
 - **The contribution form needs JavaScript.** The old one worked without JS through `useActionState`. The new one calls the action directly, to hold the key across retries.
 - **The invite-status and login rate limits are per address.** All traffic comes through the Next.js server, so those limits are effectively shared by everyone.
 - **Not done (optional stretch):** Lighthouse CI budgets.

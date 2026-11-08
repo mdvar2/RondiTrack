@@ -43,7 +43,9 @@ Tests for Parts 1–4 and 6, the Vitest and Playwright setup, two new CI jobs, a
 
 **API:** contributions are capped at R1 000 000 (`RecordContributionRequestValidator`). The web form refuses the same number first (`MAX_CONTRIBUTION_CENTS`).
 
-**Compose:** the API's host port is `${API_PORT:-8080}`, so a throwaway e2e project can run beside the dev stack.
+**Compose:**
+- The API's host port is `${API_PORT:-8080}`, so a throwaway e2e project can run beside the dev stack.
+- **`1ca4dcf`:** the `migrate` service is now built from a `migrate` stage in the Dockerfile, not run from a read-only mount of the checkout. Without this, the first CI run's e2e job couldn't start. See [CI](#ci).
 
 **Dependencies:** all pinned and at least two weeks old:
 
@@ -224,8 +226,37 @@ location: /login?next=%2Fdashboard%2Fmember
 
 ## CI
 
-- Red run (separate PR that breaks a test on purpose): _link_
-- Green run (this PR): _link_
+Each result below was read from the GitHub API for that run.
+
+- **Red:** [PR #10](https://github.com/mdvar2/RondiTrack/pull/10) (`assignment-9.2-ci-red` → `assignment-9.2`, commit `b3d0688`, not to be merged) renames the *Record contribution* button to *Save contribution*.
+  - [Run 42517356298](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298): **failure**.
+  - [`frontend`](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298/job/128843183727) failed at "Vitest, TZ=UTC". GitHub reports 10 failures at `src/components/ContributionForm.test.tsx:44`: `Unable to find an accessible element with the role "button" and name "Record contribution"`.
+  - [`e2e`](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298/job/128843572437) was **skipped** (`needs: [backend, frontend]`).
+  - [`backend`](https://github.com/mdvar2/RondiTrack/actions/runs/42517356298/job/128843183779) passed.
+- **Green:** [PR #11](https://github.com/mdvar2/RondiTrack/pull/11) (this PR), commit `1ca4dcf`.
+  - [Run 42518612947](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947): **success**. All three jobs passed.
+  - [`backend`](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947/job/128846984321) and [`frontend`](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947/job/128846984446) passed.
+  - [`e2e`](https://github.com/mdvar2/RondiTrack/actions/runs/42518612947/job/128847350234) passed: Compose startup, `npm run build`, and Playwright.
+
+**The first green attempt failed, and why.** On `39f4ed4`, `backend` and `frontend` passed. Then `e2e` failed while starting Compose, before Playwright ran:
+
+```text
+Container ronditrack-e2e-migrate-1 Starting
+error mounting ".../src/Infrastructure/bin": mkdir .../src/Infrastructure/bin: read-only file system
+```
+
+- **The cause:** `migrate` bind-mounted the checkout read-only (`./:/src:ro`) and mounted named volumes over each project's `bin/` and `obj/`.
+  - Docker must create those mount points inside the read-only mount.
+  - That only works when a local build has already left the git-ignored folders there. A fresh CI checkout doesn't have them.
+  - The mount was in the base `compose.yaml`, not a development override.
+- **The fix (`1ca4dcf`):** a `migrate` stage in the Dockerfile (restored source plus `dotnet-ef` 10.0.1). Compose builds it with `target: migrate`.
+  - Nothing is mounted from the host, and the six `bin`/`obj` volumes are removed. `postgres_data` is unchanged.
+  - The runtime image is unchanged, and `docker build .` doesn't build the new stage.
+- **Checked locally before pushing:**
+  - The failure reproduced from a fresh clone of `39f4ed4`.
+  - From a fresh clone of `1ca4dcf`, migrations applied to an empty database and a second run changed nothing.
+  - Playwright passed 25/25 against that stack.
+  - The dev stack kept its data and its 14 migrations.
 
 ## Screenshots to attach
 
@@ -236,9 +267,10 @@ location: /login?next=%2Fdashboard%2Fmember
 
 ## Not done in this PR
 
-- INP under 200 ms.
-- The NVDA or VoiceOver pass.
-- The red and green runs (they need the PRs).
+- **INP under 200 ms: not met.** The measurements are 768 ms right after load and 280 ms once the page is idle, against the 200 ms target.
+- **The NVDA or VoiceOver pass: outstanding.** The amount and date utterances aren't recorded yet.
+- **The five-minute demo recording: outstanding.**
+- **The screenshots listed above: outstanding.**
 - Lighthouse CI budgets (optional).
 - 400% zoom.
 
