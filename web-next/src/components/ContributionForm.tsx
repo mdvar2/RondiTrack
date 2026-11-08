@@ -154,7 +154,7 @@ export function ContributionForm({
 
       {/* aria-disabled, not disabled: a disabled button drops keyboard focus to <body>. */}
       <Button type="submit" aria-disabled={pending} className="h-10 w-full aria-disabled:opacity-60">
-        {pending ? 'Recording…' : 'Record contribution'}
+        {pending ? 'Recording…' : 'Save contribution'}
       </Button>
 
       <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">{feedback.success}</p>
