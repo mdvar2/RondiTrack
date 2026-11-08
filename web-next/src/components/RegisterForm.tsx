@@ -7,18 +7,19 @@ import { Button } from '@/components/ui/button'
 
 const inputClass = 'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring'
 
-export function RegisterForm() {
+export function RegisterForm({ next = '/dashboard/member' }: { next?: string }) {
   const [state, formAction, pending] = useActionState<RegisterState, FormData>(register, null)
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      <input type="hidden" name="next" value={next} />
       <div className="space-y-1">
         <label htmlFor="name" className="text-sm font-medium">Name</label>
         <input id="name" name="name" type="text" autoComplete="name" required defaultValue={state?.name} className={inputClass} />
       </div>
       <div className="space-y-1">
         <label htmlFor="email" className="text-sm font-medium">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" required defaultValue={state?.email} className={inputClass} />
+        <input id="email" name="email" type="email" autoComplete="username" required defaultValue={state?.email} className={inputClass} />
       </div>
       <div className="space-y-1">
         <label htmlFor="password" className="text-sm font-medium">Password</label>
@@ -36,7 +37,7 @@ export function RegisterForm() {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium underline underline-offset-4">Sign in</Link>
+        <Link href={`/login?next=${encodeURIComponent(next)}`} className="font-medium underline underline-offset-4">Sign in</Link>
       </p>
     </form>
   )

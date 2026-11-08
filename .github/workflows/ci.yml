@@ -1,22 +1,23 @@
-
 name: RondiTrack CI
 
 on:
   push:
     branches:
       - main
+  # Every pull request, whatever branch it targets.
   pull_request:
-    branches:
-      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  backend:
+    name: Backend (build, API tests, image)
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,8 +33,120 @@ jobs:
       - name: Build RondiTrack
         run: dotnet build RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-restore
 
+      # Integration tests start their own throwaway PostgreSQL (Testcontainers).
       - name: Run automated tests
         run: dotnet test RondiTrack.Tests/RondiTrack.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
       - name: Build Docker image
         run: docker build --tag ronditrack-api:ci .
+
+  frontend:
+    name: Frontend (lint, types, Vitest in two time zones)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-next
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web-next/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck (route types first)
+        run: npx next typegen && npx tsc --noEmit
+
+      # CI machines run in UTC; members run in Johannesburg. Every date rule
+      # must pass in both.
+      - name: Vitest, TZ=UTC
+        run: npx vitest run
+        env:
+          TZ: UTC
+
+      - name: Vitest, TZ=Africa/Johannesburg
+        run: npx vitest run
+        env:
+          TZ: Africa/Johannesburg
+
+  e2e:
+    name: End to end (Playwright, axe, metadata)
+    # Only after the fast checks pass.
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Test-only values. Nothing here is a real secret; the rest are made below.
+      COMPOSE_PROJECT: ronditrack-e2e
+      API_PORT: '5147'
+      API_BASE_URL: http://localhost:5147
+      CORS_ALLOWED_ORIGIN: http://localhost:3000
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate throwaway secrets for this run
+        run: |
+          set -euo pipefail
+          for pair in "POSTGRES_PASSWORD:$(openssl rand -hex 24)" \
+                      "JWT_SIGNING_KEY:$(openssl rand -base64 48 | tr -d '\n')" \
+                      "SESSION_SECRET:$(openssl rand -base64 32 | tr -d '\n')" \
+                      "E2E_PASSWORD:e2e-$(openssl rand -hex 12)"; do
+            name="${pair%%:*}"; value="${pair#*:}"
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Start a fresh database and the API (Compose)
+        run: |
+          docker compose -p "$COMPOSE_PROJECT" up -d --build --wait api
+          for attempt in $(seq 1 60); do
+            curl -fsS "$API_BASE_URL/health/ready" && exit 0
+            sleep 2
+          done
+          docker compose -p "$COMPOSE_PROJECT" logs api
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web-next/package-lock.json
+
+      - name: Install dependencies and Chromium
+        working-directory: web-next
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Build the app (Playwright runs npm run start, never next dev)
+        working-directory: web-next
+        run: npm run build
+
+      - name: Playwright
+        working-directory: web-next
+        run: npx playwright test
+
+      - name: Keep the HTML report and traces when the run fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web-next/playwright-report/
+            web-next/test-results/
+          retention-days: 14
+
+      - name: API logs when the run fails
+        if: failure()
+        run: docker compose -p "$COMPOSE_PROJECT" logs api migrate --tail 200
+
+      - name: Remove the throwaway stack
+        if: always()
+        run: docker compose -p "$COMPOSE_PROJECT" down -v

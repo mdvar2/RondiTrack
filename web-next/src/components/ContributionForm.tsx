@@ -1,100 +1,163 @@
 'use client'
 
-import { useActionState, useId, useState } from 'react'
-import { recordContribution, type ContributionState } from '@/lib/auth-actions'
-import { getEligibleMembersForContribution } from '@/lib/contribution-permissions'
+import { useId, useRef, useState } from 'react'
+import { parseRandsToCents } from '@/lib/money'
+import {
+  AMOUNT_HINT,
+  amountError,
+  feedbackFor,
+  NETWORK_FEEDBACK,
+  type ContributionFeedback,
+  type ContributionInput,
+  type ContributionResult,
+} from '@/lib/contribution-feedback'
+import type { ContributionMember } from '@/lib/contribution-permissions'
 import { Button } from './ui/button'
 
 type ContributionFormProps = {
   stokvelId: string
-  cycleId: string | null
-  role: string
+  cycleId: string
   currentUserId: string
-  members: Array<{ userId: string; userName: string; role: string }>
+  // Everyone this person may record for: only themselves for a Member,
+  // anyone in the stokvel for a Treasurer or Chairperson.
+  members: readonly ContributionMember[]
+  // The form's one edge. The page passes the real Server Action; tests pass a fake.
+  action: (input: ContributionInput) => Promise<ContributionResult>
+  newIdempotencyKey?: () => string
 }
 
-export function ContributionForm({ stokvelId, cycleId, role, currentUserId, members }: ContributionFormProps) {
-  const [state, formAction, pending] = useActionState<ContributionState, FormData>(recordContribution, null)
-  const eligibleMembers = getEligibleMembersForContribution(role, currentUserId, members)
-  const defaultSelectedUserId = eligibleMembers[0]?.userId ?? ''
-  const [selectedUserId, setSelectedUserId] = useState(defaultSelectedUserId)
-  const [localAmount, setLocalAmount] = useState('')
-  const idempotencyKey = useId().replace(/:/g, '')
-  const amountValue = state?.amount ?? localAmount
-  const currentSelectedUserId = eligibleMembers.some((member) => member.userId === selectedUserId)
-    ? selectedUserId
-    : defaultSelectedUserId
+const EMPTY: ContributionFeedback = { fieldErrors: {} }
 
-  if (!['Member', 'Chairperson', 'Treasurer'].includes(role)) {
-    return (
-      <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-        You do not have permission to record contributions for this stokvel.
-      </div>
-    )
-  }
+export function ContributionForm({
+  stokvelId,
+  cycleId,
+  currentUserId,
+  members,
+  action,
+  newIdempotencyKey = () => crypto.randomUUID(),
+}: ContributionFormProps) {
+  const id = useId()
+  const [memberId, setMemberId] = useState(members.find((member) => member.userId === currentUserId)?.userId ?? members[0]?.userId ?? '')
+  const [amountText, setAmountText] = useState('')
+  const [feedback, setFeedback] = useState<ContributionFeedback>(EMPTY)
+  const [pending, setPending] = useState(false)
+  // One key per contribution: made on the first submit, sent again on every
+  // retry of that contribution, and replaced only after the API accepts it.
+  const keyRef = useRef<string | null>(null)
+  // Set synchronously, so a second click before React re-renders sends nothing.
+  const inFlightRef = useRef(false)
+  const amountRef = useRef<HTMLInputElement>(null)
+  const memberRef = useRef<HTMLSelectElement>(null)
 
-  if (!cycleId) {
-    return (
-      <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-        There is no current contribution cycle to record against yet.
-      </div>
-    )
-  }
+  const forOthers = members.length > 1 || members.some((member) => member.userId !== currentUserId)
+  const member = members.find((candidate) => candidate.userId === memberId)
+  const amountProblem = feedback.fieldErrors.amount
+  const memberProblem = feedback.fieldErrors.member
 
-  if (eligibleMembers.length === 0) {
-    return (
-      <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-        You can only record contributions for yourself as a member of this stokvel.
-      </div>
-    )
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (inFlightRef.current) return
+
+    const localError = amountError(amountText)
+    const amountCents = parseRandsToCents(amountText)
+    if (localError || amountCents === null || !member) {
+      setFeedback({ fieldErrors: { amount: localError ?? undefined, member: member ? undefined : 'Choose a member.' } })
+      ;(localError ? amountRef : memberRef).current?.focus()
+      return
+    }
+
+    inFlightRef.current = true
+    keyRef.current ??= newIdempotencyKey()
+    const input: ContributionInput = { stokvelId, cycleId, userId: member.userId, amountCents, idempotencyKey: keyRef.current }
+    setFeedback(EMPTY)
+    setPending(true)
+    let next: ContributionFeedback
+    let succeeded = false
+    try {
+      const result = await action(input)
+      next = feedbackFor(result, member.userId === currentUserId ? 'you' : member.userName)
+      succeeded = result.ok
+      if (succeeded) keyRef.current = null
+    } catch {
+      // The connection dropped: the key is kept, so trying again is safe.
+      next = NETWORK_FEEDBACK
+    } finally {
+      inFlightRef.current = false
+    }
+    // Set together after the same await, so React renders them in one
+    // commit: the message and the restored button appear at once.
+    setFeedback(next)
+    setPending(false)
+    if (succeeded) setAmountText('')
+    if (next.fieldErrors.amount) amountRef.current?.focus()
+    else if (next.fieldErrors.member) memberRef.current?.focus()
   }
 
   return (
-    <form action={formAction} className="space-y-4 rounded-lg border bg-card p-4">
-      <input type="hidden" name="stokvelId" value={stokvelId} />
-      <input type="hidden" name="cycleId" value={cycleId} />
-      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+    <form onSubmit={submit} noValidate aria-labelledby={`${id}-heading`} className="space-y-4 rounded-lg border bg-card p-4">
+      <h3 id={`${id}-heading`} className="text-sm font-semibold">Record a contribution</h3>
 
-      <div className="space-y-2">
-        <label htmlFor="member" className="text-sm font-medium">Member</label>
-        <select
-          id="member"
-          name="userId"
-          value={currentSelectedUserId}
-          onChange={(event) => setSelectedUserId(event.target.value)}
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-        >
-          {eligibleMembers.map((member) => (
-            <option key={member.userId} value={member.userId}>{member.userName} ({member.role})</option>
-          ))}
-        </select>
+      {/* Always in the page, so screen readers announce what appears in it. */}
+      <div role="alert">
+        {feedback.formError && (
+          <div className="space-y-1 rounded-lg border border-destructive p-3 text-sm">
+            <p>{feedback.formError.message}</p>
+            {feedback.formError.reference && <p className="text-muted-foreground">Reference: <code>{feedback.formError.reference}</code></p>}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="amount" className="text-sm font-medium">Contribution amount (cents)</label>
-        <input
-          id="amount"
-          name="amount"
-          type="number"
-          min="1"
-          step="100"
-          value={amountValue}
-          onChange={(event) => setLocalAmount(event.target.value)}
-          placeholder="2500"
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-        />
+      {forOthers ? (
+        <div className="space-y-1">
+          <label htmlFor={`${id}-member`} className="block text-sm font-medium">Member</label>
+          <select
+            ref={memberRef}
+            id={`${id}-member`}
+            value={memberId}
+            onChange={(event) => setMemberId(event.target.value)}
+            aria-invalid={memberProblem ? true : undefined}
+            aria-describedby={memberProblem ? `${id}-member-error` : undefined}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {members.map((option) => (
+              <option key={option.userId} value={option.userId}>
+                {option.userId === currentUserId ? `${option.userName} (you)` : option.userName}
+              </option>
+            ))}
+          </select>
+          {memberProblem && <p id={`${id}-member-error`} className="text-sm text-destructive">{memberProblem}</p>}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">You&apos;re recording your own contribution.</p>
+      )}
+
+      <div className="space-y-1">
+        <label htmlFor={`${id}-amount`} className="block text-sm font-medium">Amount</label>
+        <p id={`${id}-amount-hint`} className="text-xs text-muted-foreground">{AMOUNT_HINT}</p>
+        <div className="flex items-center rounded-md border border-input bg-background focus-within:outline-2 focus-within:outline-ring has-[[aria-invalid=true]]:border-destructive">
+          <span aria-hidden="true" className="pl-3 text-sm text-muted-foreground">R</span>
+          <input
+            ref={amountRef}
+            id={`${id}-amount`}
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={amountText}
+            onChange={(event) => setAmountText(event.target.value)}
+            aria-invalid={amountProblem ? true : undefined}
+            aria-describedby={amountProblem ? `${id}-amount-hint ${id}-amount-error` : `${id}-amount-hint`}
+            className="h-10 w-full rounded-md bg-transparent px-2 text-sm tabular-nums outline-none"
+          />
+        </div>
+        {amountProblem && <p id={`${id}-amount-error`} className="text-sm text-destructive">{amountProblem}</p>}
       </div>
 
-      {state && !state.success && (
-        <p role="alert" className="text-sm text-red-600">{state.message}</p>
-      )}
-      {state?.success && (
-        <p className="text-sm text-emerald-600">{state.message}</p>
-      )}
-
-      <Button type="submit" disabled={pending} aria-disabled={pending} className="w-full">
-        {pending ? 'Saving…' : 'Record contribution'}
+      {/* aria-disabled, not disabled: a disabled button drops keyboard focus to <body>. */}
+      <Button type="submit" aria-disabled={pending} className="h-10 w-full aria-disabled:opacity-60">
+        {pending ? 'Recording…' : 'Record contribution'}
       </Button>
+
+      <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">{feedback.success}</p>
     </form>
   )
 }

@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeading } from '@/components/PageHeading'
 
-export const metadata: Metadata = { title: 'Treasurer dashboard · RondiTrack' }
+export const metadata: Metadata = { title: 'Treasurer dashboard' }
 
 // Not a page some people may open: everyone may. It is a filtered view of
 // the same /me/home list, using the role the API gives for each stokvel.

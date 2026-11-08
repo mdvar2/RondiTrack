@@ -58,3 +58,29 @@ export function getNextJohannesburgMidnightDelay(now: Date = new Date()): number
   const elapsed = ((saTime % DAY_MS) + DAY_MS) % DAY_MS
   return DAY_MS - elapsed
 }
+
+/**
+ * The Johannesburg month ("2026-10") a UTC instant belongs to. A contribution
+ * at 23:30 SAST on 31 October is 21:30 UTC on 31 October, and one at 00:30
+ * SAST on 1 November is 22:30 UTC on 31 October: the month comes from the
+ * SAST clock, never from the machine's own time zone.
+ */
+export function johannesburgPeriod(utcTimestamp: string): string {
+  const time = Date.parse(utcTimestamp)
+  if (Number.isNaN(time)) throw new RangeError('Invalid timestamp')
+  return new Date(time + SA_OFFSET_MS).toISOString().slice(0, 7)
+}
+
+/**
+ * A "from"/"to" date filter (YYYY-MM-DD, as typed into <input type="date">)
+ * as UTC instants covering whole Johannesburg days: from midnight SAST at the
+ * start of `from` up to, not including, midnight SAST after `to`.
+ */
+export function johannesburgDayRangeUtc(from?: string, to?: string): { start: number | null; endExclusive: number | null } {
+  if (from) validateDateOnly(from)
+  if (to) validateDateOnly(to)
+  return {
+    start: from ? Date.parse(`${from}T00:00:00Z`) - SA_OFFSET_MS : null,
+    endExclusive: to ? getJohannesburgDeadlineUtc(to).getTime() : null,
+  }
+}

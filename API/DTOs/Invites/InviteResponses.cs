@@ -9,3 +9,6 @@ public sealed record InvitePreviewResponse(
     string Schedule,
     string Rules,
     int MemberCount);
+
+// Only what a signed-out link preview may know: "valid" or "expired".
+public sealed record InviteStatusResponse(string Status);

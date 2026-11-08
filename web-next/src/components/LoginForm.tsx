@@ -15,7 +15,7 @@ export function LoginForm({ next = '/dashboard/member' }: { next?: string }) {
       <input type="hidden" name="next" value={next} />
       <div className="space-y-1">
         <label htmlFor="email" className="text-sm font-medium">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" required defaultValue={state?.email} className={inputClass} />
+        <input id="email" name="email" type="email" autoComplete="username" required defaultValue={state?.email} className={inputClass} />
       </div>
       <div className="space-y-1">
         <label htmlFor="password" className="text-sm font-medium">Password</label>
@@ -33,7 +33,7 @@ export function LoginForm({ next = '/dashboard/member' }: { next?: string }) {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         New here?{' '}
-        <Link href="/register" className="font-medium underline underline-offset-4">Create an account</Link>
+        <Link href={`/register?next=${encodeURIComponent(next)}`} className="font-medium underline underline-offset-4">Create an account</Link>
       </p>
     </form>
   )

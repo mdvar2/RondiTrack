@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using RondiTrack.Auth;
 using RondiTrack.Common;
@@ -51,6 +52,26 @@ public sealed class InvitesController(
             "Monthly",
             "Members contribute the agreed amount each month.",
             count));
+    }
+
+    // For a signed-out link preview of /join?code=…: whether the invite is
+    // still valid, and nothing else. No stokvel name, no member, no amount,
+    // because whoever holds the link (or a WhatsApp group's preview bot)
+    // need not be a member. Unknown codes are 404, as for Preview.
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.InviteStatus)]
+    [ProducesResponseType<InviteStatusResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    [HttpGet("{code}/status")]
+    public async Task<ActionResult<InviteStatusResponse>> Status(string code)
+    {
+        var expiresAtUtc = await db.Set<StokvelInvite>().AsNoTracking()
+            .Where(x => x.Code == code)
+            .Select(x => (DateTime?)x.ExpiresAtUtc)
+            .SingleOrDefaultAsync();
+        if (expiresAtUtc is null) throw new NotFoundException("Invite not found.");
+        return Ok(new InviteStatusResponse(expiresAtUtc.Value <= DateTime.UtcNow ? "expired" : "valid"));
     }
 
     [HttpPost("{code}/join")]

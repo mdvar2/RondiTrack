@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { baseUrl } from './proxy'
 import { getSession } from './session'
@@ -25,3 +26,21 @@ export async function previewInvite(code: string): Promise<{ response: Response;
 export async function joinInvite(code: string): Promise<Response> {
   return request(`/api/v1/invites/${encodeURIComponent(code)}/join`, { method: 'POST' })
 }
+
+export type InviteStatus = 'valid' | 'expired' | 'unknown' | 'unavailable'
+
+// Anonymous on purpose: this is what a signed-out link preview may learn
+// about /join?code=…, whether the invite is still valid. The API's status
+// endpoint returns nothing else (no stokvel name, no members, no amounts).
+// Cached per render, so generateMetadata and the page share one request.
+export const inviteStatus = cache(async (code: string): Promise<InviteStatus> => {
+  try {
+    const response = await fetch(`${baseUrl()}/api/v1/invites/${encodeURIComponent(code)}/status`, { cache: 'no-store' })
+    if (response.status === 404) return 'unknown'
+    if (!response.ok) return 'unavailable'
+    const body = await response.json() as { status?: string }
+    return body.status === 'valid' || body.status === 'expired' ? body.status : 'unavailable'
+  } catch {
+    return 'unavailable'
+  }
+})

@@ -62,6 +62,21 @@
 }
 
 @layer base {
+  /* WCAG 2.4.11: a control reached with Tab is scrolled clear of the fixed
+     notifications in the bottom corner, not underneath them (technique C43). */
+  html {
+    scroll-padding-bottom: 9rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -171,15 +186,19 @@
   border-radius: 8px;
 }
 
-.contribution-summary span {
+.contribution-summary dt {
   color: var(--muted-foreground);
   font-size: 12px;
 }
 
-.contribution-summary strong {
+/* Tabular figures: a total that changes from R 1 111,11 to R 8 888,88 keeps
+   its width, and so does the row it sits in (CLS). */
+.contribution-summary dd {
+  margin: 0;
   font-weight: 600;
   white-space: nowrap;
   font-size: clamp(0.75rem, 3vw, 0.9375rem);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (min-width: 640px) {
