@@ -17,23 +17,18 @@ services:
       start_period: 10s
 
   migrate:
-    image: mcr.microsoft.com/dotnet/sdk:10.0
-    working_dir: /src
-    volumes:
-      - ./:/src:ro
-      - api_obj:/src/API/obj
-      - domain_obj:/src/Domain/obj
-      - infrastructure_obj:/src/Infrastructure/obj
-      - api_bin:/src/API/bin
-      - domain_bin:/src/Domain/bin
-      - infrastructure_bin:/src/Infrastructure/bin
+    # Built from the Dockerfile's migrate stage, with the source inside the
+    # image. It used to bind-mount the checkout read-only and put volumes over
+    # */bin and */obj; on a fresh checkout those folders don't exist and Docker
+    # can't create them in a read-only mount, so CI failed before migrating.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    image: ronditrack-migrate:dev
     environment:
       ConnectionStrings__RondiTrackDb: Host=db;Port=5432;Database=ronditrack;Username=ronditrack;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
-    command:
-      - sh
-      - -c
-      - dotnet tool install --global dotnet-ef --version 10.0.1 && export PATH="$$PATH:/root/.dotnet/tools" && dotnet restore API/RondiTrack.csproj && dotnet ef database update --project Infrastructure --startup-project API
     depends_on:
       db:
         condition: service_healthy
@@ -59,9 +54,3 @@ services:
 
 volumes:
   postgres_data:
-  api_obj:
-  domain_obj:
-  infrastructure_obj:
-  api_bin:
-  domain_bin:
-  infrastructure_bin:
