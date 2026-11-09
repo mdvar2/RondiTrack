@@ -57,6 +57,18 @@ jobs:
 
       - run: npm ci
 
+      # The types are generated from the committed openapi/v1.json (which the
+      # backend job's OpenApiContractTests keeps equal to the running API).
+      # Regenerate them; any difference from the committed file fails the job
+      # before lint and tsc run.
+      - name: API types match openapi/v1.json (type drift)
+        run: |
+          npm run generate:api
+          if ! git diff --exit-code -- src/lib/schema.d.ts; then
+            echo "::error file=web-next/src/lib/schema.d.ts::Generated types differ from openapi/v1.json. Run 'npm run generate:api' in web-next and commit src/lib/schema.d.ts."
+            exit 1
+          fi
+
       - name: Lint
         run: npm run lint
 

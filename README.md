@@ -225,11 +225,33 @@ Compose runs PostgreSQL, applies the migrations once, then starts the API on por
 
 | Project | Command | Latest result |
 |---|---|---|
-| Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **145 passed**, 0 failed, 27 Oct 2026 |
-| `web-next/` | `npm run lint`, `npm test`, `npm run build`, `npm audit` | Lint clean, **58 passed**, build succeeded, 0 vulnerabilities, 27 Oct 2026 |
+| Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **161 passed**, 0 failed (Release), 9 Nov 2026 |
+| `web-next/` | `npm run check:api-types`, `npm run lint`, `npm run typecheck`, `npm test` (TZ=UTC and Africa/Johannesburg), `npm run build`, `npm audit --omit=dev` | Types match the contract, lint clean, tsc clean, **171 passed** in each time zone, build succeeded, 0 vulnerabilities, 9 Nov 2026 |
 | `web/` | `npm run lint`, `npm test -- --run` | Lint clean, **63 passed**, 27 Oct 2026. Build last recorded in 7.4 |
 
-**What CI checks:** on pushes and pull requests to `main`, [GitHub Actions](.github/workflows/ci.yml) restores, builds and tests the **backend** in Release and builds the Docker image. It doesn't run either frontend's checks; those are run locally, as above.
+**What CI checks:** on pushes to `main` and on every pull request, [GitHub Actions](.github/workflows/ci.yml) runs three jobs. **backend** builds and runs the API tests in Release (including the OpenAPI contract test) and builds the Docker image. **frontend** (`web-next/`) runs the type-drift check, then lint, tsc and Vitest in two time zones. **e2e** runs Playwright against a fresh Compose stack once both pass.
+
+### The API contract (openapi/v1.json)
+
+The frontend's types are generated from the API's OpenAPI document, so three copies must agree: what the API serves, the committed [`openapi/v1.json`](openapi/v1.json), and the generated [`web-next/src/lib/schema.d.ts`](web-next/src/lib/schema.d.ts).
+
+| Check | Where | Fails when |
+|---|---|---|
+| [`OpenApiContractTests`](RondiTrack.Tests/OpenApiContractTests.cs) | backend job | The running API's document differs from `openapi/v1.json`. The failure lists every differing JSON path. |
+| Type drift (`npm run check:api-types`) | frontend job, before lint and tsc | The types regenerated from `openapi/v1.json` differ from the committed `schema.d.ts` (`git diff --exit-code`). |
+| `tsc --noEmit` | frontend job | Frontend code still reads a field the new types no longer have. |
+
+After an intended API change, regenerate both files and commit them with the change:
+
+```bash
+# 1. The document, from the running API (bash; Docker must be running)
+OPENAPI_UPDATE=1 dotnet test RondiTrack.Tests --filter OpenApiContractTests
+#    PowerShell: $env:OPENAPI_UPDATE=1; dotnet test RondiTrack.Tests --filter OpenApiContractTests; Remove-Item Env:OPENAPI_UPDATE
+# 2. The types, from the committed document
+cd web-next && npm run generate:api
+```
+
+The `servers` entry is left out of the committed document because it echoes the request's host.
 
 **Signed-in check for `web-next/` (27 Oct 2026):** a local script signed in three demonstration accounts, built real session cookies and fetched every page from the production build against the running API. 98 checks passed, 0 failed. The checks covered roles, the treasurer filter, not-found pages, and no tokens or API port in the HTML. The script and the demonstration accounts are local, not part of the repository; the result is recorded in the Assignment 8.1 pull request.
 
