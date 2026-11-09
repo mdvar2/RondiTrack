@@ -11,7 +11,7 @@ public record ContributionWithMemberResponse(
     string UserEmail,
     string MemberRole,
     Guid ContributionCycleId,
-    long Amount,
+    long AmountCents,
     string Status,
     DateTime RecordedAtUtc,
     uint Version)
