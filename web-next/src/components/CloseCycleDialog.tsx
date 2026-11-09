@@ -21,6 +21,9 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
   const cancelRef = useRef<HTMLButtonElement>(null)
   const openerRef = useRef<HTMLButtonElement>(null)
   const idempotencyKeyRef = useRef<string>('')
+  // Focus goes back to the opener only after the dialog has been open. The
+  // old effect also ran on page load and pulled focus to this button.
+  const wasOpenRef = useRef(false)
   const { showToast } = useToast()
 
   async function loadPreview() {
@@ -45,7 +48,8 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
 
   useEffect(() => {
     if (open) cancelRef.current?.focus()
-    else openerRef.current?.focus()
+    else if (wasOpenRef.current) openerRef.current?.focus()
+    wasOpenRef.current = open
   }, [open])
 
   async function confirm() {
@@ -93,14 +97,14 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
 
   return (
     <>
-      <button ref={openerRef} type="button" onClick={loadPreview} className="rounded-md border px-3 py-2 text-sm">Close cycle</button>
+      <button ref={openerRef} type="button" onClick={loadPreview} aria-haspopup="dialog" className="min-h-10 rounded-md border px-3 text-sm">Close cycle</button>
       {open && (
         <div role="presentation" className="fixed inset-0 z-10 grid place-items-center bg-black/50 p-4" onKeyDown={(event) => {
           if (event.key === 'Escape' && !pending) setOpen(false)
         }}>
           <section role="dialog" aria-modal="true" aria-labelledby="close-cycle-heading" aria-describedby="close-cycle-description" className="w-full max-w-lg space-y-4 rounded-lg bg-background p-6 shadow-xl" onKeyDown={(event) => {
             if (event.key !== 'Tab') return
-            const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+            const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
             if (focusable.length === 0) return
             const first = focusable[0]
             const last = focusable[focusable.length - 1]
@@ -114,17 +118,19 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
           }}>
             <h2 id="close-cycle-heading" tabIndex={-1} className="text-xl font-semibold">Close {preview?.period ?? 'cycle'}</h2>
             <p id="close-cycle-description" className="sr-only">Review the arrears calculated by RondiTrack before confirming this irreversible action.</p>
-            {!preview && !error && <div aria-label="Loading preview" className="space-y-2"><div className="h-4 animate-pulse rounded bg-muted" /><div className="h-4 animate-pulse rounded bg-muted" /><div className="h-4 animate-pulse rounded bg-muted" /></div>}
+            {!preview && !error && <div role="status" className="space-y-2"><span className="sr-only">Loading the close preview…</span><div aria-hidden="true" className="h-4 animate-pulse rounded bg-muted motion-reduce:animate-none" /><div aria-hidden="true" className="h-4 animate-pulse rounded bg-muted motion-reduce:animate-none" /><div aria-hidden="true" className="h-4 animate-pulse rounded bg-muted motion-reduce:animate-none" /></div>}
             {preview && <div className="space-y-3 text-sm">
               <p>As of South African date: <strong>{preview.asOfDate}</strong></p>
               {preview.arrears.length === 0 ? <p>No members will go into arrears.</p> : <ul>{preview.arrears.map((item) => <li key={item.userId}>{item.userName}: {formatCents(item.amountCents)}</li>)}</ul>}
               <p className="font-semibold">Total arrears: {formatCents(preview.totalCents)}</p>
             </div>}
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+            <p role="alert" className="text-sm text-destructive">{error}</p>
             <div className="flex justify-end gap-2">
-              <button ref={cancelRef} type="button" onClick={() => setOpen(false)} disabled={pending} className="rounded-md border px-3 py-2 text-sm">Cancel</button>
-              <button type="button" onClick={confirm} disabled={!preview || pending} className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground">
-                {pending ? 'Closing…' : `Close ${preview?.period ?? 'cycle'} and record ${formatCents(preview?.totalCents ?? 0)} in arrears`}
+              <button ref={cancelRef} type="button" onClick={() => { if (!pending) setOpen(false) }} aria-disabled={pending} className="min-h-10 rounded-md border px-3 text-sm aria-disabled:opacity-60">Cancel</button>
+              <button type="button" onClick={confirm} aria-disabled={!preview || pending} className="min-h-10 rounded-md bg-primary px-3 text-sm text-primary-foreground aria-disabled:opacity-60">
+                {/* No amount until the preview has one: it used to say "record R 0,00
+                    in arrears" while loading, and formatted money inside the click. */}
+                {pending ? 'Closing…' : preview ? `Close ${preview.period} and record ${formatCents(preview.totalCents)} in arrears` : 'Waiting for the preview'}
               </button>
             </div>
           </section>

@@ -10,6 +10,7 @@ public static class RateLimitPolicies
     public const string Login = "Login";
     public const string Contributions = "Contributions";
     public const string Payouts = "Payouts";
+    public const string InviteStatus = "InviteStatus";
 
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -17,6 +18,8 @@ public static class RateLimitPolicies
         var loginWindow = TimeSpan.FromSeconds(Positive(configuration, "Login:WindowSeconds"));
         var contribution = Bucket(configuration, Contributions);
         var payout = Bucket(configuration, Payouts);
+        var inviteStatusLimit = Positive(configuration, "InviteStatus:PermitLimit");
+        var inviteStatusWindow = TimeSpan.FromSeconds(Positive(configuration, "InviteStatus:WindowSeconds"));
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -26,6 +29,12 @@ public static class RateLimitPolicies
                     PermitLimit = loginLimit, Window = loginWindow, QueueLimit = 0, AutoReplenishment = true
                 }));
             options.AddPolicy(Contributions, context => UserBucket(context, contribution));
+            // Anonymous, so per caller address: it slows anyone guessing codes.
+            options.AddPolicy(InviteStatus, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = inviteStatusLimit, Window = inviteStatusWindow, QueueLimit = 0, AutoReplenishment = true
+                }));
             options.AddPolicy(Payouts, context => UserBucket(context, payout));
             options.OnRejected = async (context, cancellationToken) =>
             {

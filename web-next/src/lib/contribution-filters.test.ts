@@ -37,14 +37,15 @@ describe('contribution history filters', () => {
         id: 'c1',
         stokvelName: 'Building Fund',
         userName: 'Jane Smith',
-        amount: '125.50',
+        // The API's int64 cents, as ContributionWithMemberResponse sends them.
+        amount: 12550,
         recordedAtUtc: '2025-05-15T08:30:00Z',
       },
       {
         id: 'c2',
         stokvelName: 'School Fees',
         userName: 'Ame Ndlovu',
-        amount: 35,
+        amount: 3500,
         recordedAtUtc: '2025-05-10T08:00:00Z',
       },
     ])
@@ -67,6 +68,21 @@ describe('contribution history filters', () => {
         amountCents: 3500,
       },
     ])
+  })
+
+  it('never multiplies: 12 550 cents from the API stays 12 550 cents', () => {
+    expect(buildContributionActivityRows([{ id: 'c', amount: 12550, recordedAtUtc: '2025-05-15T08:30:00Z' }])[0].amountCents).toBe(12550)
+  })
+
+  // Whole Johannesburg days, whatever TZ the test process runs in (CI runs
+  // this file with TZ=UTC and TZ=Africa/Johannesburg).
+  it.each([
+    ['00:30 SAST on 1 Nov is in "from 1 Nov"', '2026-10-31T22:30:00Z', { from: '2026-11-01' }, true],
+    ['23:30 SAST on 31 Oct is not in "from 1 Nov"', '2026-10-31T21:30:00Z', { from: '2026-11-01' }, false],
+    ['23:30 SAST on 31 Oct is in "to 31 Oct"', '2026-10-31T21:30:00Z', { to: '2026-10-31' }, true],
+    ['00:00 SAST on 1 Nov is not in "to 31 Oct"', '2026-10-31T22:00:00Z', { to: '2026-10-31' }, false],
+  ] as const)('%s', (_name, date, filters, expected) => {
+    expect(matchesContributionHistoryFilters({ status: 'paid', date }, filters)).toBe(expected)
   })
 
   it('paginates a list of recent activities', () => {

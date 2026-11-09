@@ -1,7 +1,18 @@
 ﻿import type { Metadata } from 'next'
 import { LoginForm } from '@/components/LoginForm'
 
-export const metadata: Metadata = { title: 'Sign in · RondiTrack' }
+const description = 'RondiTrack keeps a stokvel’s contributions, proofs of payment and payouts in one place, so every member can see what has been paid.'
+
+// The one page a search engine should find, and what a link preview of any
+// signed-in URL shows, because signed-out requests for those redirect here.
+// It describes the product and nothing about anyone in it.
+export const metadata: Metadata = {
+  title: 'Sign in',
+  description,
+  alternates: { canonical: '/login' },
+  openGraph: { type: 'website', siteName: 'RondiTrack', title: 'RondiTrack: stokvel contributions, tracked', description, url: '/login' },
+  twitter: { card: 'summary_large_image', title: 'RondiTrack: stokvel contributions, tracked', description },
+}
 export const instant = false
 
 export default async function LoginPage({ searchParams }: PageProps<'/login'>) {

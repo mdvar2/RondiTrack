@@ -1,9 +1,17 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session'
 import { signOut } from '@/lib/auth-actions'
 import { Button } from '@/components/ui/button'
+
+// Set once for everything behind sign-in, so a page added later can't forget
+// it. robots.txt still allows these URLs: a crawler that may not fetch a page
+// never sees its noindex, and can list the bare URL anyway.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 // All four links, for everyone. Whether someone is Treasurer anywhere is
 // answered per stokvel by the API, and the treasurer page handles "nowhere".
@@ -40,13 +48,15 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
             <ul className="flex flex-wrap gap-1 md:flex-col">
               {links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="block rounded-lg px-3 py-2 text-sm hover:bg-muted">{link.label}</Link>
+                  <Link href={link.href} className="block min-h-10 rounded-lg px-3 py-2.5 text-sm hover:bg-muted">{link.label}</Link>
                 </li>
               ))}
             </ul>
           </nav>
           <div className="mt-auto space-y-3 border-t pt-4">
-            <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+            {/* Two lines, like the name and email that replace it. On a phone this
+                sits above the page, and a one-line placeholder made it jump. */}
+            <Suspense fallback={<p className="text-sm text-muted-foreground"><span className="block">Loading…</span><span aria-hidden="true" className="block">&nbsp;</span></p>}>
               <SignedInAs />
             </Suspense>
             <form action={signOut}>

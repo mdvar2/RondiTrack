@@ -40,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright: saved sessions are credentials and must never be committed.
+/e2e/.auth/
+/test-results/
+/playwright-report/
+/blob-report/
+# Lighthouse runs (summaries are copied into README.md)
+/lighthouse-reports/

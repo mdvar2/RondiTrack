@@ -68,5 +68,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // robots.txt and the sign-in page's preview image are public files: no
+  // session to read, nothing to redirect.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|robots.txt|login/opengraph-image).*)'],
 }

@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // No AGENTS.md written by `next dev`.
   agentRules: false,
+  // BFF routes and proof downloads are private: never indexed, archived or
+  // followed, even if a URL leaks. A header, because they aren't HTML pages.
+  async headers() {
+    const noRobots = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }]
+    return [
+      { source: '/bff/:path*', headers: noRobots },
+      { source: '/api/:path*', headers: noRobots },
+    ]
+  },
   turbopack: {
     rules: {
       "*.css": {
