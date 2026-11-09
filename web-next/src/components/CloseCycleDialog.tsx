@@ -128,7 +128,9 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
             <div className="flex justify-end gap-2">
               <button ref={cancelRef} type="button" onClick={() => { if (!pending) setOpen(false) }} aria-disabled={pending} className="min-h-10 rounded-md border px-3 text-sm aria-disabled:opacity-60">Cancel</button>
               <button type="button" onClick={confirm} aria-disabled={!preview || pending} className="min-h-10 rounded-md bg-primary px-3 text-sm text-primary-foreground aria-disabled:opacity-60">
-                {pending ? 'Closing…' : `Close ${preview?.period ?? 'cycle'} and record ${formatCents(preview?.totalCents ?? 0)} in arrears`}
+                {/* No amount until the preview has one: it used to say "record R 0,00
+                    in arrears" while loading, and formatted money inside the click. */}
+                {pending ? 'Closing…' : preview ? `Close ${preview.period} and record ${formatCents(preview.totalCents)} in arrears` : 'Waiting for the preview'}
               </button>
             </div>
           </section>

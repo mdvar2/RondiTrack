@@ -7,6 +7,7 @@ import { PageHeading } from '@/components/PageHeading'
 import { PinnedStokvelsList } from '@/components/PinnedStokvels'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { ContributionHistoryFilters } from '@/components/ContributionHistoryFilters'
+import { DataProviders } from '@/components/DataProviders'
 
 export const metadata: Metadata = { title: 'My stokvels' }
 
@@ -21,11 +22,13 @@ export default async function StokvelsPage({ searchParams }: PageProps<'/stokvel
     <>
       <PageHeading title="My stokvels">Each stokvel you belong to, and your role in it.</PageHeading>
       <PinnedStokvelsList stokvels={stokvels} />
-      <ContributionHistoryFilters />
-      <div className="mt-6">
-        {/* The filter bar above is this page's one set of filter controls. */}
-        <ActivityFeed initialPage={firstPage} initialFilters={filters} showFilters={false} />
-      </div>
+      <DataProviders>
+        <ContributionHistoryFilters />
+        <div className="mt-6">
+          {/* The filter bar above is this page's one set of filter controls. */}
+          <ActivityFeed initialPage={firstPage} initialFilters={filters} showFilters={false} />
+        </div>
+      </DataProviders>
       {stokvels.length === 0 ? (
         <EmptyState title="You're not in any stokvels yet">
           Ask a stokvel&apos;s Chairperson to add you.

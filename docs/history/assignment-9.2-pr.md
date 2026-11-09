@@ -258,6 +258,58 @@ error mounting ".../src/Infrastructure/bin": mkdir .../src/Infrastructure/bin: r
   - Playwright passed 25/25 against that stack.
   - The dev stack kept its data and its 14 migrations.
 
+**Later runs:** the docs commit `15e2e6f` ran green too: [run 42527732827](https://github.com/mdvar2/RondiTrack/actions/runs/42527732827).
+
+## Follow-up on 2026-11-09: INP investigation
+
+Full write-up: "INP" under Performance in `web-next/README.md`. In short:
+
+**Root cause, right after load.**
+- A click during hydration made React discard its in-progress (transition) hydration and redo it synchronously: about 470 ms of Blocking Render before the click handler ran, at 4× CPU.
+- Inside that, `DueCountdown`, which renders a single `<span>`, took 107–143 ms. The reason: `lib/dates.ts` built two `Africa/Johannesburg` `Intl.DateTimeFormat`s at import time, and a browser's first time-zone formatter loads ICU data. Alone, it took 102–122 ms at 4× CPU.
+- `lib/money.ts` did the same with `Intl.NumberFormat('en-ZA')`.
+
+**Root cause, once idle.** It's opening the dialog: React's render and commit (10–17 ms), then style and layout forced by focusing *Cancel*. The same 27 layout objects took 18–94 ms depending on CPU-throttling slices.
+
+**Changes:**
+- Formatters made on first use.
+- The dialog no longer formats "R 0,00" while its preview loads. Its confirm button now says "Waiting for the preview", tested in the new `CloseCycleDialog.test.tsx`.
+- TanStack Query and nuqs moved from the root layout to `DataProviders`, on the two pages that use them.
+- New diagnostic scripts, `scripts/trace-click.mjs` and `scripts/profile-click.mjs`, and a `PAGES` option for `scripts/lighthouse.mjs`.
+
+**Disproved:**
+- Hiding the 40 proof-upload forms didn't help.
+- No hydration mismatch.
+
+**INP, measured alternately.** Both builds were measured in four rounds, each the usual three-run `inp.mjs` median:
+
+| Click | Before (12 runs) | After (12 runs) |
+|---|---|---|
+| Right after load | median 1,216 ms | **712 ms** |
+| Once idle | median 272 ms | 280 ms (5 of 12 runs under 200 ms, against 1 of 12) |
+
+**The 200 ms target is not met.**
+
+**Home LCP and CLS, measured alternately:**
+- **Applied throttling** (10 runs each): 1.91 s before and 1.93 s after. All 20 runs are under 2.5 s, and CLS is 0.
+- **Simulated** (6 runs each): 2.61 s for both builds, above the target today. It was 2.44 s on 2026-11-08, so this is not caused by these changes.
+
+**Checks on the final code (2026-11-09):**
+
+| Command | Result |
+|---|---|
+| `npm run lint`, `npm run typecheck`, `npm run build` | clean |
+| `npm audit`, `npm audit --omit=dev` | 0 vulnerabilities |
+| Vitest, 10 runs in a row, alternating `TZ=UTC` and `TZ=Africa/Johannesburg` | 16 files, 171 tests passed in every run |
+| `CI=1 npx playwright test` ×3 on the production build | 25 passed, 25 passed, 25 passed |
+| `dotnet test RondiTrack.Tests -c Release` | Passed: 159, Failed: 0 |
+
+**Accessibility.**
+- axe found no serious or critical violations in light and dark mode, and the keyboard spec passed.
+- Lighthouse accessibility was 100 on all three pages.
+- **NVDA was not run:** it isn't installed on this machine. The steps, with the exact expected text, are in `docs/history/assignment-9.2-screen-reader-checklist.md`.
+- The contribution form has no date field, so there's no date validation error to test.
+
 ## Screenshots to attach
 
 1. The red CI run, showing which job failed and the failing test's message.
@@ -267,8 +319,9 @@ error mounting ".../src/Infrastructure/bin": mkdir .../src/Infrastructure/bin: r
 
 ## Not done in this PR
 
-- **INP under 200 ms: not met.** The measurements are 768 ms right after load and 280 ms once the page is idle, against the 200 ms target.
-- **The NVDA or VoiceOver pass: outstanding.** The amount and date utterances aren't recorded yet.
+- **INP under 200 ms: not met.** After the follow-up it is 712 ms right after load (from 1,216 ms) and 280 ms once the page is idle, against the 200 ms target.
+- **Home LCP, simulated: 2.61 s today** for both the old and new builds. Applied throttling is 1.93 s.
+- **The NVDA pass: outstanding.** The checklist is ready, and the amount and date utterances aren't recorded yet.
 - **The five-minute demo recording: outstanding.**
 - **The screenshots listed above: outstanding.**
 - Lighthouse CI budgets (optional).

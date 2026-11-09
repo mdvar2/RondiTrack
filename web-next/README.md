@@ -93,8 +93,11 @@ Some things must be running first, and some state can trip you up:
 
 Performance measurement uses the same stack:
 - `npm run seed:perf` seeds one stokvel with 40 members, 12 monthly cycles and 436 contributions.
-- `node scripts/lighthouse.mjs <label>` runs Lighthouse three times per page and takes the median. Add `THROTTLING=devtools` for applied throttling.
-- `node scripts/inp.mjs <label>` measures INP.
+- `node scripts/lighthouse.mjs <label>` runs Lighthouse three times per page and takes the median. Add `THROTTLING=devtools` for applied throttling, `RUNS=5` for more runs, or `PAGES=home` for one page.
+- `node scripts/inp.mjs <label>` measures INP: three runs, median. Add `SETTLE_MS=5000` to click only once the page is idle.
+- Diagnosis only, measuring nothing for the report:
+  - `node scripts/trace-click.mjs <label>` records a Chrome performance trace of the same clicks. It splits each interaction into input delay, handlers and waiting for the frame, and into script, style and layout, and paint.
+  - `node scripts/profile-click.mjs ["Record contribution"]` takes a V8 CPU profile of one click.
 
 ### What's checked where
 
@@ -110,6 +113,7 @@ Performance measurement uses the same stack:
 | One click, one request; retry reuses the key; the next contribution gets a new one | `src/components/ContributionForm.test.tsx` | Vitest + RTL |
 | Treasurer actions shown in the family stokvel and absent (`queryByRole`) in the work one | `src/components/StokvelView.test.tsx` | Vitest + RTL, typed fixtures |
 | "Load more" sends page 2 with the filter; failure keeps the list and offers Try again | `src/components/ActivityFeed.test.tsx` | Vitest + RTL + MSW 3 |
+| Close Cycle dialog: focus on Cancel; while the preview loads, the confirm button can't be used and names no amount; then it names the real total | `src/components/CloseCycleDialog.test.tsx` | Vitest + RTL + MSW 3 |
 | Invite metadata can't carry a name or an amount | `src/lib/invite-metadata.test.ts` | Vitest |
 | Invite status endpoint is anonymous and returns only `valid` or `expired`; contribution maximum is a field error | `RondiTrack.Tests/Assignment92ApiTests.cs` | xUnit + Testcontainers |
 | Journey: record R 150,50, total goes up by exactly 15 050 cents without a reload | `e2e/journey.spec.ts` | Playwright |
@@ -118,7 +122,7 @@ Performance measurement uses the same stack:
 | Signed-in pages `noindex`; signed-out invite `<head>` has no name or amount; robots.txt allows | `e2e/seo.spec.ts` | Playwright |
 | axe WCAG 2.2 AA (light and dark): sign-in, home, stokvel, form with errors, open Close Cycle dialog, join steps | `e2e/accessibility.spec.ts` | Playwright + @axe-core/playwright |
 | Keyboard-only join with focused step headings; Back keeps the code; keyboard-only record; dialog focus; toast never covers focus on a phone; sign-in paste and autocomplete | `e2e/keyboard.spec.ts` | Playwright |
-| What the screen reader says | Manual (not yet done) | NVDA / VoiceOver |
+| What the screen reader says | Manual, **not yet done**: [checklist](../docs/history/assignment-9.2-screen-reader-checklist.md) | NVDA |
 
 No test uses `data-testid`. Every element is found by role, label or visible text. The journey reads the total with `dt:text-is("Collected") + dd`, which is the visible term and its value.
 
@@ -147,8 +151,18 @@ No test uses `data-testid`. Every element is found by role, label or visible tex
 | 3.3.8 Accessible authentication | Sign in | The email field was `autocomplete="email"` | `autocomplete="username"` (paste was already allowed, and there's no puzzle) | `keyboard.spec.ts` | Review |
 | 2.3.3 / motion | Skeletons | Pulsing placeholders ignored reduced motion | `motion-reduce:animate-none` and a global reduced-motion rule | Manual | Review |
 | 2.5.7 Dragging | Payout rotation | Nothing drags. There is no rotation UI | None needed | Review | — |
+| 2.4.6 / 4.1.2 Labels, name | Close cycle | While the preview loaded, the confirm button was named "Close cycle and record R 0,00 in arrears", an amount nobody had calculated | "Waiting for the preview" until the preview arrives (still `aria-disabled`), then the real total | `CloseCycleDialog.test.tsx` | Review (found during the INP work) |
 
-**Screen reader:** not run yet, by me or by any automated tool. It has to be done by hand. See [Known gaps](#known-gaps). What it relies on is checked automatically: accessible names, the live regions, focus on step headings, and titles. The two utterances the assignment asks for (one amount and one date, as NVDA reads them) go here once recorded:
+**Re-checked on 2026-11-09, after the INP changes:**
+- axe passed with no serious or critical violations, in light and dark: 8 axe tests, inside 3 consecutive Playwright runs of 25/25.
+- The keyboard spec passed: focus on Cancel, Escape returns focus, the join headings take focus, and toasts never cover focus.
+- Lighthouse accessibility was 100 on all three pages.
+
+**Screen reader: not done.** NVDA isn't installed on the machine this work was done on, and nothing here can listen to it, so no NVDA result is claimed. What it relies on is checked automatically: accessible names, the live regions, focus on step headings, and titles. The step-by-step check, with the exact text the app produces for each step, is in [the screen-reader checklist](../docs/history/assignment-9.2-screen-reader-checklist.md).
+
+One correction to the task as given: the contribution form has **no date field** (the API dates each contribution). The only date inputs are the activity feed's From and To filters, which have no validation message to hear.
+
+The two utterances the assignment asks for (one amount and one date, as NVDA reads them) go here once recorded:
 
 - Amount: _to be recorded_
 - Date: _to be recorded_
@@ -173,7 +187,7 @@ No test uses `data-testid`. Every element is found by role, label or visible tex
 | Stokvel | LCP, applied | 7.60 s | 3.20 s | Split Suspense boundaries; less to hydrate before the reveal |
 | Stokvel | CLS while contributions stream in, simulated / applied | 0 / 0.018 | **0 / 0** | Nested list boundary at the bottom; tabular figures; skeletons |
 | Stokvel | TBT, simulated | 325 ms | 268 ms | |
-| Stokvel | INP: open Close Cycle, record a contribution (4× CPU, slow 4G) | 1,080 ms | **768 ms** after load; **280 ms** once the page is idle | Contribution list in its own boundary, so a click hydrates less. **Still above 200 ms.** |
+| Stokvel | INP: open Close Cycle, record a contribution (4× CPU, slow 4G) | 1,080 ms | 768 ms after load; 280 ms once the page is idle (2026-11-08). After the follow-up on 2026-11-09: **712 ms** and **280 ms** (12 runs each; see [INP](#inp)) | Contribution list in its own boundary; formatters made on first use; TanStack Query and nuqs only where used. **Still above 200 ms.** |
 | Sign in | LCP, simulated | 2.49 s | 2.69 s | Unchanged page. Within run-to-run variation (runs 2.64–2.84 s) |
 
 LCP elements:
@@ -187,6 +201,57 @@ The SEO score on signed-in pages falls to 63 on purpose: they are `noindex`.
 - **`next/image`:** none. The app has no content images. Proofs of payment are opened as plain links through `/bff/contributions/{id}/proof` (`Cache-Control: private, no-store`). They never go through the `next/image` optimiser, whose cache is shared by everyone.
 - **The OG card:** a build-time `ImageResponse` with no user data.
 - **`next/dynamic`:** not used. The only large client-only part, the Close Cycle dialog, is about 5 KB. The INP cost is hydration, not download.
+
+#### INP
+
+**Where the time went (2026-11-09).** The worst interaction is always the **Close cycle** click, sometimes the **Record contribution** click. The diagnosis used:
+- Chrome performance traces (`scripts/trace-click.mjs`);
+- V8 CPU profiles (`scripts/profile-click.mjs`);
+- React 19.2's Scheduler tracks in a `next build --profile` build;
+- for one experiment only, temporary React `<Profiler>` probes around each part of the page. They were removed afterwards and never committed.
+
+1. **Clicking right after load: React redoing hydration.**
+   - The trace splits the 821 ms interaction into 13 ms input delay, **647 ms in the `pointerdown` handler** and 161 ms waiting for the frame. That is 742 ms of script, 33 ms of style and layout, and 16 ms of paint.
+   - React's tracks show why. The page's first hydration pass (a transition) was still running, so the click made React **discard it and redo it synchronously**: about 470 ms of Blocking Render, then 103 ms of Commit. Only then did it run the click, at +626 ms. The click itself (handler, render, commit, effects) took about 165 ms.
+2. **What made that hydration slow: two `Intl` formatters built at import time.**
+   - The `<Profiler>` probes timed the summary boundary's hydration at 213–228 ms. Of that, **`DueCountdown` took 107–143 ms**, although it renders one `<span>` ("Due in 21 days") and only does date arithmetic.
+   - The cause: `lib/dates.ts` created two `Intl.DateTimeFormat`s for `Africa/Johannesburg` **when the module was imported**. A browser's first time-zone formatter loads ICU data. Timed alone in a blank page at 4× CPU, it took **102–122 ms**; the first `Intl.NumberFormat('en-ZA')` took 12–30 ms.
+   - The form paid for `lib/money.ts`'s formatter the same way: 47–57 ms of hydration, though it only parses amounts.
+3. **Once idle: the dialog itself.**
+   - The click handler takes about 60–110 ms: the handler, React's render and commit (10–17 ms by the probes), and the effect that focuses *Cancel*.
+   - That `focus()` forces style (14 elements) and layout (27 of about 1,080 objects). The same work took 18 ms in some runs and 94 ms in others.
+   - Fonts and late network responses didn't line up with the slow runs. It is the variance of CPU throttling, which pauses the renderer in slices.
+
+**Changes.** Each change is targeted at one of the costs above. Nothing was removed, and the measurement scripts are unchanged:
+- `lib/dates.ts` and `lib/money.ts` make their formatters **on first use**. The first money formatting now happens when the close preview or a success message arrives, outside the click.
+- The Close Cycle dialog no longer formats "R 0,00" into its button while the preview loads. That was also a wrong label (see the accessibility table).
+- `Providers` in the root layout now holds only the toasts. TanStack Query and nuqs moved to `DataProviders`, around the activity feed on the two pages that show it. The stokvel, sign-in, register and join pages no longer download or hydrate them: 13 KB less JavaScript on the stokvel and sign-in pages. One `QueryClient` per tab keeps the cache across those two pages.
+
+**Disproved on the way.**
+- Hiding the 40 proof-upload forms, as a temporary experiment, didn't help. React hydrates that nested boundary separately, at the lowest priority.
+- No hydration mismatch: no console errors, and the countdown text matched the server's.
+
+**Results.** Run-to-run spread is ±150–200 ms, and the machine drifted over the day: the unchanged code measured 224 ms idle in the morning and 344 ms in the afternoon. So both builds were kept on disk and **measured alternately**, four rounds of the usual three runs, with the same `inp.mjs` and the same conditions (4× CPU, slow 4G, 412 px).
+
+| Click | Before: median per round | After: median per round | All 12 runs: median before → after | Runs under 200 ms |
+|---|---|---|---|---|
+| Right after load | 1,056 / 984 / 1,360 / 1,216 | 888 / 704 / 752 / 504 | **1,216 → 712 ms (−41%)** | 0 → 0 of 12 |
+| Once idle (`SETTLE_MS=5000`) | 224 / 280 / 264 / 272 | 280 / 304 / 288 / 192 | 272 → 280 ms (no change beyond noise) | 1 → 5 of 12 |
+
+**The 200 ms target is still not met.** See [Known gaps](#known-gaps).
+
+**LCP and CLS after these changes.** The same alternating method was used (the before build, then the after build):
+
+| Home screen | Before | After |
+|---|---|---|
+| LCP, applied throttling, 10 runs | median **1.91 s**, all 10 under 2.5 s | median **1.93 s**, all 10 under 2.5 s |
+| LCP, simulated, 6 runs | median 2.61 s | median 2.61 s |
+| CLS | 0 (worst run 0.013) | **0** in every run |
+| LCP element | `h1` "Member dashboard" | the same |
+
+The **simulated** home LCP is above 2.5 s today for **both** builds; it was 2.44 s on 2026-11-08. The heading paints at 185–296 ms unthrottled, together with first paint. Lantern's estimate flips between about 1.5 s and 2.6 s depending on which requests started before that early paint. The applied measurement is under 2.5 s in all 20 runs.
+
+On the stokvel page, simulated LCP went from 3.09 to 2.89 s (6 runs each), with CLS 0 in both.
 
 ### Metadata and indexing
 
@@ -242,6 +307,8 @@ TestingLibraryElementError: Unable to find an accessible element with the role "
 
 The tests ask for the button by its accessible name, so renaming it broke them, as intended.
 
+**Later green run:** the CI-evidence documentation commit `15e2e6f` ran green as well, in [run 42527732827](https://github.com/mdvar2/RondiTrack/actions/runs/42527732827).
+
 **Green, on the second attempt.** The first green attempt on PR #11 (commit `39f4ed4`) passed `backend` and `frontend`. Its `e2e` job then failed while Compose was starting the stack, before Playwright ran:
 
 ```text
@@ -276,9 +343,14 @@ Each of these was in the app before this assignment. None was a test mistake.
 
 ### Known gaps
 
-- **INP is not under 200 ms on the 40-member stokvel.** It is 768 ms if you click immediately after load, and 280 ms once the page is idle. Both are at 4× CPU slowdown. The time is React work in the click: hydrating on demand, then rendering the dialog. Next steps: hydrate the Close Cycle dialog only when opened, and paginate the 40-row proofs list.
+- **INP is not under 200 ms on the 40-member stokvel.** After the 2026-11-09 follow-up it is 712 ms when you click straight after load (down from 1,216 ms, measured alternately), and 280 ms once the page is idle (no change beyond noise). Both are at 4× CPU slowdown. See [INP](#inp).
+  - **Right after load,** the remaining cost is React redoing the interrupted hydration of the root and the summary: mostly Next.js and React themselves.
+  - **Once idle,** it's opening the dialog: its render, plus the style and layout that focusing *Cancel* forces. Those vary 5× from run to run under CPU throttling.
+  - **Paginating the proofs list won't help:** it was tested and doesn't.
+  - **What's left to try:** server-render more of the summary as plain HTML, so there's less for a click to hydrate, and check on a real entry-level phone rather than emulation.
+- **Home LCP, simulated, is 2.61 s today for both the old and new builds.** Applied throttling measures 1.91–1.93 s (all 20 runs under 2.5 s).
 - **Stokvel page LCP (simulated) is 3.1 s.** The 2.5 s target is for the home screen, which meets it (2.44 s). The stokvel `<h1>` is its name, which needs the API.
-- **The screen-reader pass (NVDA or VoiceOver) hasn't been done.** The two utterances above are still to be recorded.
+- **The screen-reader pass (NVDA) hasn't been done.** NVDA isn't installed where this work was done. The steps, with the exact text to compare against, are in the [screen-reader checklist](../docs/history/assignment-9.2-screen-reader-checklist.md), and the two utterances above are still to be recorded.
 - **The five-minute demo recording hasn't been made yet.**
 - **The contribution form needs JavaScript.** The old one worked without JS through `useActionState`. The new one calls the action directly, to hold the key across retries.
 - **The invite-status and login rate limits are per address.** All traffic comes through the Next.js server, so those limits are effectively shared by everyone.

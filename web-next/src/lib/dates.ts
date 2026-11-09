@@ -3,13 +3,20 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // South Africa has no daylight saving time; SAST is UTC+02:00 all year.
 const SA_OFFSET_MS = 2 * 60 * 60 * 1000
 
-const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+// Made on first use, never at import. A browser's first time-zone
+// DateTimeFormat loads ICU data: 100–120 ms on a 4x-slowed phone CPU. Made at
+// import, it ran while React hydrated the stokvel page, inside DueCountdown,
+// which only does date arithmetic, and a click during hydration waited for it
+// (INP, Assignment 9.2 Part 5).
+let dateTimeFormatter: Intl.DateTimeFormat | undefined
+let dateOnlyFormatter: Intl.DateTimeFormat | undefined
+const dateTime = () => (dateTimeFormatter ??= new Intl.DateTimeFormat('en-GB', {
   timeZone: JOHANNESBURG_TIMEZONE, day: '2-digit', month: 'short',
   year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-})
-const dateOnlyFormatter = new Intl.DateTimeFormat('en-GB', {
+}))
+const dateOnly = () => (dateOnlyFormatter ??= new Intl.DateTimeFormat('en-GB', {
   timeZone: JOHANNESBURG_TIMEZONE, day: '2-digit', month: 'short', year: 'numeric',
-})
+}))
 function formatParts(formatter: Intl.DateTimeFormat, date: Date, includeTime: boolean): string {
   const parts = formatter.formatToParts(date)
   const getPart = (type: Intl.DateTimeFormatPartTypes): string =>
@@ -20,12 +27,12 @@ function formatParts(formatter: Intl.DateTimeFormat, date: Date, includeTime: bo
 export function formatJohannesburgDateTime(utcTimestamp: string): string {
   const date = new Date(utcTimestamp)
   if (Number.isNaN(date.getTime())) throw new RangeError('Invalid timestamp')
-  return formatParts(dateTimeFormatter, date, true)
+  return formatParts(dateTime(), date, true)
 }
 export function formatJohannesburgDate(utcTimestamp: string): string {
   const date = new Date(utcTimestamp)
   if (Number.isNaN(date.getTime())) throw new RangeError('Invalid timestamp')
-  return formatParts(dateOnlyFormatter, date, false)
+  return formatParts(dateOnly(), date, false)
 }
 function validateDateOnly(dateOnly: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) throw new RangeError('Invalid date-only value')

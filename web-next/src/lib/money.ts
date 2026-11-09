@@ -5,12 +5,16 @@
 // The form refuses it first, with the same number.
 export const MAX_CONTRIBUTION_CENTS = 100_000_000
 
-const randFormatter = new Intl.NumberFormat('en-ZA', {
+// Made on first use, never at import: the first en-ZA NumberFormat costs
+// 12–30 ms on a 4x-slowed phone CPU, and the contribution form imports this
+// module to parse amounts, not to format them (INP, Part 5).
+let randFormatter: Intl.NumberFormat | undefined
+const rands = () => (randFormatter ??= new Intl.NumberFormat('en-ZA', {
   style: 'currency',
   currency: 'ZAR',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
-})
+}))
 
 export function formatCents(cents: number): string {
   if (!Number.isSafeInteger(cents)) {
@@ -27,7 +31,7 @@ export function formatCents(cents: number): string {
   const decimalAmount =
     `${negative ? '-' : ''}${wholeRand}.${String(remainder).padStart(2, '0')}` as `${number}`
 
-  return randFormatter.format(decimalAmount)
+  return rands().format(decimalAmount)
 }
 
 // Spaces a person (or Intl) may put between thousands: a plain space, a

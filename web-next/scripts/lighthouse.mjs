@@ -6,6 +6,9 @@
 //   SESSION_SECRET=... E2E_PASSWORD=... STOKVEL_ID=... \
 //   node scripts/lighthouse.mjs <label>
 //
+// RUNS=5 changes the number of runs; THROTTLING=devtools applies the
+// throttling instead of simulating it; PAGES=home limits the pages.
+//
 // Reports go to lighthouse-reports/<label>/ (git-ignored).
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -19,11 +22,13 @@ const runs = Number(process.env.RUNS ?? 3)
 const outDir = join('lighthouse-reports', label)
 mkdirSync(outDir, { recursive: true })
 
+// PAGES=home,stokvel measures only those (default: all three).
+const only = process.env.PAGES?.split(',')
 const pages = [
   { name: 'login', path: '/login', signedIn: false },
   { name: 'home', path: '/dashboard/member', signedIn: true },
   { name: 'stokvel', path: `/stokvels/${process.env.STOKVEL_ID}`, signedIn: true },
-]
+].filter((page) => !only || only.includes(page.name))
 
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]
 const summary = []

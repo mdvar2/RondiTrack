@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { PageHeading } from '@/components/PageHeading'
 import { ActivityFeed } from '@/components/ActivityFeed'
 import { DashboardSkeleton } from '@/components/Skeletons'
+import { DataProviders } from '@/components/DataProviders'
 
 export const metadata: Metadata = { title: 'Member dashboard' }
 
@@ -63,7 +64,9 @@ async function MemberDashboard({ searchParams }: { searchParams: PageProps<'/das
       </dl>
 
       <div className="mb-6">
-        <ActivityFeed initialPage={firstPage} initialFilters={filters} />
+        <DataProviders>
+          <ActivityFeed initialPage={firstPage} initialFilters={filters} />
+        </DataProviders>
       </div>
 
       <ul className="space-y-3">
