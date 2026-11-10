@@ -1,0 +1,6 @@
+⨯ Error: Temporary render error for digest evidence
+  digest: '2181879328'
+[request-error] digest 2181879328 trace 70bd903c53d9e7132571c20cae5ed1b1 route /stokvels type render
+⨯ Error: Temporary render error for digest evidence
+  digest: '1326393728'
+[request-error] digest 1326393728 trace 70bd903c53d9e7132571c20cae5ed1b1 route /stokvels type render

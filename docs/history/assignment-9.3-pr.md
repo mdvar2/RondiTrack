@@ -193,3 +193,72 @@ CI (PR #13) after the demonstration mechanism: database-attribute fix `7ad3525`,
 - **Allowed account:** verified the post-commit failure, the safe retry with the same key, one contribution, and the next contribution succeeding.
 - **Account not on the list:** never armed.
 - The test-only demonstration mechanism was enabled in that CI environment.
+
+## Part 3: Every error is a flow
+
+Local evidence only, from the throwaway Compose project `ronditrack-trace` with synthetic accounts (10 Nov 2026); it does not prove the deployed environment. The table of what each status does, who owns it and which test keeps it is the README's [Errors](../../README.md#errors) section.
+
+### What was built
+
+| Change | Files |
+|---|---|
+| **401 → back to the same page.** `src/proxy.ts` sets `x-ronditrack-return-path` on every request it lets through. It always overwrites a value the client sent, and strips Next's `_rsc` marker. `api()` redirects a 401 to `/login?expired=1&next=<that path>`; so do the contribution Server Action, the close dialog and proof upload. `safeReturnPath` accepts only paths on this site (not `//host`, `/\host`, a scheme, or control characters). | `src/lib/return-path.ts`, `src/proxy.ts`, `src/lib/api.ts`, `src/lib/contribution-actions.ts`, `src/components/CloseCycleDialog.tsx`, `src/components/ProofUpload.tsx` |
+| **One owner each; never Next's error page.** Root `app/error.tsx` and `app/global-error.tsx`, a root `app/not-found.tsx`, and one shared `ErrorPanel`. | `src/app/error.tsx`, `src/app/global-error.tsx`, `src/app/not-found.tsx`, `src/components/ErrorPanel.tsx`, `src/app/(app)/error.tsx` |
+| **Contribution form.** 5xx and no answer become a persistent toast with the trace reference ("Reference unavailable." when the browser got no answer at all). 400, 403, 404, 409, 412, 422 and 429 stay inline. 409, 412 and 422 each get their own recovery step. Values and the Idempotency-Key are kept. | `src/lib/contribution-feedback.ts`, `src/components/ContributionForm.tsx` |
+| **Close dialog: no more double messages.** A 5xx or no answer used to show a persistent toast **and** an inline error; now it is the toast only, and an empty preview dialog closes. 403 and other 4xx answers are inline only. | `src/components/CloseCycleDialog.tsx` |
+| **Proof links: 404 for "not yours" and "doesn't exist" alike.** A browser navigation to `/bff/contributions/{id}/proof` that the API answers 404 is redirected (303) to the app's not-found page. `fetch` callers get the API's JSON 404 unchanged, and the owner's download is unchanged (file, `no-store`, `nosniff`). Next's own `notFound()` in a route handler only returns an empty 404 (checked in `next/dist/server/route-modules/app-route/module.js`), hence the redirect. | `src/app/bff/contributions/[contributionId]/proof/route.ts` |
+| **Join page.** A 5xx or no answer goes to `app/error.tsx` with its reference; 401 returns here after sign-in; 429 shows the seconds from `Retry-After`. | `src/app/join/page.tsx`, `src/lib/join.ts` |
+| **API: invite-code guesses are limited per account.** Before this, the signed-in code check (`GET /api/v1/invites/{code}`) and join had **no limit**: an account could guess codes without end, and the join page's 429 branch could never happen. Now there are 10 per minute per account (token bucket, `RateLimiting:InviteGuesses`), answered with 429, `Retry-After` and a problem with its `correlationId`. The anonymous `/status` limit is unchanged. | `API/Common/RateLimitPolicies.cs`, `API/Controllers/InvitesController.cs`, `API/appsettings.json` |
+| **Server Actions keep the session when the refresh can't decide.** `refreshSessionIfNeeded` used to throw when the API was unreachable, so the action failed with no reference. It now keeps the session (as the proxy already did), and the call that follows fails with the trace reference. | `src/lib/proxy.ts` |
+| **Unexpected errors: digest → trace.** `onRequestError` records the digest on the active span and logs it with the trace id, the route template and the kind of request. It never logs the message, the concrete path or headers. | `src/instrumentation.ts` |
+
+### What could not be done as specified
+
+- **The API never returns 422.** Business-rule refusals are 409 (`BusinessRuleException`); a stale close preview is 409; 412 exists for If-Match. The frontend handles 409, 412 and 422 with distinct guidance, so it is ready if the API splits them. Splitting would change the API contract and its error tests, so it was not done without a decision.
+- **A short access token alone does not end a session.** The proxy refreshes silently (8.2 and Part 5), so with 1-minute tokens a member simply stays signed in, which is tested. The 401 flow therefore also ends the session for real, through the API's own logout (the "signed out on another device" case), on a separate instance with genuinely 1-minute tokens. Token validation is unchanged.
+- **A UI-level "403 in place" has no natural trigger.** The UI never offers a Member a treasurer action, and there is no API to demote someone mid-session. The forged request is end-to-end (`roles.spec.ts`: 403, still signed in); the in-place message is component-tested (`CloseCycleDialog.test.tsx`).
+- **A not-found stokvel is served with HTTP 200**, not 404, because the page shell streams before the API answers (`cacheComponents`). It is the same for "not yours" and "doesn't exist", and the test asserts that both responses are identical.
+
+### Evidence
+
+Folder: [`docs/history/evidence/assignment-9.3/part3/`](evidence/assignment-9.3/part3/).
+
+| # | Status | What it shows |
+|---|---|---|
+| 31, 32 | 401 | Session revoked elsewhere → `/login?expired=1&next=%2Fstokvels%2F<id>` with "Your session has expired. Please sign in again." → signed in → back on `/stokvels/<id>`. |
+| 22 | 404 | Someone else's stokvel: "We couldn't find that stokvel", identical to a random id. |
+| 23 | 404 | Someone else's proof link: the app's not-found page, identical to a random id. |
+| 24 | 409 | Duplicate contribution: the reason, "Reload the page to see the latest, then decide again.", a reference, and 175,00 still in the field. |
+| 25 | 409 | Stale close preview: the reason and the refreshed preview (Sipho, who paid meanwhile, no longer listed). |
+| 30, 33 | 429 | "Too many code checks. Try again in N seconds." and "Retry after N seconds.", both from `Retry-After`. |
+| 34 | 500 / no answer | The API stopped after the page loaded: one persistent toast, "Reference: 2ef4b20c483f37e85245ae69fd880bcf", 150,00 kept, "0 of 1" unchanged. Jaeger finds that trace: `ronditrack-web`, 7 spans, the failed refresh (session kept) and the failed contribution call. |
+| 35 | 500 / no answer | `/join` with the API stopped: our panel with "Reference: 60a8daa9cc7124c294de34702de338ea" (Jaeger: `ronditrack-web`, 19 spans, the failed invite calls). Not Next.js's error page. |
+| 20, 21, log, JSON | Unexpected error | See below. |
+
+**Digest to trace (a temporary render error, uncommitted).**
+- For the capture only, a line in `src/app/(app)/stokvels/page.tsx` threw `Error('Temporary render error for digest evidence')` when `?digestEvidence=1` was present. It was built and run locally, then removed with `git checkout` of that one file, which had no other changes. It was never committed.
+- What happened:
+  - **The screen** (20) showed our panel with **Reference: 2181879328**: Next.js's digest, not a trace id.
+  - **The server log** (`digest-log-lines.txt`): `[request-error] digest 2181879328 trace 70bd903c53d9e7132571c20cae5ed1b1 route /stokvels type render`. **A span is active in `onRequestError`**, so the fallback path was not needed.
+  - **The trace** (21, JSON): trace `70bd903c53d9e7132571c20cae5ed1b1`, span `render route (app) /stokvels` with `ronditrack.error.digest=2181879328` and `ronditrack.error.type=Error`.
+  - **Searching Jaeger** (`/api/v3/traces`) by `ronditrack.error.digest=2181879328` finds **exactly that one trace**.
+  - A second render pass of the same request produced a second digest (`1326393728`); its log line names the same trace.
+- **How they correlate:** the digest is not the trace id. It finds the trace through the span attribute, and through the log line that pairs the two.
+
+**Found while testing, kept as known behaviour.** Twice locally, a sign-in that the API answered (its span shows the 401) reached the Next.js server as `fetch failed`, right after a long idle wait or a container restart. The person saw our apology and a reference, and that reference led straight to the cause in Jaeger. It looks like an idle pooled connection through Docker Desktop's local port forwarder losing the response; it has not been seen against the real platform. The test counts that outcome as an answered attempt.
+
+**Found while testing: connection-pool sizing.** With two API instances on one PostgreSQL, registration failed with `53300: sorry, too many clients already`. Npgsql's default pool is 100 per instance, and PostgreSQL's default `max_connections` is 100. The test instance is capped (`Maximum Pool Size=20`), and the database showed 88 connections in use after the full run. Production must set the pool size against the managed server's limit (Part 5).
+
+### Tests added or changed
+
+| Test | Checks |
+|---|---|
+| `e2e/session-expiry.spec.ts` (5, own project on :3001 against a 1-minute-token API) | Invite-code 429 with seconds; still signed in past the token's lifetime; 401 (session revoked elsewhere) → sign-in with the way back → the exact page; sign-in 429 with seconds; no answer → one persistent toast with a 32-hex trace reference, input kept, and `/join` shows our error panel, not Next's. |
+| `e2e/errors.spec.ts` (5) | 404 stokvel not-yours ≡ missing; 404 proof not-yours ≡ missing by navigation (app page) and by fetch (same JSON); the owner's download unchanged; 409 duplicate inline with guidance, reference and input kept, no toast; 409 stale close preview with the refreshed preview and nothing closed. |
+| `RondiTrack.Tests/InviteGuessRateLimitTests.cs` | The 11th signed-in code check in a minute → 429 with `Retry-After` (1–60) and `correlationId`; join shares the allowance; another account is unaffected. |
+| `src/lib/return-path.test.ts` (17) | Only same-site paths (open-redirect attempts refused); `_rsc` stripped; the proxy sets the header and overwrites a client-sent value, signed in or not. |
+| `src/lib/api-401.test.ts` (3) | `api()` redirects a 401 to sign-in with the trusted path, falls back to the dashboard without one, and leaves other answers alone. |
+| `src/components/ContributionForm.test.tsx` (changed and added) | 409, 412 and 422 inline, each with its own recovery step, reference and kept input, and no toast; 500 and 503 → one persistent toast with the reference, nothing inline, it stays until closed, the same key on retry; no answer → one toast with "Reference unavailable.". |
+| `src/components/CloseCycleDialog.test.tsx` (3 added) | 5xx on confirm → toast only (the preview stays); 403 → in place only; 5xx loading the preview → toast only, and the dialog closes. |
+
+Local results (10 Nov 2026): API **165 passed** (Release); Vitest **228 passed** in UTC and in Africa/Johannesburg; Playwright **37 passed** (both projects, production build, throwaway stack); type drift, lint, tsc and `npm run build` pass; `npm audit --omit=dev` 0 vulnerabilities.
