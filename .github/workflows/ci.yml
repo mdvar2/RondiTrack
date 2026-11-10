@@ -105,6 +105,11 @@ jobs:
       RONDITRACK_ENVIRONMENT: test
       RONDITRACK_DEMO_FAULTS: enabled
       RONDITRACK_DEMO_FAULT_ACCOUNTS: e2e.thandi@example.test
+      # A second API instance whose access tokens last 1 minute, with its own
+      # Next.js server on :3001 (e2e/session-expiry.spec.ts only). Same image,
+      # same database, same validation; only the token lifetime is short.
+      SHORT_API_BASE_URL: http://localhost:5148
+      SHORT_API_CONTAINER: ronditrack-short-api
     steps:
       - uses: actions/checkout@v4
 
@@ -129,6 +134,26 @@ jobs:
             sleep 2
           done
           docker compose -p "$COMPOSE_PROJECT" logs api
+          exit 1
+
+      - name: Start the 1-minute-token API instance (session-expiry tests)
+        run: |
+          set -euo pipefail
+          # Two API instances share one PostgreSQL (max_connections 100) and
+          # Npgsql's default pool is 100 per instance, so this one is capped.
+          printf '%s\n' \
+            "ASPNETCORE_ENVIRONMENT=Production" "ASPNETCORE_HTTP_PORTS=8080" \
+            "ConnectionStrings__RondiTrackDb=Host=db;Port=5432;Database=ronditrack;Username=ronditrack;Password=$POSTGRES_PASSWORD;Maximum Pool Size=20" \
+            "Jwt__SigningKey=$JWT_SIGNING_KEY" "Jwt__AccessTokenMinutes=1" "Jwt__ClockSkewSeconds=0" \
+            "BackgroundJobs__Enabled=false" > "$RUNNER_TEMP/short-api.env"
+          docker run -d --name "$SHORT_API_CONTAINER" --network "${COMPOSE_PROJECT}_default" \
+            -p 5148:8080 --env-file "$RUNNER_TEMP/short-api.env" ronditrack-api:dev
+          rm -f "$RUNNER_TEMP/short-api.env"
+          for attempt in $(seq 1 60); do
+            curl -fsS "$SHORT_API_BASE_URL/health/ready" && exit 0
+            sleep 2
+          done
+          docker logs "$SHORT_API_CONTAINER" --tail 100
           exit 1
 
       - uses: actions/setup-node@v4
@@ -163,8 +188,12 @@ jobs:
 
       - name: API logs when the run fails
         if: failure()
-        run: docker compose -p "$COMPOSE_PROJECT" logs api migrate --tail 200
+        run: |
+          docker compose -p "$COMPOSE_PROJECT" logs api migrate --tail 200
+          docker logs "$SHORT_API_CONTAINER" --tail 100 || true
 
       - name: Remove the throwaway stack
         if: always()
-        run: docker compose -p "$COMPOSE_PROJECT" down -v
+        run: |
+          docker rm -f "$SHORT_API_CONTAINER" || true
+          docker compose -p "$COMPOSE_PROJECT" down -v
