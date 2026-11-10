@@ -31,7 +31,7 @@ Fix (commit `2894149`), without weakening the test:
 - The test also asserts there is no `\r` in the served document, so the same mistake now fails on Windows too.
 - Check: the regenerated file equals, as parsed JSON, the document served by a Linux container build of both `337b2a6` and `2894149`.
 
-The first stage-1 red run ([42682476890](https://github.com/mdvar2/RondiTrack/actions/runs/42682476890), `0f461c5`) is **not** used as evidence. It was built on the same Windows-generated document, so it would have failed without the rename. The red branch was brought up to date with a merge (no history rewritten), and stage 1 was run again.
+> **Excluded run.** The first stage-1 red run ([42682476890](https://github.com/mdvar2/RondiTrack/actions/runs/42682476890), `0f461c5`) is **not** used as evidence. It was built on the same Windows-generated document, so the cross-platform newline defect would have failed it even without the rename. The red branch was brought up to date with a merge commit (`c8321f8`; no history rewritten), and stage 1 was run again. Both first runs are kept as screenshots 07 and 08 below.
 
 ### Green: the implementation
 
@@ -49,7 +49,26 @@ The field renamed is `ContributionWithMemberResponse.amount` → `amountCents`, 
 | 2. Document updated, types not | `d6dbedb` | [42763032333](https://github.com/mdvar2/RondiTrack/actions/runs/42763032333) | [Frontend](https://github.com/mdvar2/RondiTrack/actions/runs/42763032333/job/129652966210): "API types match openapi/v1.json (type drift)". Backend passed, E2E skipped. | CI annotation on `web-next/src/lib/schema.d.ts`: `Generated types differ from openapi/v1.json. Run 'npm run generate:api' in web-next and commit src/lib/schema.d.ts.` The diff is `-amount: number;` / `+amountCents: number;`. |
 | 3. Types regenerated | `9556024` | [42763290977](https://github.com/mdvar2/RondiTrack/actions/runs/42763290977) | [Frontend](https://github.com/mdvar2/RondiTrack/actions/runs/42763290977/job/129653789646): "Typecheck (route types first)", exit 2. Drift check and lint passed; backend passed, E2E skipped. | tsc names every line that still reads the old name (CI annotations at lines 46, 30, 31):<br>`src/lib/activity.ts(46,20): error TS2339: Property 'amount' does not exist on type …`<br>`src/components/StokvelView.test.tsx(30,33): error TS2353: Object literal may only specify known properties, and 'amount' does not exist …`<br>`src/components/ContributionList.tsx(31,90): error TS2339: Property 'amount' does not exist on type …` |
 
-The Stage 1 error text is from the same tree run locally (`c8321f8`, Release). GitHub lets only repository admins download job logs through the API. The CI job shows the same failing step, and the only difference from the green `2894149` is the one-line rename. Screenshots of each job page are to be added under `docs/history/evidence/assignment-9.3/`.
+Where the errors come from:
+- **Stages 2 and 3:** CI's own annotations (screenshots 05 and 06).
+- **Stage 1:** the error text is from the same tree run locally (`c8321f8`, Release). Its CI annotation says only "Process completed with exit code 1", and GitHub shows job logs only to signed-in users. The CI job fails at the same step (screenshot 02), and the only difference from the green `2894149` is the one-line rename.
+
+### Screenshots
+
+Folder: [`docs/history/evidence/assignment-9.3/`](evidence/assignment-9.3/)
+- 01–06 were taken on 10 Nov 2026 from the public run pages, signed out, so they show no account details.
+- 07–08 were taken by the author before the fix.
+
+| # | File | Shows |
+|---|---|---|
+| 01 | [green run](evidence/assignment-9.3/01-green-run-42762183487-2894149.png) | PR #13, `2894149`: Success, all three jobs green |
+| 02 | [stage 1](evidence/assignment-9.3/02-red-stage1-backend-42762756856-c8321f8.png) | PR #12, `c8321f8`: Backend failed at "Run automated tests"; Frontend green; E2E skipped |
+| 03 | [stage 2](evidence/assignment-9.3/03-red-stage2-frontend-drift-42763032333-d6dbedb.png) | PR #12, `d6dbedb`: Frontend failed at "API types match openapi/v1.json (type drift)"; lint and tsc skipped; Backend green |
+| 04 | [stage 3](evidence/assignment-9.3/04-red-stage3-frontend-tsc-42763290977-9556024.png) | PR #12, `9556024`: Frontend failed at "Typecheck (route types first)"; drift and lint green; Backend green |
+| 05 | [stage 2 annotations](evidence/assignment-9.3/05-red-stage2-summary-annotations-42763032333-d6dbedb.png) | The drift error on `web-next/src/lib/schema.d.ts` |
+| 06 | [stage 3 annotations](evidence/assignment-9.3/06-red-stage3-summary-annotations-42763290977-9556024.png) | The three tsc errors on `amount` |
+| 07 | [excluded: PR #13 first run](evidence/assignment-9.3/07-excluded-first-run-pr13-337b2a6-backend-failed.png) | PR #13 at `337b2a6`, before the newline fix: Backend failing |
+| 08 | [excluded: PR #12 first run](evidence/assignment-9.3/08-excluded-first-run-pr12-0f461c5-backend-failed.png) | PR #12 at `0f461c5`, before the newline fix: Backend failing (not used as stage-1 evidence) |
 
 ### Local verification
 
