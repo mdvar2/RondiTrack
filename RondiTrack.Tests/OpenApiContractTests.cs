@@ -25,6 +25,10 @@ public class OpenApiContractTests(PostgresApiFactory factory)
         var served = await FetchServedDocumentAsync();
         var path = CommittedDocumentPath();
 
+        // The document must not depend on the build OS (Windows newlines from XML
+        // doc comments once made a Windows-generated file fail on Linux CI).
+        Assert.DoesNotContain('\r', served.ToJsonString());
+
         if (Environment.GetEnvironmentVariable(UpdateVariable) == "1")
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
