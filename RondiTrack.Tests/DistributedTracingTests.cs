@@ -134,6 +134,14 @@ public class DistributedTracingTests(PostgresApiFactory factory)
         foreach (var forbidden in new[] { "Nomvula", "Privacyprobe", payer.Email, "987654", "9876.54", "9 876,54", key, "Bearer" })
             Assert.DoesNotContain(forbidden, text, StringComparison.OrdinalIgnoreCase);
         Assert.All(spans, span => Assert.Empty(span.Baggage));
+
+        // No infrastructure identity beyond the standard database attributes.
+        Assert.Contains(spans, span => span.Source.Name == "Npgsql");
+        foreach (var removed in TraceHygiene.DatabaseDetails)
+            Assert.DoesNotContain(spans, span => span.TagObjects.Any(tag => tag.Key == removed));
+        Assert.DoesNotContain("Username=", text, StringComparison.OrdinalIgnoreCase);
+        // Connection-string form only: SQL text legitimately names the "PasswordHash" column.
+        Assert.DoesNotContain("Password=", text, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

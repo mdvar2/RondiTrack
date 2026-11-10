@@ -39,7 +39,9 @@ var telemetry = builder.Services.AddOpenTelemetry()
         .AddSource(RondiTrackTelemetry.SourceName)
         .AddAspNetCoreInstrumentation(options =>
             options.Filter = context => !context.Request.Path.StartsWithSegments("/health"))
-        .AddNpgsql())
+        .AddNpgsql()
+        // Before any exporter: database spans lose the connection string and ids.
+        .AddProcessor(new TraceHygieneProcessor()))
     .WithMetrics(metrics => metrics
         .AddMeter(RondiTrackTelemetry.MeterName)
         .AddAspNetCoreInstrumentation()
