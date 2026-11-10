@@ -34,6 +34,13 @@ export default defineConfig({
       API_BASE_URL: process.env.API_BASE_URL ?? 'http://localhost:5147',
       SESSION_SECRET: process.env.SESSION_SECRET ?? '',
       APP_URL: baseURL,
+      // The simulated post-commit response failure (e2e/demo-fault.spec.ts).
+      // Off unless the run sets RONDITRACK_DEMO_FAULTS=enabled; CI's throwaway
+      // stack does, for its synthetic account only.
+      RONDITRACK_ENVIRONMENT: process.env.RONDITRACK_ENVIRONMENT ?? '',
+      RONDITRACK_DEMO_FAULTS: process.env.RONDITRACK_DEMO_FAULTS ?? '',
+      RONDITRACK_DEMO_FAULT_SECRET: process.env.RONDITRACK_DEMO_FAULT_SECRET ?? '',
+      RONDITRACK_DEMO_FAULT_ACCOUNTS: process.env.RONDITRACK_DEMO_FAULT_ACCOUNTS ?? '',
     },
   },
 })

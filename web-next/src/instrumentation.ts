@@ -5,7 +5,12 @@ import { trace } from '@opentelemetry/api'
 // Spans are exported over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set
 // (local Jaeger: http://localhost:4318); otherwise they are still created, so
 // the trace id still exists and is still sent to the API and shown as the reference.
-export function register() {
+export async function register() {
+  // Refuse to start with demo faults switched on outside a demo/test environment.
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { readDemoFaultConfig } = await import('./lib/demo-fault')
+    readDemoFaultConfig()
+  }
   const api = process.env.API_BASE_URL?.replace(/\/$/, '')
   registerOTel({
     serviceName: process.env.OTEL_SERVICE_NAME ?? 'ronditrack-web',

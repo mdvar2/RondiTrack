@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server'
 import { COOKIE_NAME, decrypt, encrypt, sessionCookieOptions } from '@/lib/session'
 import { isAccessTokenCloseToExpiry, rotateSession } from '@/lib/proxy'
+import { ARM_TTL_MS, createArmToken, DEMO_FAULT_COOKIE, DEMO_FAULT_PARAM, DEMO_FAULT_PARAM_VALUE, demoFaultConfig, isDemoAccount } from '@/lib/demo-fault'
 
 function isProtectedPath(pathname: string) {
   return pathname === '/' || pathname.startsWith('/dashboard') || pathname.startsWith('/stokvels')
@@ -44,6 +45,24 @@ export async function proxy(request: NextRequest) {
   if (!session) {
     if (isProtectedPath(pathname)) return toLogin(request, false)
     return NextResponse.next()
+  }
+
+  // ?demoFault=drop-next arms the simulated post-commit response failure
+  // (src/lib/demo-fault.ts). The parameter is always removed with a redirect;
+  // the arm cookie is only set when every server-side check passes, so the
+  // answer looks the same to anyone who isn't allowed.
+  if (request.nextUrl.searchParams.has(DEMO_FAULT_PARAM)) {
+    const clean = request.nextUrl.clone()
+    clean.searchParams.delete(DEMO_FAULT_PARAM)
+    const response = NextResponse.redirect(clean)
+    const config = demoFaultConfig()
+    if (config && request.nextUrl.searchParams.get(DEMO_FAULT_PARAM) === DEMO_FAULT_PARAM_VALUE
+      && pathname.startsWith('/stokvels/') && isDemoAccount(config, session.user.email)) {
+      response.cookies.set(DEMO_FAULT_COOKIE, createArmToken(config, session.user.id), {
+        httpOnly: true, sameSite: 'strict', secure: request.nextUrl.protocol === 'https:', path: '/', maxAge: ARM_TTL_MS / 1000,
+      })
+    }
+    return response
   }
 
   if (!isAccessTokenCloseToExpiry(session.accessToken)) return NextResponse.next()

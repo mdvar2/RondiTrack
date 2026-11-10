@@ -100,6 +100,11 @@ jobs:
       API_BASE_URL: http://localhost:5147
       CORS_ALLOWED_ORIGIN: http://localhost:3000
       CI: '1'
+      # The simulated post-commit response failure, for this throwaway stack's
+      # synthetic account only (e2e/demo-fault.spec.ts). Never set in production.
+      RONDITRACK_ENVIRONMENT: test
+      RONDITRACK_DEMO_FAULTS: enabled
+      RONDITRACK_DEMO_FAULT_ACCOUNTS: e2e.thandi@example.test
     steps:
       - uses: actions/checkout@v4
 
@@ -109,7 +114,8 @@ jobs:
           for pair in "POSTGRES_PASSWORD:$(openssl rand -hex 24)" \
                       "JWT_SIGNING_KEY:$(openssl rand -base64 48 | tr -d '\n')" \
                       "SESSION_SECRET:$(openssl rand -base64 32 | tr -d '\n')" \
-                      "E2E_PASSWORD:e2e-$(openssl rand -hex 12)"; do
+                      "E2E_PASSWORD:e2e-$(openssl rand -hex 12)" \
+                      "RONDITRACK_DEMO_FAULT_SECRET:$(openssl rand -base64 32 | tr -d '\n')"; do
             name="${pair%%:*}"; value="${pair#*:}"
             echo "::add-mask::$value"
             echo "$name=$value" >> "$GITHUB_ENV"
