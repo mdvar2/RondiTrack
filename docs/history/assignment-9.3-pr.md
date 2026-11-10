@@ -153,3 +153,5 @@ Automated: `DistributedTracingTests.ContributionTraces_CarryNoMemberDataAmountsO
 | `web-next/src/lib/trace.test.ts` (9) | Real answers pass through; a dropped connection becomes a 503 problem with the trace id; abort still rejects; it reaches `error.tsx` as `RONDITRACK_API;503;<trace id>`; `currentTraceId` ignores invalid spans; `rotateSession` throws on drop, 500 and 429, and returns `null` only on refusal. |
 
 Local results: API **164 passed** (Release); Vitest **180 passed** in UTC and in Africa/Johannesburg; type drift, lint, tsc and `npm run build` pass; `npm audit --omit=dev` 0 vulnerabilities.
+
+CI (PR #13): implementation `6b3b776`, docs `1bc7f3e`. [Run 42767582768](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768) on `1bc7f3e` passed: [backend](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768/job/129667589324), [frontend](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768/job/129667589636) and [end to end](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768/job/129668139776). The e2e job ran the Playwright suite against a production build with the instrumentation in place, with no exporter configured.
