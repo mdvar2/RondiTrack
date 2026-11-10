@@ -1,6 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { expiredLoginUrl, RETURN_PATH_HEADER } from './return-path'
 import { MAX_CONTRIBUTION_CENTS } from './money'
 import { parseRetryAfter } from './errors'
 import { refreshedApi } from './proxy'
@@ -32,6 +35,10 @@ export async function recordContribution(input: ContributionInput): Promise<Cont
   }).catch(() => null)
 
   if (!result) return { ok: false, status: 503 }
+  if (result.response.status === 401) {
+    // The session ended: sign in again, then back to this page (set by src/proxy.ts).
+    redirect(expiredLoginUrl((await headers()).get(RETURN_PATH_HEADER)))
+  }
   if (!result.response.ok) {
     return {
       ok: false,

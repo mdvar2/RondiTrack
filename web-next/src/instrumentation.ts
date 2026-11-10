@@ -1,5 +1,5 @@
 import { registerOTel } from '@vercel/otel'
-import { trace } from '@opentelemetry/api'
+import { isSpanContextValid, trace } from '@opentelemetry/api'
 
 // Next.js runs register() once per server instance, before any request.
 // Spans are exported over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set
@@ -24,14 +24,23 @@ export async function register() {
   })
 }
 
-// An error in a page or route that the API didn't cause has no API reference;
-// error.tsx shows Next's digest. Recording the digest on the request's span
-// makes that digest searchable in the trace backend (tag ronditrack.error.digest).
-// Only the digest and the error's type are recorded: never its message.
-export function onRequestError(error: unknown) {
-  const span = trace.getActiveSpan()
-  if (!span) return
+// An error the API didn't cause (a bug in a page or route) has no API
+// reference: error.tsx shows Next's digest. To make that digest lead to a trace:
+//  - it is recorded on the active span as ronditrack.error.digest (searchable
+//    by tag in the trace backend), when a span is active;
+//  - one log line pairs it with the trace id, the route template and the kind
+//    of request. Never the error's message, the concrete path or any header.
+export function onRequestError(
+  error: unknown,
+  _request: Readonly<{ path: string; method: string }>,
+  context: Readonly<{ routePath: string; routeType: string }>,
+) {
   const digest = typeof error === 'object' && error !== null && 'digest' in error ? String((error as { digest: unknown }).digest) : undefined
-  if (digest) span.setAttribute('ronditrack.error.digest', digest)
-  span.setAttribute('ronditrack.error.type', error instanceof Error ? error.name : typeof error)
+  if (!digest) return
+  const span = trace.getActiveSpan()
+  const spanContext = span?.spanContext()
+  const traceId = spanContext && isSpanContextValid(spanContext) ? spanContext.traceId : undefined
+  span?.setAttribute('ronditrack.error.digest', digest)
+  span?.setAttribute('ronditrack.error.type', error instanceof Error ? error.name : typeof error)
+  console.error(`[request-error] digest ${digest} trace ${traceId ?? 'unavailable'} route ${context.routePath} type ${context.routeType}`)
 }

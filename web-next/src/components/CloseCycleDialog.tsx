@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { formatCents } from '@/lib/money'
 import { useToast } from './ToastProvider'
 
@@ -25,6 +26,7 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
   // old effect also ran on page load and pulled focus to this button.
   const wasOpenRef = useRef(false)
   const { showToast } = useToast()
+  const router = useRouter()
 
   async function loadPreview() {
     setOpen(true)
@@ -34,15 +36,20 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
     try {
       const response = await fetch(`/bff/stokvels/${stokvelId}/cycles/${cycleId}/close`, { cache: 'no-store' })
       if (response.ok) setPreview(await response.json() as Preview)
+      else if (response.status === 401) router.push(signInAgainUrl())
       else if (response.status === 403) setError("You don't have permission to close this cycle.")
-      else {
+      else if (response.status >= 500) {
+        // One owner: the persistent toast. The dialog has nothing to show, so it closes.
         const problem = await response.json().catch(() => null) as { correlationId?: string } | null
-        showToast({ message: 'The close preview service failed. Please try again.', correlationId: problem?.correlationId, persistent: response.status >= 500 })
-        setError('The close preview could not be loaded.')
+        showToast({ message: 'The close preview could not be loaded. Please try again.', correlationId: problem?.correlationId, persistent: true })
+        setOpen(false)
+      } else {
+        const problem = await response.json().catch(() => null) as { detail?: string } | null
+        setError(problem?.detail ?? 'The close preview could not be loaded.')
       }
     } catch {
       showToast({ message: 'The close preview service is unavailable. Please try again.', persistent: true })
-      setError('The close preview could not be loaded.')
+      setOpen(false)
     }
   }
 
@@ -85,12 +92,17 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
     } else if (response.ok) {
       setOpen(false)
       window.location.reload()
+    } else if (response.status === 401) {
+      router.push(signInAgainUrl())
+    } else if (response.status === 403) {
+      setError("You don't have permission to close this cycle.")
     } else if (response.status >= 500) {
+      // One owner: the persistent toast. The preview stays, so confirming again is safe.
       const problem = await response.json().catch(() => null) as { correlationId?: string } | null
-      showToast({ message: 'The cycle could not be closed.', correlationId: problem?.correlationId, persistent: true })
-      setError('The cycle could not be closed.')
+      showToast({ message: 'The cycle could not be closed. Confirming again is safe.', correlationId: problem?.correlationId, persistent: true })
     } else {
-      setError('The cycle could not be closed.')
+      const problem = await response.json().catch(() => null) as { detail?: string } | null
+      setError(problem?.detail ?? 'The cycle could not be closed.')
     }
     setPending(false)
   }
@@ -138,4 +150,9 @@ export function CloseCycleDialog({ stokvelId, cycleId }: { stokvelId: string; cy
       )}
     </>
   )
+}
+
+// The session ended: sign in again and come back to this page.
+function signInAgainUrl() {
+  return `/login?expired=1&next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`
 }

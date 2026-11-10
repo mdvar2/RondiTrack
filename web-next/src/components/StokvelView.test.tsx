@@ -4,6 +4,7 @@ import { StokvelSummary } from './StokvelSummary'
 import { ContributionList } from './ContributionList'
 import { ToastProvider } from './ToastProvider'
 import type { ContributionWithMember, StokvelDetail, StokvelMember } from '@/lib/types'
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }) }))
 
 // Roles belong to a stokvel, not to a person. Sipho is Treasurer of the
 // family stokvel and an ordinary Member of the work one. The fixtures use the

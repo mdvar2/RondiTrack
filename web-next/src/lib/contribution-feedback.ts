@@ -26,9 +26,14 @@ export type ContributionResult =
 
 export type FormField = 'member' | 'amount'
 
+// One owner per error (Assignment 9.3 Part 3): problems with what was typed or
+// with the stokvel's current state (400, 403, 404, 409, 412, 422, 429) are shown
+// inline, next to the input that is kept; a failure on our side (5xx) or no
+// answer at all is a persistent toast. Never both.
 export type ContributionFeedback = {
   fieldErrors: Partial<Record<FormField, string>>
   formError?: { message: string; reference?: string }
+  toast?: { message: string; reference?: string }
   success?: string
 }
 
@@ -77,17 +82,30 @@ export function feedbackFor(result: ContributionResult, memberName: string): Con
     }
   }
 
+  if (result.status >= 500) {
+    return { fieldErrors: {}, toast: { message: SERVER_FAILURE_MESSAGE, reference } }
+  }
+
+  // 409: the stokvel's state refuses it (already paid, cycle closed): look again.
+  // 412: what this page showed is out of date: reload it.
+  // 422: the request itself breaks a rule: change it.
   const message =
     result.status === 401 ? 'Your session has ended. Sign in again to record this contribution.'
       : result.status === 403 ? "You don't have permission to record a contribution for this member."
         : result.status === 404 ? 'This stokvel or its cycle no longer exists.'
-          : result.status === 409 || result.status === 422 ? detail || 'This contribution was refused.'
-            : result.status === 429 ? `Too many contributions at once. Try again in ${result.retryAfterSeconds ?? 60} seconds.`
-              : 'Something went wrong on our side. Trying again is safe: it will not be recorded twice.'
+          : result.status === 409 ? `${detail || 'This contribution was refused.'} Reload the page to see the latest, then decide again.`
+            : result.status === 412 ? 'This page is out of date. Reload it, then try again.'
+              : result.status === 422 ? `${detail || 'This contribution breaks a rule.'} Change the details and try again.`
+                : result.status === 429 ? `Too many contributions at once. Try again in ${result.retryAfterSeconds ?? 60} seconds.`
+                  : detail || 'This contribution was refused.'
   return { fieldErrors: {}, formError: { message, reference } }
 }
 
+export const SERVER_FAILURE_MESSAGE = 'Something went wrong on our side. Trying again is safe: it will not be recorded twice.'
+
+// The browser got no answer, so it has no trace id to show: the toast says
+// "Reference unavailable" rather than inventing one.
 export const NETWORK_FEEDBACK: ContributionFeedback = {
   fieldErrors: {},
-  formError: { message: "We couldn't reach RondiTrack. Check your connection and try again: it will not be recorded twice." },
+  toast: { message: "We couldn't reach RondiTrack. Check your connection and try again: it will not be recorded twice." },
 }

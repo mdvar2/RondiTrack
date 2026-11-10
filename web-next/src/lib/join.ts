@@ -6,6 +6,7 @@ import { baseUrl } from './proxy'
 import { getSession } from './session'
 import { apiFetch } from './trace'
 import type { InvitePreview } from './join-state'
+import type { Problem } from './errors'
 
 export type { InvitePreview } from './join-state'
 
@@ -19,9 +20,11 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
   })
 }
 
-export async function previewInvite(code: string): Promise<{ response: Response; data?: InvitePreview }> {
+export async function previewInvite(code: string): Promise<{ response: Response; data?: InvitePreview; problem?: Problem }> {
   const response = await request(`/api/v1/invites/${encodeURIComponent(code)}`)
-  return { response, data: response.ok ? await response.json() as InvitePreview : undefined }
+  if (response.ok) return { response, data: await response.json() as InvitePreview }
+  const problem = await response.json().catch(() => null) as Problem | null
+  return { response, problem: problem ?? undefined }
 }
 
 export async function joinInvite(code: string): Promise<Response> {

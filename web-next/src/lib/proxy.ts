@@ -79,7 +79,15 @@ export function rotateSession(session: Session): Promise<RotatedSession | null> 
 export async function refreshSessionIfNeeded(session: Session): Promise<Session> {
   if (!isAccessTokenCloseToExpiry(session.accessToken)) return session
 
-  const rotated = await rotateSession(session)
+  let rotated: RotatedSession | null
+  try {
+    rotated = await rotateSession(session)
+  } catch {
+    // The API couldn't decide (unreachable, 5xx, 429). Keep the session, as the
+    // proxy does: the call that follows then fails with a trace reference
+    // (lib/trace.ts) instead of the action failing with none.
+    return session
+  }
   if (!rotated) {
     await deleteSession()
     redirect('/login?expired=1')
