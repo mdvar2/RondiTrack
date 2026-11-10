@@ -1,9 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { expiredLoginUrl, RETURN_PATH_HEADER } from './return-path'
 import { MAX_CONTRIBUTION_CENTS } from './money'
 import { parseRetryAfter } from './errors'
 import { refreshedApi } from './proxy'
+import { shouldDropCommittedResponse, SimulatedPostCommitResponseFailure } from './demo-fault-action'
 import type { ContributionInput, ContributionProblem, ContributionResult } from './contribution-feedback'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -31,6 +35,10 @@ export async function recordContribution(input: ContributionInput): Promise<Cont
   }).catch(() => null)
 
   if (!result) return { ok: false, status: 503 }
+  if (result.response.status === 401) {
+    // The session ended: sign in again, then back to this page (set by src/proxy.ts).
+    redirect(expiredLoginUrl((await headers()).get(RETURN_PATH_HEADER)))
+  }
   if (!result.response.ok) {
     return {
       ok: false,
@@ -40,6 +48,10 @@ export async function recordContribution(input: ContributionInput): Promise<Cont
     }
   }
 
+  // Demo/test environments only: the API has committed; simulate losing its answer.
+  // Before revalidatePath, so the browser gets nothing back, as with a real loss;
+  // the retry revalidates.
+  if (await shouldDropCommittedResponse(idempotencyKey)) throw new SimulatedPostCommitResponseFailure()
   revalidatePath(`/stokvels/${stokvelId}`)
   return { ok: true, amountCents }
 }

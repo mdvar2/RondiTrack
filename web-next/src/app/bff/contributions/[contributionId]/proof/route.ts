@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { baseUrl } from '@/lib/proxy'
 import { getSession } from '@/lib/session'
+import { apiFetch } from '@/lib/trace'
 
 type RouteContext = { params: Promise<{ contributionId: string }> }
 
@@ -30,7 +31,14 @@ async function forward(request: Request, context: RouteContext, method: string) 
     },
     cache: 'no-store',
   } as RequestInit & { duplex?: 'half' }
-  const response = await fetch(`${baseUrl()}/api/v1/contributions/${encodeURIComponent(contributionId)}/proof${method === 'GET' ? '/download' : ''}`, fetchOptions)
+  const response = await apiFetch(`${baseUrl()}/api/v1/contributions/${encodeURIComponent(contributionId)}/proof${method === 'GET' ? '/download' : ''}`, fetchOptions)
+  // A person who opened the proof link (a browser navigation) and may not see it,
+  // or for whom it doesn't exist (the API answers the same 404 for both), gets
+  // the app's not-found page instead of a JSON body. Programmatic callers
+  // (fetch) keep the API's 404 problem: the /bff/ contract is unchanged.
+  if (method === 'GET' && response.status === 404 && isNavigation(request)) {
+    return NextResponse.redirect(new URL('/not-found', request.url), 303)
+  }
   const headers = new Headers()
   for (const name of ['content-type', 'content-disposition', 'x-content-type-options', 'cache-control', 'etag']) {
     const value = response.headers.get(name)
@@ -41,4 +49,9 @@ async function forward(request: Request, context: RouteContext, method: string) 
     headers.set('Cache-Control', 'private, no-store')
   }
   return new NextResponse(response.body, { status: response.status, headers })
+}
+
+function isNavigation(request: Request): boolean {
+  return request.headers.get('sec-fetch-mode') === 'navigate'
+    && (request.headers.get('accept') ?? '').includes('text/html')
 }

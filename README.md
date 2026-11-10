@@ -221,15 +221,96 @@ curl.exe -i http://localhost:8080/health/ready
 
 Compose runs PostgreSQL, applies the migrations once, then starts the API on port 8080 in **Production**. That means no Scalar and no OpenAPI document. Its database is a separate Docker volume, not your local development database. `docker compose down -v` **deletes that volume**. The full Compose guide, with all its settings, is in the [Assignment 6.4 record](docs/history/assignment-6.4.md#build-and-run-with-docker).
 
+### Tracing locally (Jaeger)
+
+One trace runs from the Next.js server, through the API, to PostgreSQL (Assignment 9.3 Part 2). To see it locally:
+
+```bash
+# Jaeger (UI on http://localhost:16686), plus the API exporting to it
+API_OTLP_ENDPOINT=http://jaeger:4317 docker compose --profile observability up -d --build jaeger api
+# The frontend, exporting to the same Jaeger
+cd web-next && OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run build && OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm start
+```
+
+Paste a failure's **Reference** into Jaeger's "Lookup by Trace ID". Jaeger keeps traces in memory only, and its ports are bound to 127.0.0.1.
+
+| Setting | Half | Where it lives locally | Effect when unset |
+|---|---|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Compose `API_OTLP_ENDPOINT`, or user secrets for `dotnet run` | Spans are created but not exported |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Next.js | `web-next/.env.local` or the shell | Same; references still work |
+| `OTEL_SERVICE_NAME` | Next.js | as above | `ronditrack-web` |
+
+**SQL attributes:** database spans keep `db.system.name`, `db.namespace` and `server.address`/`server.port`; `TraceHygieneProcessor` removes the connection string (`db.npgsql.data_source`) and connection ids before export.
+
+**Simulated post-commit response failure (demo and test only).** For showing a safe retry: the contribution Server Action can be armed to throw *after* the API has committed, so the form behaves as if the answer were lost and the retry is replayed (trace outcome `replayed`). This is not a network disconnection, and it never changes what is recorded. **Never set these in production**; with the flag set outside `demo`/`test`, the Next.js server refuses to start. How it works and its safeguards: [Part 2 evidence](docs/history/assignment-9.3-pr.md#the-retry-through-the-ui-a-simulated-post-commit-response-failure).
+
+| Setting | Where | Value |
+|---|---|---|
+| `RONDITRACK_ENVIRONMENT` | Next.js server | `demo` or `test` to allow it; `production` in production |
+| `RONDITRACK_DEMO_FAULTS` | Next.js server | `enabled`, or unset (off) |
+| `RONDITRACK_DEMO_FAULT_SECRET` | Next.js server, a platform secret | 32+ random bytes, base64; signs the arm cookie |
+| `RONDITRACK_DEMO_FAULT_ACCOUNTS` | Next.js server | Comma-separated synthetic demo accounts on reserved example/test domains |
+
+To use it, a listed account opens `/stokvels/<id>?demoFault=drop-next` (armed for five minutes), records one contribution, then presses **Record contribution** again. The demo environment must run one Next.js server process.
+
+**What a span may carry:** IDs, routes, status codes, SQL text with `@placeholders` (never values, because `LogParameters=false`), and these RondiTrack attributes:
+- `ronditrack.idempotency.outcome`: `recorded`, `replayed`, `key_reused` or `rejected`
+- `ronditrack.job.local_date`, `ronditrack.job.time_zone` and `ronditrack.cycle_close.stokvels_due`
+- `ronditrack.error.digest` and `ronditrack.error.type`
+
+Never names, emails, amounts, account numbers, Idempotency-Keys, tokens, cookies or baggage. `DistributedTracingTests` checks this, and [the Part 2 evidence](docs/history/assignment-9.3-pr.md#part-2-one-trace-browser-to-database) records a real trace that was checked by hand.
+
+## Errors
+
+Every error has one owner and shows one message (Assignment 9.3 Part 3). "Reference" is always a trace id, except for an unexpected error in our own page code, which shows Next.js's digest (see the last row). Tests named here are in `web-next/e2e/` (Playwright) and `web-next/src/**/*.test.ts(x)` (Vitest); evidence is in [docs/history/assignment-9.3-pr.md](docs/history/assignment-9.3-pr.md#part-3-every-error-is-a-flow).
+
+| Status | What the person sees | What they can do next | Signed in? | Input kept? | Owner (layer) | Tests |
+|---|---|---|---|---|---|---|
+| **401** session ended | The sign-in page: "Your session has expired. Please sign in again." | Sign in; they return to **exactly** the page they were on (`?next=`, a path on this site only) | No (that is the point) | Not applicable | **Proxy** (`src/proxy.ts`), when the refresh is refused; otherwise `api()`'s 401 handling (`src/lib/api.ts`), the contribution Server Action, or the close dialog and proof upload | `session-expiry.spec.ts` (1-minute tokens, session revoked elsewhere); `api-401.test.ts`; `return-path.test.ts` |
+| **403** | A message in place, e.g. "You don't have permission to close this cycle." | Carry on; ask the treasurer | **Yes** | Yes | The component that asked: **Server Action state** (contribution form) or the close dialog (`/bff/` route answer) | `roles.spec.ts` (forged treasurer action → 403, still signed in); `CloseCycleDialog.test.tsx` |
+| **404** | "We couldn't find that stokvel" (or "...that page" for a proof link), **the same for "not yours" and "doesn't exist"** | Back to my stokvels / dashboard | Yes | Not applicable | **Server Component** (`readOrFail` → `not-found.tsx`); for a proof link opened in the browser, the **`/bff/` route** redirects to `app/not-found.tsx`, while `fetch` callers keep the API's JSON 404 | `errors.spec.ts` (stokvel and proof, not-yours vs random, by navigation and by fetch; the owner's download unchanged) |
+| **409** | The reason and "Reload the page to see the latest, then decide again." (contribution); a stale close preview: "The cycle changed since this preview…" with the **new preview** shown | Reload or review, then decide again | Yes | **Yes** | **Server Action state** (contribution form, inline); the close dialog (inline) | `errors.spec.ts` (duplicate contribution, stale close preview); `ContributionForm.test.tsx` |
+| **412 / 422** | 412: "This page is out of date. Reload it, then try again." 422: the reason and "Change the details and try again." | Reload (412) / change the input (422) | Yes | **Yes** | Server Action state (contribution form, inline) | `ContributionForm.test.tsx`. **The API sends neither today:** rule refusals are 409 and a stale close preview is 409. The form is ready for both. |
+| **429** | "Retry after N seconds." (sign-in); "Too many code checks. Try again in N seconds." (invite codes); "Too many contributions at once. Try again in N seconds." — N from `Retry-After` | Wait N seconds | Yes (where they were) | Yes | **Server Action state** (sign-in), **Server Component** (join page), Server Action state (contribution) | `session-expiry.spec.ts` (sign-in and invite-code guesses); `InviteGuessRateLimitTests` (API: per account, Retry-After) |
+| **500 / no answer** (form or dialog) | A **persistent toast** that stays until closed: "Something went wrong on our side. Trying again is safe…" with **Reference: trace id**. If the browser itself got no answer, the toast says "Reference unavailable." rather than inventing one | Close it; try again (same Idempotency-Key, so never recorded twice) | Yes | **Yes** | **Toast** (`ToastProvider`), raised by the contribution form, close dialog and proof upload | `session-expiry.spec.ts` (API stopped mid-page: toast with a trace reference that Jaeger finds); `ContributionForm.test.tsx`; `CloseCycleDialog.test.tsx` |
+| **500 / no answer** (page render) | Our error panel: "Something went wrong. Please try again." with **Reference: trace id** and Copy, Try again. Never Next.js's default error page | Try again | Yes | Not applicable | **`error.tsx`**: `app/(app)/error.tsx` (signed-in pages), `app/error.tsx` (sign-in, join), `app/global-error.tsx` (the root layout) | `session-expiry.spec.ts` (`/join` with the API stopped) |
+| **Unexpected error in our own code** | The same panel, with **Reference: Next.js's digest** (not a trace id) | Try again; quote the reference | Yes | Not applicable | `error.tsx`; `src/instrumentation.ts` `onRequestError` records the digest on the request's span (`ronditrack.error.digest`) and logs `[request-error] digest <d> trace <id> route <template> type <kind>` | Verified once with a temporary, uncommitted render error (Part 3 evidence). In Jaeger, search by tag `ronditrack.error.digest=<digest>`, not "Lookup by Trace ID". |
+
+Known gaps:
+- A not-found stokvel is served with HTTP **200**, not 404, because the page shell streams before the API answers (`cacheComponents`). It is identical for "not yours" and "doesn't exist", which is what keeps it safe.
+- The API doesn't distinguish 422 from 409 yet.
+
 ## Testing and Verification
 
 | Project | Command | Latest result |
 |---|---|---|
-| Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **145 passed**, 0 failed, 27 Oct 2026 |
-| `web-next/` | `npm run lint`, `npm test`, `npm run build`, `npm audit` | Lint clean, **58 passed**, build succeeded, 0 vulnerabilities, 27 Oct 2026 |
+| Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **165 passed**, 0 failed (Release), 10 Nov 2026 |
+| `web-next/` | `npm run check:api-types`, `npm run lint`, `npm run typecheck`, `npm test` (TZ=UTC and Africa/Johannesburg), `npm run build`, `npm audit --omit=dev`, `npx playwright test` | Types match the contract, lint clean, tsc clean, **228 passed** in each time zone, build succeeded, 0 vulnerabilities, Playwright **37 passed** (including the 1-minute-token project), 10 Nov 2026 |
 | `web/` | `npm run lint`, `npm test -- --run` | Lint clean, **63 passed**, 27 Oct 2026. Build last recorded in 7.4 |
 
-**What CI checks:** on pushes and pull requests to `main`, [GitHub Actions](.github/workflows/ci.yml) restores, builds and tests the **backend** in Release and builds the Docker image. It doesn't run either frontend's checks; those are run locally, as above.
+**What CI checks:** on pushes to `main` and on every pull request, [GitHub Actions](.github/workflows/ci.yml) runs three jobs. **backend** builds and runs the API tests in Release (including the OpenAPI contract test) and builds the Docker image. **frontend** (`web-next/`) runs the type-drift check, then lint, tsc and Vitest in two time zones. **e2e** runs Playwright against a fresh Compose stack once both pass.
+
+### The API contract (openapi/v1.json)
+
+The frontend's types are generated from the API's OpenAPI document, so three copies must agree: what the API serves, the committed [`openapi/v1.json`](openapi/v1.json), and the generated [`web-next/src/lib/schema.d.ts`](web-next/src/lib/schema.d.ts).
+
+| Check | Where | Fails when |
+|---|---|---|
+| [`OpenApiContractTests`](RondiTrack.Tests/OpenApiContractTests.cs) | backend job | The running API's document differs from `openapi/v1.json`. The failure lists every differing JSON path. |
+| Type drift (`npm run check:api-types`) | frontend job, before lint and tsc | The types regenerated from `openapi/v1.json` differ from the committed `schema.d.ts` (`git diff --exit-code`). |
+| `tsc --noEmit` | frontend job | Frontend code still reads a field the new types no longer have. |
+
+After an intended API change, regenerate both files and commit them with the change:
+
+```bash
+# 1. The document, from the running API (bash; Docker must be running)
+OPENAPI_UPDATE=1 dotnet test RondiTrack.Tests --filter OpenApiContractTests
+#    PowerShell: $env:OPENAPI_UPDATE=1; dotnet test RondiTrack.Tests --filter OpenApiContractTests; Remove-Item Env:OPENAPI_UPDATE
+# 2. The types, from the committed document
+cd web-next && npm run generate:api
+```
+
+The `servers` entry is left out of the committed document because it echoes the request's host.
 
 **Signed-in check for `web-next/` (27 Oct 2026):** a local script signed in three demonstration accounts, built real session cookies and fetched every page from the production build against the running API. 98 checks passed, 0 failed. The checks covered roles, the treasurer filter, not-found pages, and no tokens or API port in the HTML. The script and the demonstration accounts are local, not part of the repository; the result is recorded in the Assignment 8.1 pull request.
 

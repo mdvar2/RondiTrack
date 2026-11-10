@@ -11,6 +11,8 @@ public static class RateLimitPolicies
     public const string Contributions = "Contributions";
     public const string Payouts = "Payouts";
     public const string InviteStatus = "InviteStatus";
+    // Signed-in invite-code checks and joins, per account: slows anyone guessing codes.
+    public const string InviteGuesses = "InviteGuesses";
 
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
@@ -18,6 +20,7 @@ public static class RateLimitPolicies
         var loginWindow = TimeSpan.FromSeconds(Positive(configuration, "Login:WindowSeconds"));
         var contribution = Bucket(configuration, Contributions);
         var payout = Bucket(configuration, Payouts);
+        var inviteGuesses = Bucket(configuration, InviteGuesses);
         var inviteStatusLimit = Positive(configuration, "InviteStatus:PermitLimit");
         var inviteStatusWindow = TimeSpan.FromSeconds(Positive(configuration, "InviteStatus:WindowSeconds"));
         services.AddRateLimiter(options =>
@@ -36,6 +39,7 @@ public static class RateLimitPolicies
                     PermitLimit = inviteStatusLimit, Window = inviteStatusWindow, QueueLimit = 0, AutoReplenishment = true
                 }));
             options.AddPolicy(Payouts, context => UserBucket(context, payout));
+            options.AddPolicy(InviteGuesses, context => UserBucket(context, inviteGuesses));
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var http = context.HttpContext;

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { baseUrl } from '@/lib/proxy'
 import { getSession } from '@/lib/session'
+import { apiFetch } from '@/lib/trace'
 
 type Context = { params: Promise<{ stokvelId: string; cycleId: string }> }
 
@@ -16,7 +17,7 @@ async function forward(request: Request, context: Context, method: string) {
   const session = await getSession()
   if (!session) return NextResponse.json({ title: 'Authentication required.' }, { status: 401 })
   const { stokvelId, cycleId } = await context.params
-  const response = await fetch(`${baseUrl()}/api/v1/stokvels/${stokvelId}/cycles/${cycleId}/close${method === 'GET' ? '/preview' : ''}`, {
+  const response = await apiFetch(`${baseUrl()}/api/v1/stokvels/${stokvelId}/cycles/${cycleId}/close${method === 'GET' ? '/preview' : ''}`, {
     method,
     body: method === 'POST' ? await request.arrayBuffer() : undefined,
     headers: {

@@ -513,6 +513,390 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contributions/{contributionId}/proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContributionProofResponse"];
+                        "application/json": components["schemas"]["ContributionProofResponse"];
+                        "text/json": components["schemas"]["ContributionProofResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ContributionProofResponse"];
+                        "application/json": components["schemas"]["ContributionProofResponse"];
+                        "text/json": components["schemas"]["ContributionProofResponse"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contributions/{contributionId}/proof/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stokvels/{stokvelId}/cycles/{cycleId}/close/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stokvelId: string;
+                    cycleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["CycleClosePreviewResponse"];
+                        "application/json": components["schemas"]["CycleClosePreviewResponse"];
+                        "text/json": components["schemas"]["CycleClosePreviewResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stokvels/{stokvelId}/cycles/{cycleId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path: {
+                    stokvelId: string;
+                    cycleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CloseCycleRequest"];
+                    "text/json": components["schemas"]["CloseCycleRequest"];
+                    "application/*+json": components["schemas"]["CloseCycleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["CloseCycleResponse"];
+                        "application/json": components["schemas"]["CloseCycleResponse"];
+                        "text/json": components["schemas"]["CloseCycleResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stokvels/{stokvelId}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stokvelId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["CreateInviteResponse"];
+                        "application/json": components["schemas"]["CreateInviteResponse"];
+                        "text/json": components["schemas"]["CreateInviteResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["InvitePreviewResponse"];
+                        "application/json": components["schemas"]["InvitePreviewResponse"];
+                        "text/json": components["schemas"]["InvitePreviewResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{code}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["InviteStatusResponse"];
+                        "application/json": components["schemas"]["InviteStatusResponse"];
+                        "text/json": components["schemas"]["InviteStatusResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{code}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1426,6 +1810,19 @@ export interface components {
             /** Format: date-time */
             expiresAtUtc: string;
         };
+        CloseCycleRequest: {
+            version: string;
+        };
+        CloseCycleResponse: {
+            /** Format: uuid */
+            cycleId: string;
+            period: string;
+            /** Format: date */
+            asOfDate: string;
+            arrears: components["schemas"]["CycleArrearPreview"][];
+            /** Format: int64 */
+            totalCents: number;
+        };
         ContributionCycleResponse: {
             /** Format: uuid */
             id: string;
@@ -1445,6 +1842,18 @@ export interface components {
             totalCollectedCents: number;
             /** Format: int64 */
             amountDueCents: number;
+        };
+        ContributionProofResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            contributionId: string;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            length: number;
+            /** Format: date-time */
+            uploadedAtUtc: string;
         };
         ContributionResponse: {
             /** Format: uuid */
@@ -1490,6 +1899,11 @@ export interface components {
             /** Format: date */
             endDate?: null | string;
         };
+        CreateInviteResponse: {
+            code: string;
+            /** Format: date-time */
+            expiresAtUtc: string;
+        };
         CreatePayoutRequest: {
             /** Format: double */
             amount: number;
@@ -1502,6 +1916,24 @@ export interface components {
         CreateUserRequest: {
             name: string;
             email: string;
+        };
+        CycleArrearPreview: {
+            /** Format: uuid */
+            userId: string;
+            userName: string;
+            /** Format: int64 */
+            amountCents: number;
+        };
+        CycleClosePreviewResponse: {
+            /** Format: uuid */
+            cycleId: string;
+            period: string;
+            /** Format: date */
+            asOfDate: string;
+            version: string;
+            arrears: components["schemas"]["CycleArrearPreview"][];
+            /** Format: int64 */
+            totalCents: number;
         };
         HomeCycleResponse: {
             period: string;
@@ -1529,6 +1961,22 @@ export interface components {
              * @default 0
              */
             arrearsCents: number;
+        };
+        /** Format: binary */
+        IFormFile: string;
+        InvitePreviewResponse: {
+            /** Format: uuid */
+            stokvelId: string;
+            name: string;
+            /** Format: int64 */
+            contributionAmountCents: number;
+            schedule: string;
+            rules: string;
+            /** Format: int32 */
+            memberCount: number;
+        };
+        InviteStatusResponse: {
+            status: string;
         };
         LoginRequest: {
             email: string;

@@ -1,0 +1,2 @@
+[demo-fault] Simulated post-commit response failure (demonstration only). Trace d5d1466e174ed065d24d5221dcb64833.
+⨯ SimulatedPostCommitResponseFailure: Simulated post-commit response failure (demonstration only). The contribution was committed.

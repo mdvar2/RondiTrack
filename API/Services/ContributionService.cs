@@ -49,6 +49,27 @@ public class ContributionService
         Guid stokvelId, Guid userId, string idempotencyKey,
         RecordContributionRequest request)
     {
+        // One span per attempt. Its only attribute is the idempotency outcome, so a
+        // retry's trace shows "replayed" (and no INSERT) beside the original's
+        // "recorded". No ids, names, amounts or the key itself go on the span.
+        using var activity = _telemetry.Activities.StartActivity(RondiTrackTelemetry.ContributionRecordSpan);
+        try
+        {
+            return await RecordContributionCoreAsync(stokvelId, userId, idempotencyKey, request);
+        }
+        catch (Exception) when (activity is not null)
+        {
+            if (activity.GetTagItem(RondiTrackTelemetry.IdempotencyOutcomeTag) is null)
+                activity.SetTag(RondiTrackTelemetry.IdempotencyOutcomeTag, RondiTrackTelemetry.OutcomeRejected);
+            activity.SetStatus(System.Diagnostics.ActivityStatusCode.Error);
+            throw;
+        }
+    }
+
+    private async Task<ContributionResponse> RecordContributionCoreAsync(
+        Guid stokvelId, Guid userId, string idempotencyKey,
+        RecordContributionRequest request)
+    {
         if (_db is null)
             return await RecordCoreAsync(stokvelId, userId, idempotencyKey, request);
 
@@ -97,10 +118,12 @@ public class ContributionService
         {
             if (existingRecord.RequestHash != requestHash)
             {
+                SetOutcome(RondiTrackTelemetry.OutcomeKeyReused);
                 throw new BusinessRuleException(
                     "Idempotency-Key was already used with a different request.");
             }
 
+            SetOutcome(RondiTrackTelemetry.OutcomeReplayed);
             return existingRecord.ResponseBody;
         }
 
@@ -195,8 +218,13 @@ public class ContributionService
         await _idempotencyStore.SaveAsync(
             idempotencyRecord);
 
+        SetOutcome(RondiTrackTelemetry.OutcomeRecorded);
         return response;
     }
+
+    // The execution strategy may run the delegate again; the last attempt's outcome wins.
+    private static void SetOutcome(string outcome) =>
+        System.Diagnostics.Activity.Current?.SetTag(RondiTrackTelemetry.IdempotencyOutcomeTag, outcome);
 
     private static string CreateRequestHash(
         Guid stokvelId,
