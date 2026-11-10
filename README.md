@@ -221,12 +221,38 @@ curl.exe -i http://localhost:8080/health/ready
 
 Compose runs PostgreSQL, applies the migrations once, then starts the API on port 8080 in **Production**. That means no Scalar and no OpenAPI document. Its database is a separate Docker volume, not your local development database. `docker compose down -v` **deletes that volume**. The full Compose guide, with all its settings, is in the [Assignment 6.4 record](docs/history/assignment-6.4.md#build-and-run-with-docker).
 
+### Tracing locally (Jaeger)
+
+One trace runs from the Next.js server, through the API, to PostgreSQL (Assignment 9.3 Part 2). To see it locally:
+
+```bash
+# Jaeger (UI on http://localhost:16686), plus the API exporting to it
+API_OTLP_ENDPOINT=http://jaeger:4317 docker compose --profile observability up -d --build jaeger api
+# The frontend, exporting to the same Jaeger
+cd web-next && OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run build && OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm start
+```
+
+Paste a failure's **Reference** into Jaeger's "Lookup by Trace ID". Jaeger keeps traces in memory only, and its ports are bound to 127.0.0.1.
+
+| Setting | Half | Where it lives locally | Effect when unset |
+|---|---|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Compose `API_OTLP_ENDPOINT`, or user secrets for `dotnet run` | Spans are created but not exported |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Next.js | `web-next/.env.local` or the shell | Same; references still work |
+| `OTEL_SERVICE_NAME` | Next.js | as above | `ronditrack-web` |
+
+**What a span may carry:** IDs, routes, status codes, SQL text with `@placeholders` (never values, because `LogParameters=false`), and these RondiTrack attributes:
+- `ronditrack.idempotency.outcome`: `recorded`, `replayed`, `key_reused` or `rejected`
+- `ronditrack.job.local_date`, `ronditrack.job.time_zone` and `ronditrack.cycle_close.stokvels_due`
+- `ronditrack.error.digest` and `ronditrack.error.type`
+
+Never names, emails, amounts, account numbers, Idempotency-Keys, tokens, cookies or baggage. `DistributedTracingTests` checks this, and [the Part 2 evidence](docs/history/assignment-9.3-pr.md#part-2-one-trace-browser-to-database) records a real trace that was checked by hand.
+
 ## Testing and Verification
 
 | Project | Command | Latest result |
 |---|---|---|
-| Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **161 passed**, 0 failed (Release), 9 Nov 2026 |
-| `web-next/` | `npm run check:api-types`, `npm run lint`, `npm run typecheck`, `npm test` (TZ=UTC and Africa/Johannesburg), `npm run build`, `npm audit --omit=dev` | Types match the contract, lint clean, tsc clean, **171 passed** in each time zone, build succeeded, 0 vulnerabilities, 9 Nov 2026 |
+| Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **164 passed**, 0 failed (Release), 10 Nov 2026 |
+| `web-next/` | `npm run check:api-types`, `npm run lint`, `npm run typecheck`, `npm test` (TZ=UTC and Africa/Johannesburg), `npm run build`, `npm audit --omit=dev` | Types match the contract, lint clean, tsc clean, **180 passed** in each time zone, build succeeded, 0 vulnerabilities, 10 Nov 2026 |
 | `web/` | `npm run lint`, `npm test -- --run` | Lint clean, **63 passed**, 27 Oct 2026. Build last recorded in 7.4 |
 
 **What CI checks:** on pushes to `main` and on every pull request, [GitHub Actions](.github/workflows/ci.yml) runs three jobs. **backend** builds and runs the API tests in Release (including the OpenAPI contract test) and builds the Docker image. **frontend** (`web-next/`) runs the type-drift check, then lint, tsc and Vitest in two time zones. **e2e** runs Playwright against a fresh Compose stack once both pass.

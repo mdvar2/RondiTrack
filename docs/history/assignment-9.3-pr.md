@@ -87,3 +87,69 @@ Folder: [`docs/history/evidence/assignment-9.3/`](evidence/assignment-9.3/)
 ### The old contract copy
 
 `clients/typescript/` (Assignment 6.3) has its own `openapi.json`. It is kept unchanged as that assignment's evidence. Its README now says it is a frozen snapshot and that `openapi/v1.json` is the only contract. Nothing in CI, the tests or either frontend reads it, and its own `check` and `test:money` still pass.
+
+## Part 2: One trace, browser to database
+
+Local evidence only. Every trace below was captured on 10 Nov 2026 from a **throwaway Compose project** (`ronditrack-trace`). It had its own new database volume, synthetic data from `web-next/scripts/seed-perf.mjs`, and credentials generated for the run that were never written to the repo. It **does not prove the deployed environment works**; Part 5 repeats this against the deployed URLs.
+
+### What was built
+
+| Piece | File | What it does |
+|---|---|---|
+| Next.js joins the trace | [`web-next/src/instrumentation.ts`](../../web-next/src/instrumentation.ts) | `@vercel/otel` through Next's instrumentation hook. `traceparent` is propagated **only** to `API_BASE_URL/` (by default it goes only to Vercel deployment URLs, so it has to be enabled explicitly). |
+| One reference | [`web-next/src/lib/trace.ts`](../../web-next/src/lib/trace.ts) | Every server-side call to the API (the three typed clients, both `/bff/` routes, the invite calls) goes through `apiFetch`. If the API never answers, it returns a 503 problem whose `correlationId` is the Next.js trace id. If the API answered, the reference is the API's `correlationId`, which is the same trace. |
+| Refresh keeps the session | [`web-next/src/lib/proxy.ts`](../../web-next/src/lib/proxy.ts) `rotateSession` | Throws when the API is unreachable or answers 5xx or 429, so the member stays signed in. Returns `null` (sign in again) only when the API refuses the token. Before this, a 500 during refresh signed the member out. |
+| Unexpected errors | `instrumentation.ts` `onRequestError` | Records Next's error digest (never the message) on the request span as `ronditrack.error.digest`. **Not yet exercised against a live error**; to be verified with Part 3's 500 flow. |
+| Idempotency outcome | [`API/Services/ContributionService.cs`](../../API/Services/ContributionService.cs) | A `contribution.record` span per attempt, whose only attribute is `ronditrack.idempotency.outcome` (`recorded`, `replayed`, `key_reused` or `rejected`). |
+| Job trace | [`API/BackgroundJobs/CycleCloseProcessor.cs`](../../API/BackgroundJobs/CycleCloseProcessor.cs) | Each run is a new root span `cycle-close.run`, ignoring any ambient Activity. It carries the Johannesburg date, the time zone and the number of stokvels due, and logs `Cycle-close run {TraceId} for Johannesburg date {LocalDate}`. Per-stokvel spans are its children; before this, each stokvel was its own trace. |
+| Local backend | [`compose.yaml`](../../compose.yaml) `jaeger` | `jaegertracing/jaeger:2.22.0`, profile `observability`, ports bound to 127.0.0.1, in-memory storage. |
+
+New packages, all pinned and published on or before 27 Oct 2026; `npm audit --omit=dev` reports 0:
+
+| Package | Version | Published |
+|---|---|---|
+| `@vercel/otel` | 2.1.3 | 2026-06-11 (2.1.4 and later are under two weeks old) |
+| `@opentelemetry/api` | 1.9.1 | 2026-03-25 (1.10.0 is outside `resources@2.12.0`'s peer range) |
+| `@opentelemetry/resources`, `sdk-metrics`, `sdk-trace-base` | 2.12.0 | 2026-10-06 |
+| `@opentelemetry/api-logs`, `sdk-logs`, `instrumentation` | 0.223.0 | 2026-10-06 |
+| `@opentelemetry/semantic-conventions` (override) | 1.43.0 | 2026-07-09 (1.45.0 was resolved first: 4 days old) |
+| `import-in-the-middle` (override) | 3.5.3 | 2026-10-26 (3.6.0 was resolved first: 4 days old) |
+| Docker `jaegertracing/jaeger` | 2.22.0 | 2026-10-06 (2.23.0 is 5 days old) |
+
+### Evidence
+
+Folder: [`docs/history/evidence/assignment-9.3/part2/`](evidence/assignment-9.3/part2/). Each trace's raw Jaeger JSON is beside its screenshot.
+
+| # | What | Result |
+|---|---|---|
+| 09, 10 | **A reference on screen finds one trace, browser to database.** The treasurer recorded a contribution for a member who had already paid; the form showed the API's refusal with `Reference: 8db38ad24f4ddc74913d16a7f9d46a4f`. | Jaeger, looked up by that id, finds exactly one trace: 18 spans across `ronditrack-web` and `ronditrack-api`. The tree is `POST /stokvels/[id]` (Next.js) → `fetch POST …/contributions` (Next.js) → `POST api/v1/stokvels/{stokvelId:guid}/members/{userId:guid}/contributions` (API) → `contribution.record` (outcome `rejected`) → 7 `postgresql` spans, plus 3 `postgresql` spans before it. |
+| 11, 12 | **A retry with the same Idempotency-Key writes nothing.** API level: two requests sent directly to the API with the same key, each with its own `traceparent`. | First, trace `cfed822f7203a82dd4bf08a6fda701e4`: 201, 18 spans, outcome `recorded`, 16 SQL statements including `INSERT INTO "Contributions"` and `INSERT INTO "PersistedIdempotencyRecords"`. Retry, trace `7db1002ba926b8d969d5ff9510f701ea`: 201 with the same body, 7 spans, outcome `replayed`, 5 SQL statements and **no INSERT**. The database holds exactly 1 row for that member and cycle. Jaeger marks both traces "Incomplete" because their parent span came from the command line and was never exported. |
+| 13, log | **The cycle-close job is its own trace.** A synthetic stokvel with a cycle that ended on 2026-10-31 was created in the throwaway database; the next worker run closed it. | Trace `55010043b2e8e07342e74c0cc95ec03a`: root `cycle-close.run` with **no parent reference**, `ronditrack.job.local_date=2026-11-10`, `ronditrack.job.time_zone=Africa/Johannesburg`, `ronditrack.cycle_close.stokvels_due=1`; children are 1 `stokvel.cycle_close` and 11 `postgresql` spans. Log: `Cycle-close run 55010043b2e8e07342e74c0cc95ec03a for Johannesburg date 2026-11-10 (UTC now 2026-11-10T06:10:33.6693533+00:00).` |
+| 14, 15 | **No answer still has a reference.** The throwaway API container was stopped after sign-in, then a contribution was submitted. | The form showed `Reference: 34e26b1ee2534cb19733aa83b4423982`. Jaeger finds that trace: `ronditrack-web` only, 6 spans, with the `fetch POST …/contributions` span marked as an error. |
+
+Still to do for Part 2: **the retry through the UI**, where the first attempt fails as if the connection dropped and the form retries with the same key. It waits on the approved demonstration design, so the retry evidence above is API level only.
+
+### Privacy: what was checked in a real trace
+
+Every attribute of every span in trace `8db38ad2…` was listed (by key, across both services), and the whole trace JSON was searched for each seeded first name and surname, the treasurer's email domain, the amount (`50000`, `500,00`, `500.00`), `Bearer`, `eyJ` (JWT), `Cookie`, `password`, the session cookie name and the Idempotency-Key.
+
+- No member data: the only match was the table name `"PersistedIdempotencyRecords"` in SQL text, where the key is the placeholder `@key`.
+- Attribute values are IDs (stokvel and user GUIDs in URLs and routes), HTTP methods and status codes, SQL text with `@placeholders`, and the RondiTrack attributes listed in the README.
+- No exception messages and no baggage.
+- Two findings to keep in mind:
+  - `db.npgsql.data_source` includes the database host and username (`Host=db;…;Username=ronditrack`) but never the password, because Npgsql strips it.
+  - The Next.js process is tagged `cloud.provider=vercel` even locally (from `@vercel/otel`).
+- The cycle-close trace contains neither the stokvel's name nor its amount.
+
+Automated: `DistributedTracingTests.ContributionTraces_CarryNoMemberDataAmountsOrKeys` fails if a span or baggage contains the payer's name, email, amount (three formats), Idempotency-Key or `Bearer`. It was checked against a deliberate mutation (the payer's name added as a span attribute), and it failed with `Found: "Nomvula"`.
+
+### Tests added
+
+| Test | Checks |
+|---|---|
+| `DistributedTracingTests.RetryWithSameKey_EachRequestContinuesItsCallersTrace_OnlyTheFirstWrites` | Each request continues its caller's trace; outcomes `recorded` and `replayed`; INSERT only in the first trace; 1 row. |
+| `DistributedTracingTests.ContributionTraces_CarryNoMemberDataAmountsOrKeys` | As above. |
+| `DistributedTracingTests.CycleCloseRun_IsItsOwnRootTrace_WithTheJohannesburgDateInTagAndLog` | The run has no parent even inside an ambient Activity, which is restored afterwards; the SAST date is in the tag and the log, keyed by trace id; per-stokvel spans share the run's trace. |
+| `web-next/src/lib/trace.test.ts` (9) | Real answers pass through; a dropped connection becomes a 503 problem with the trace id; abort still rejects; it reaches `error.tsx` as `RONDITRACK_API;503;<trace id>`; `currentTraceId` ignores invalid spans; `rotateSession` throws on drop, 500 and 429, and returns `null` only on refusal. |
+
+Local results: API **164 passed** (Release); Vitest **180 passed** in UTC and in Africa/Johannesburg; type drift, lint, tsc and `npm run build` pass; `npm audit --omit=dev` 0 vulnerabilities.
