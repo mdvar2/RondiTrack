@@ -2589,7 +2589,7 @@
           "userEmail",
           "memberRole",
           "contributionCycleId",
-          "amount",
+          "amountCents",
           "status",
           "recordedAtUtc",
           "version"
@@ -2621,7 +2621,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "amount": {
+          "amountCents": {
             "type": "integer",
             "format": "int64"
           },
