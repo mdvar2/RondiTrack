@@ -1885,7 +1885,7 @@ export interface components {
             /** Format: uuid */
             contributionCycleId: string;
             /** Format: int64 */
-            amount: number;
+            amountCents: number;
             status: string;
             /** Format: date-time */
             recordedAtUtc: string;
