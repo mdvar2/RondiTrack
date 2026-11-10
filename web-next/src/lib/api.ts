@@ -5,6 +5,7 @@ import type { paths } from './schema'
 import { ApiError, type Problem } from './errors'
 import { getSession } from './session'
 import { baseUrl } from './proxy'
+import { apiClientFetch } from './trace'
 
 export { publicApi } from './proxy'
 
@@ -18,6 +19,7 @@ export async function api() {
   return createClient<paths>({
     baseUrl: baseUrl(),
     cache: 'no-store',
+    fetch: apiClientFetch,
     headers: { Authorization: `Bearer ${session.accessToken}` },
   })
 }

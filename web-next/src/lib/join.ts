@@ -4,6 +4,7 @@ import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { baseUrl } from './proxy'
 import { getSession } from './session'
+import { apiFetch } from './trace'
 import type { InvitePreview } from './join-state'
 
 export type { InvitePreview } from './join-state'
@@ -11,7 +12,7 @@ export type { InvitePreview } from './join-state'
 async function request(path: string, init?: RequestInit): Promise<Response> {
   const session = await getSession()
   if (!session) redirect(`/login?next=${encodeURIComponent(`/join${path}`)}`)
-  return fetch(`${baseUrl()}${path}`, {
+  return apiFetch(`${baseUrl()}${path}`, {
     ...init,
     cache: 'no-store',
     headers: { Authorization: `Bearer ${session.accessToken}`, ...init?.headers },
@@ -35,7 +36,7 @@ export type InviteStatus = 'valid' | 'expired' | 'unknown' | 'unavailable'
 // Cached per render, so generateMetadata and the page share one request.
 export const inviteStatus = cache(async (code: string): Promise<InviteStatus> => {
   try {
-    const response = await fetch(`${baseUrl()}/api/v1/invites/${encodeURIComponent(code)}/status`, { cache: 'no-store' })
+    const response = await apiFetch(`${baseUrl()}/api/v1/invites/${encodeURIComponent(code)}/status`, { cache: 'no-store' })
     if (response.status === 404) return 'unknown'
     if (!response.ok) return 'unavailable'
     const body = await response.json() as { status?: string }

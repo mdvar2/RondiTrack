@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import type { paths } from './schema'
 import { readRefreshCookie, REFRESH_COOKIE } from './refresh-cookie'
 import { createSession, deleteSession, getSession, type Session } from './session'
+import { apiClientFetch } from './trace'
 
 export type RotatedSession = { session: Session; expiresAt: Date }
 
@@ -20,7 +21,7 @@ export function baseUrl(): string {
 }
 
 export function publicApi() {
-  return createClient<paths>({ baseUrl: baseUrl(), cache: 'no-store' })
+  return createClient<paths>({ baseUrl: baseUrl(), cache: 'no-store', fetch: apiClientFetch })
 }
 
 export function isAccessTokenCloseToExpiry(token: string): boolean {
@@ -39,6 +40,8 @@ export function isAccessTokenCloseToExpiry(token: string): boolean {
 // Exchanges the refresh token for new tokens. It writes no cookie, so the
 // proxy and Server Actions can each store the result the way they are allowed to.
 // Null means the API refused the refresh token: the person must sign in again.
+// It throws when the API couldn't decide (unreachable, 5xx, 429): callers keep
+// the session then, rather than signing a member out over an outage.
 export function rotateSession(session: Session): Promise<RotatedSession | null> {
   const existing = rotations.get(session.refreshToken)
   if (existing) return existing
@@ -47,7 +50,11 @@ export function rotateSession(session: Session): Promise<RotatedSession | null> 
     const result = await publicApi().POST('/api/v1/auth/refresh', {
       headers: { Cookie: `${REFRESH_COOKIE}=${session.refreshToken}` },
     })
-    if (!result.data) return null
+    if (!result.data) {
+      const status = result.response.status
+      if (status >= 500 || status === 429) throw new Error(`Session refresh unavailable (${status}).`)
+      return null
+    }
 
     const newRefresh = readRefreshCookie(result.response.headers.getSetCookie())
     return {
@@ -88,6 +95,7 @@ export async function refreshedApi() {
   return createClient<paths>({
     baseUrl: baseUrl(),
     cache: 'no-store',
+    fetch: apiClientFetch,
     headers: { Authorization: `Bearer ${refreshed.accessToken}` },
   })
 }

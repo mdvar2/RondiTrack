@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { baseUrl } from '@/lib/proxy'
 import { getSession } from '@/lib/session'
+import { apiFetch } from '@/lib/trace'
 
 type RouteContext = { params: Promise<{ contributionId: string }> }
 
@@ -30,7 +31,7 @@ async function forward(request: Request, context: RouteContext, method: string) 
     },
     cache: 'no-store',
   } as RequestInit & { duplex?: 'half' }
-  const response = await fetch(`${baseUrl()}/api/v1/contributions/${encodeURIComponent(contributionId)}/proof${method === 'GET' ? '/download' : ''}`, fetchOptions)
+  const response = await apiFetch(`${baseUrl()}/api/v1/contributions/${encodeURIComponent(contributionId)}/proof${method === 'GET' ? '/download' : ''}`, fetchOptions)
   const headers = new Headers()
   for (const name of ['content-type', 'content-disposition', 'x-content-type-options', 'cache-control', 'etag']) {
     const value = response.headers.get(name)
