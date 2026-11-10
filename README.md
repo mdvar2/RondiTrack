@@ -240,6 +240,19 @@ Paste a failure's **Reference** into Jaeger's "Lookup by Trace ID". Jaeger keeps
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Next.js | `web-next/.env.local` or the shell | Same; references still work |
 | `OTEL_SERVICE_NAME` | Next.js | as above | `ronditrack-web` |
 
+**SQL attributes:** database spans keep `db.system.name`, `db.namespace` and `server.address`/`server.port`; `TraceHygieneProcessor` removes the connection string (`db.npgsql.data_source`) and connection ids before export.
+
+**Simulated post-commit response failure (demo and test only).** For showing a safe retry: the contribution Server Action can be armed to throw *after* the API has committed, so the form behaves as if the answer were lost and the retry is replayed (trace outcome `replayed`). This is not a network disconnection, and it never changes what is recorded. **Never set these in production**; with the flag set outside `demo`/`test`, the Next.js server refuses to start. How it works and its safeguards: [Part 2 evidence](docs/history/assignment-9.3-pr.md#the-retry-through-the-ui-a-simulated-post-commit-response-failure).
+
+| Setting | Where | Value |
+|---|---|---|
+| `RONDITRACK_ENVIRONMENT` | Next.js server | `demo` or `test` to allow it; `production` in production |
+| `RONDITRACK_DEMO_FAULTS` | Next.js server | `enabled`, or unset (off) |
+| `RONDITRACK_DEMO_FAULT_SECRET` | Next.js server, a platform secret | 32+ random bytes, base64; signs the arm cookie |
+| `RONDITRACK_DEMO_FAULT_ACCOUNTS` | Next.js server | Comma-separated synthetic demo accounts on reserved example/test domains |
+
+To use it, a listed account opens `/stokvels/<id>?demoFault=drop-next` (armed for five minutes), records one contribution, then presses **Record contribution** again. The demo environment must run one Next.js server process.
+
 **What a span may carry:** IDs, routes, status codes, SQL text with `@placeholders` (never values, because `LogParameters=false`), and these RondiTrack attributes:
 - `ronditrack.idempotency.outcome`: `recorded`, `replayed`, `key_reused` or `rejected`
 - `ronditrack.job.local_date`, `ronditrack.job.time_zone` and `ronditrack.cycle_close.stokvels_due`
@@ -252,7 +265,7 @@ Never names, emails, amounts, account numbers, Idempotency-Keys, tokens, cookies
 | Project | Command | Latest result |
 |---|---|---|
 | Backend | `dotnet test RondiTrack.Tests` (needs Docker running) | **164 passed**, 0 failed (Release), 10 Nov 2026 |
-| `web-next/` | `npm run check:api-types`, `npm run lint`, `npm run typecheck`, `npm test` (TZ=UTC and Africa/Johannesburg), `npm run build`, `npm audit --omit=dev` | Types match the contract, lint clean, tsc clean, **180 passed** in each time zone, build succeeded, 0 vulnerabilities, 10 Nov 2026 |
+| `web-next/` | `npm run check:api-types`, `npm run lint`, `npm run typecheck`, `npm test` (TZ=UTC and Africa/Johannesburg), `npm run build`, `npm audit --omit=dev`, `npx playwright test` | Types match the contract, lint clean, tsc clean, **201 passed** in each time zone, build succeeded, 0 vulnerabilities, Playwright **27 passed**, 10 Nov 2026 |
 | `web/` | `npm run lint`, `npm test -- --run` | Lint clean, **63 passed**, 27 Oct 2026. Build last recorded in 7.4 |
 
 **What CI checks:** on pushes to `main` and on every pull request, [GitHub Actions](.github/workflows/ci.yml) runs three jobs. **backend** builds and runs the API tests in Release (including the OpenAPI contract test) and builds the Docker image. **frontend** (`web-next/`) runs the type-drift check, then lint, tsc and Vitest in two time zones. **e2e** runs Playwright against a fresh Compose stack once both pass.

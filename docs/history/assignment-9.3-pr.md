@@ -127,7 +127,35 @@ Folder: [`docs/history/evidence/assignment-9.3/part2/`](evidence/assignment-9.3/
 | 13, log | **The cycle-close job is its own trace.** A synthetic stokvel with a cycle that ended on 2026-10-31 was created in the throwaway database; the next worker run closed it. | Trace `55010043b2e8e07342e74c0cc95ec03a`: root `cycle-close.run` with **no parent reference**, `ronditrack.job.local_date=2026-11-10`, `ronditrack.job.time_zone=Africa/Johannesburg`, `ronditrack.cycle_close.stokvels_due=1`; children are 1 `stokvel.cycle_close` and 11 `postgresql` spans. Log: `Cycle-close run 55010043b2e8e07342e74c0cc95ec03a for Johannesburg date 2026-11-10 (UTC now 2026-11-10T06:10:33.6693533+00:00).` |
 | 14, 15 | **No answer still has a reference.** The throwaway API container was stopped after sign-in, then a contribution was submitted. | The form showed `Reference: 34e26b1ee2534cb19733aa83b4423982`. Jaeger finds that trace: `ronditrack-web` only, 6 spans, with the `fetch POST …/contributions` span marked as an error. |
 
-Still to do for Part 2: **the retry through the UI**, where the first attempt fails as if the connection dropped and the form retries with the same key. It waits on the approved demonstration design, so the retry evidence above is API level only.
+### The retry through the UI: a simulated post-commit response failure
+
+This is **not** a network disconnection. It simulates one specific failure: the API has committed the contribution and answered `201`, and that answer never reaches the browser. In a demo or test environment, the contribution Server Action can be armed to throw **after** the API's `201`, instead of returning. The browser sees a rejected action. The existing form handles that as a dropped connection: it shows its message and keeps the Idempotency-Key, so the person's retry sends the same key and the API replays the stored answer. The API and its financial logic are unchanged.
+
+| Safeguard | How |
+|---|---|
+| Off in the normal production deployment | It needs `RONDITRACK_DEMO_FAULTS=enabled` **and** `RONDITRACK_ENVIRONMENT=demo` or `test`. Production sets neither. If the flag is set anywhere else, `instrumentation.ts` refuses to start the server. At request time, any invalid configuration counts as off, so it can never make a real contribution fail. |
+| Synthetic accounts only | The signed-in account's email must be listed in `RONDITRACK_DEMO_FAULT_ACCOUNTS`, which only accepts reserved example and test domains (RFC 2606 and RFC 6761). |
+| No public trigger | No new endpoint. `?demoFault=drop-next` on an existing stokvel page is always removed with a redirect. An HttpOnly, SameSite=Strict, five-minute arm cookie is set only when every check above passes. The cookie is HMAC-signed with `RONDITRACK_DEMO_FAULT_SECRET` and bound to the account, so it can't be forged or used by another account. |
+| Only after the commit | It is checked after the API answered 2xx; an API refusal (for example 422) is returned as usual. It runs before `revalidatePath` and changes no cookie, so, as with a real lost answer, the browser receives nothing. |
+| Once, without relying on cookie deletion | A per-process ledger claims the arm token's nonce and a SHA-256 of the Idempotency-Key in one synchronous step, so of concurrent requests exactly one can take it, and a key that has faulted never faults again. The spent cookie is deleted by the next request that does return. **Limit:** the ledger is per process, so the demo environment must run one Next.js server process. |
+| Nothing personal in logs or spans | The log line is `[demo-fault] Simulated post-commit response failure (demonstration only). Trace <trace id>.`. The span gains `ronditrack.demo.fault=post_commit_response_dropped`. No user id, email, amount, key or cookie. |
+
+Evidence (local, synthetic account `e2e.thandi@example.test`, 10 Nov 2026):
+
+| # | What | Result |
+|---|---|---|
+| 16 | The presenter's screen after the lost answer | The form shows "We couldn't reach RondiTrack. Check your connection and try again: it will not be recorded twice." The page still shows **0 of 1 paid, R 0,00**: the browser learned nothing. |
+| 18 | Trace `d5d1466e174ed065d24d5221dcb64833`, the first attempt | `ronditrack-web` and `ronditrack-api`, 24 spans: the API answered **201**, `contribution.record` outcome **`recorded`** with `INSERT INTO "Contributions"` and `INSERT INTO "PersistedIdempotencyRecords"`. The Next.js request ends in **500** with `ronditrack.demo.fault=post_commit_response_dropped`. |
+| 17 | The retry | "Recorded R 500,00 for you." |
+| 19 | Trace `40a032b7ed1fac079fdd6e64902bb5c5`, the retry | Same contribution URL, 46 spans (it includes the page refresh), outcome **`replayed`**, **no INSERT**. |
+| — | Database | Exactly **1** contribution in that stokvel. |
+| log | `demo-fault-log-line.txt` | The line above, plus Next.js's own error line for the thrown action. |
+
+The trace JSON for both was searched for the account's name and email, the amount, `Bearer`, `eyJ`, the arm cookie's name and `idempotencyKey`, and for `db.npgsql.data_source`, `Username=` and `Password=`. None were found. The only `50000` is a span start timestamp.
+
+Two problems found and fixed while capturing this:
+- **Fidelity.** The first version called `revalidatePath`, and then deleted the arm cookie, in the dropped request. Next.js still sent the refreshed page with the rejected action, so the screen showed "1 of 1 paid" beside the error. Both now happen only on a request that returns. A Vitest test and the Playwright test ("0 of 2" after the lost answer) keep it that way.
+- **Stale stack.** The first captures came from an API container built before the database-attribute fix (below), so I rebuilt it and captured again.
 
 ### Privacy: what was checked in a real trace
 
@@ -136,9 +164,9 @@ Every attribute of every span in trace `8db38ad2…` was listed (by key, across 
 - No member data: the only match was the table name `"PersistedIdempotencyRecords"` in SQL text, where the key is the placeholder `@key`.
 - Attribute values are IDs (stokvel and user GUIDs in URLs and routes), HTTP methods and status codes, SQL text with `@placeholders`, and the RondiTrack attributes listed in the README.
 - No exception messages and no baggage.
-- Two findings to keep in mind:
-  - `db.npgsql.data_source` includes the database host and username (`Host=db;…;Username=ronditrack`) but never the password, because Npgsql strips it.
-  - The Next.js process is tagged `cloud.provider=vercel` even locally (from `@vercel/otel`).
+- Two findings:
+  - **Fixed.** `db.npgsql.data_source` carried the connection string without its password (`Host=db;Port=5432;Database=ronditrack;Username=ronditrack;…`). With `db.npgsql.connection_id`, it is now removed from every database span by [`TraceHygieneProcessor`](../../API/Observability/TraceHygiene.cs), before export. Spans keep the standard `db.system.name`, `db.namespace` and `server.address`/`server.port`, which an operator needs to tell databases apart. `DistributedTracingTests` fails if either attribute, `Username=` or `Password=` appears. The four trace files above (`8db38ad2`, `cfed822f`, `7db1002b`, `55010043`) were captured before the fix; in the committed copies those two attribute values are replaced with `[redacted: captured before TraceHygieneProcessor removed this attribute]`, and nothing else was changed. The demonstration traces (`d5d1466e`, `40a032b7`) were captured after it and contain neither.
+  - **Kept.** The Next.js process is tagged `cloud.provider=vercel` even locally (from `@vercel/otel`). It identifies no person and no infrastructure.
 - The cycle-close trace contains neither the stokvel's name nor its amount.
 
 Automated: `DistributedTracingTests.ContributionTraces_CarryNoMemberDataAmountsOrKeys` fails if a span or baggage contains the payer's name, email, amount (three formats), Idempotency-Key or `Bearer`. It was checked against a deliberate mutation (the payer's name added as a span attribute), and it failed with `Found: "Nomvula"`.
@@ -150,8 +178,12 @@ Automated: `DistributedTracingTests.ContributionTraces_CarryNoMemberDataAmountsO
 | `DistributedTracingTests.RetryWithSameKey_EachRequestContinuesItsCallersTrace_OnlyTheFirstWrites` | Each request continues its caller's trace; outcomes `recorded` and `replayed`; INSERT only in the first trace; 1 row. |
 | `DistributedTracingTests.ContributionTraces_CarryNoMemberDataAmountsOrKeys` | As above. |
 | `DistributedTracingTests.CycleCloseRun_IsItsOwnRootTrace_WithTheJohannesburgDateInTagAndLog` | The run has no parent even inside an ambient Activity, which is restored afterwards; the SAST date is in the tag and the log, keyed by trace id; per-stokvel spans share the run's trace. |
+| `web-next/src/lib/demo-fault.test.ts` (21) | Production, or an unset environment, plus the flag refuses to start (`register()` rejects); each other misconfiguration refuses to start and is off at request time; only listed synthetic accounts; tokens are refused for another account, when altered, under another secret or expired; of 50 concurrent claims exactly one wins; a faulted key never faults again; an unlisted account holding a valid token can't trigger it; the action rejects only after the API's 201, with no revalidation and no cookie change, and the retry carries the same key and succeeds; a 422 is never dropped; the next new contribution isn't dropped. Mutation-checked: removing the account check, or the per-key check, each fails a test. |
+| `web-next/e2e/demo-fault.spec.ts` (2) | In a real browser: arming removes the parameter; the first submit shows the connection message while the API already holds 1 contribution and the page still shows "0 of 2"; the retry's Server Action carries the same Idempotency-Key, shows "Recorded R 150,00 for you.", still 1 contribution, "1 of 2", spent cookie gone; a new contribution for another member succeeds first time with a new key. An account that isn't listed is never armed. Skipped unless the run enables demo faults; CI's e2e job does, for its synthetic account only. |
 | `web-next/src/lib/trace.test.ts` (9) | Real answers pass through; a dropped connection becomes a 503 problem with the trace id; abort still rejects; it reaches `error.tsx` as `RONDITRACK_API;503;<trace id>`; `currentTraceId` ignores invalid spans; `rotateSession` throws on drop, 500 and 429, and returns `null` only on refusal. |
 
 Local results: API **164 passed** (Release); Vitest **180 passed** in UTC and in Africa/Johannesburg; type drift, lint, tsc and `npm run build` pass; `npm audit --omit=dev` 0 vulnerabilities.
+
+After the demonstration mechanism and the database-attribute fix (local, 10 Nov 2026): API **164 passed** (Release); Vitest **201 passed** in UTC and in Africa/Johannesburg; Playwright **27 passed** (production build, run against the throwaway stack with demo faults on for `e2e.thandi@example.test` only); type drift, lint, tsc and `npm run build` pass; `npm audit --omit=dev` 0 vulnerabilities.
 
 CI (PR #13): implementation `6b3b776`, docs `1bc7f3e`. [Run 42767582768](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768) on `1bc7f3e` passed: [backend](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768/job/129667589324), [frontend](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768/job/129667589636) and [end to end](https://github.com/mdvar2/RondiTrack/actions/runs/42767582768/job/129668139776). The e2e job ran the Playwright suite against a production build with the instrumentation in place, with no exporter configured.
