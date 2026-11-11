@@ -49,6 +49,7 @@ public class StokvelDetailService(
             .ThenBy(cycle => cycle.Id)
             .Select(cycle => new
             {
+                cycle.Id,
                 cycle.Period,
                 cycle.Status,
                 cycle.EndDate,
@@ -71,6 +72,7 @@ public class StokvelDetailService(
             ToCents(stokvel.ContributionAmount),
             stokvel.Role,
             cycle is null ? null : new StokvelCycleSummaryResponse(
+                cycle.Id,
                 cycle.Period,
                 cycle.Status,
                 cycle.EndDate,

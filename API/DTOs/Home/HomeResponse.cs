@@ -10,7 +10,7 @@ public record HomeStokvelResponse(
     long AmountPaid,
     long AmountOwed,
     DateTimeOffset? NextPayoutDate,
-    long ArrearsCents = 0);
+    long ArrearsCents);
 
 public record HomeCycleResponse(
     string Period,

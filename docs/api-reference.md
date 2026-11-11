@@ -169,7 +169,7 @@ contribution.
 
 - **Success:** 200 `StokvelDetailResponse` with an `ETag`: `id`, `name`, `contributionAmount`
   (rands), `memberCount`, `version`, plus (since Assignment 8.1) `contributionAmountCents`,
-  `role` (the caller's role in this stokvel) and `currentCycle` (`period`, `status`, `dueDate`,
+  `role` (the caller's role in this stokvel) and `currentCycle` (`id`, `period`, `status`, `dueDate`,
   `membersPaid`, `collectedCents`, `targetCents`), or `null` when this Johannesburg month has
   no cycle. A nonmember and an unknown id both get the same 404; a malformed id also gets 404
   because the route only matches GUIDs.
@@ -186,7 +186,7 @@ contribution.
 - **Required permission:** Any authenticated user
 
 - **Success:** 200 `{ stokvels: [...] }`: each of the caller's stokvels with `role`,
-  `currentCycle`, `amountPaid`, `amountOwed`, `arrearsCents` (integer cents) and
+  `currentCycle`, `amountPaid`, `amountOwed`, `arrearsCents` (integer cents, always present) and
   `nextPayoutDate` (always `null` until a payout-scheduling rule exists). A user in no
   stokvels gets `{ "stokvels": [] }`, not 404. Only the caller's own money is included.
 

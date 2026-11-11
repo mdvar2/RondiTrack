@@ -74,7 +74,7 @@ public class StokvelDetailTests(PostgresApiFactory factory)
         Assert.Equal(500m, detail.ContributionAmount);
         Assert.Equal(50000L, detail.ContributionAmountCents);
         Assert.Equal(
-            new StokvelCycleSummaryResponse("2026-10", "Open", null, 2, 62510L, 50000L),
+            new StokvelCycleSummaryResponse(scenario.CycleId, "2026-10", "Open", null, 2, 62510L, 50000L),
             detail.CurrentCycle);
         Assert.Equal($"\"{detail.Version}\"", response.Headers.ETag?.Tag);
     }
