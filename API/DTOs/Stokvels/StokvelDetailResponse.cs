@@ -12,7 +12,9 @@ public record StokvelDetailResponse(
     string Role,
     StokvelCycleSummaryResponse? CurrentCycle);
 
+// Id lets a client load the cycle's contributions without listing every cycle first.
 public record StokvelCycleSummaryResponse(
+    Guid Id,
     string Period,
     string Status,
     DateOnly? DueDate,

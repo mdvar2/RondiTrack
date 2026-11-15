@@ -1,5 +1,10 @@
 # RondiTrack TypeScript contracts
 
+> **Deprecated: a frozen Assignment 6.3 snapshot, not the current contract.**
+> Since Assignment 9.3 the only API contract is [`openapi/v1.json`](../../openapi/v1.json), checked against the running API by `RondiTrack.Tests/OpenApiContractTests.cs` and turned into the frontend's types by `web-next` (`npm run generate:api`, checked in CI).
+> This folder's `openapi.json` and `src/schema.d.ts` describe the API as it was in 6.3 (no 9.1 proof, close or invite endpoints) and are kept unchanged as that assignment's evidence. Nothing in CI, the tests or either frontend reads them.
+> `npm run check` and `npm run test:money` still pass against the snapshot (9 Nov 2026). Don't run `npm run export` or `npm run regenerate` here: they overwrite the snapshot with today's API, and `src/home.ts` no longer compiles against it (see [7.4's known gaps](../../docs/history/assignment-7.4.md#known-gaps)).
+
 Run from this directory with Node/npm, .NET 10 and Docker running:
 
 ```powershell

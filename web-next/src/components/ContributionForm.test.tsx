@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ContributionForm } from './ContributionForm'
+import { ToastProvider } from './ToastProvider'
 import type { ContributionInput, ContributionResult } from '@/lib/contribution-feedback'
 
 // The form's one edge is its Server Action, so that is the only thing faked.
@@ -29,18 +30,22 @@ const THANDI = { userId: '22222222-2222-4222-8222-222222222222', userName: 'Than
 function renderForm(members = [SIPHO, THANDI]) {
   const fake = fakeAction()
   render(
-    <ContributionForm
-      stokvelId="33333333-3333-4333-8333-333333333333"
-      cycleId="44444444-4444-4444-8444-444444444444"
-      currentUserId={SIPHO.userId}
-      members={members}
-      action={fake.action}
-    />,
+    <ToastProvider>
+      <ContributionForm
+        stokvelId="33333333-3333-4333-8333-333333333333"
+        cycleId="44444444-4444-4444-8444-444444444444"
+        currentUserId={SIPHO.userId}
+        members={members}
+        action={fake.action}
+      />
+    </ToastProvider>,
   )
   return { fake, user: userEvent.setup() }
 }
 
 const amountField = () => screen.getByLabelText('Amount')
+const form = () => screen.getByRole('form', { name: 'Record a contribution' })
+const notifications = () => screen.getByRole('region', { name: 'Notifications' })
 const recordButton = () => screen.getByRole('button', { name: 'Record contribution' })
 
 describe('ContributionForm', () => {
@@ -90,19 +95,55 @@ describe('ContributionForm', () => {
   })
 
   it.each([
-    [409, 'A contribution already exists for this member and cycle.'],
-    [422, 'This cycle is closed for new contributions.'],
-  ])('shows a %i at the top of the form with its reference, and keeps what was typed (SC 3.3.7)', async (status, detail) => {
+    [409, 'A contribution already exists for this member and cycle.', 'Reload the page to see the latest, then decide again.'],
+    [422, 'This cycle is closed for new contributions.', 'Change the details and try again.'],
+    [412, undefined, 'This page is out of date. Reload it, then try again.'],
+  ])('shows a %i inline with its reason, its own recovery step and its reference, keeps what was typed, and no toast (SC 3.3.7)', async (status, detail, recovery) => {
     const { fake, user } = renderForm()
     await user.type(amountField(), '150,50')
     await user.click(recordButton())
     fake.answer({ ok: false, status, problem: { detail, correlationId: 'corr-42' } })
 
-    expect(await screen.findByText(detail)).toBeInTheDocument()
-    const alert = screen.getByRole('alert')
-    expect(alert).toHaveTextContent(detail)
+    const alert = await within(form()).findByRole('alert')
+    if (detail) expect(alert).toHaveTextContent(detail)
+    expect(alert).toHaveTextContent(recovery)
     expect(within(alert).getByText('corr-42')).toBeInTheDocument()
     expect(amountField()).toHaveValue('150,50')
+    expect(notifications()).not.toHaveTextContent(/\S/)
+  })
+
+  it.each([500, 503])('a %i is one persistent toast with the trace reference, not an inline message; the input and key are kept', async (status) => {
+    const { fake, user } = renderForm()
+    await user.type(amountField(), '150,50')
+    await user.click(recordButton())
+    fake.answer({ ok: false, status, problem: { correlationId: '4bf92f3577b34da6a3ce929d0e0e4736' } })
+
+    const toast = await within(notifications()).findByText(/Something went wrong on our side/)
+    expect(within(notifications()).getByText('4bf92f3577b34da6a3ce929d0e0e4736')).toBeInTheDocument()
+    expect(within(form()).getByRole('alert')).toBeEmptyDOMElement()
+    expect(screen.getAllByText(/Something went wrong on our side/)).toHaveLength(1)
+    expect(amountField()).toHaveValue('150,50')
+
+    // It stays until it is closed.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(toast).toBeInTheDocument()
+    await user.click(within(notifications()).getByRole('button', { name: 'Close notification' }))
+    expect(within(notifications()).queryByText(/Something went wrong on our side/)).not.toBeInTheDocument()
+
+    await user.click(recordButton())
+    expect(fake.calls[1].idempotencyKey).toBe(fake.calls[0].idempotencyKey)
+  })
+
+  it('no answer at all is one persistent toast that says it has no reference, rather than inventing one', async () => {
+    const { fake, user } = renderForm()
+    await user.type(amountField(), '150,50')
+    await user.click(recordButton())
+    fake.dropConnection()
+
+    expect(await within(notifications()).findByText(/couldn't reach RondiTrack/)).toBeInTheDocument()
+    expect(within(notifications()).getByText('Reference unavailable.')).toBeInTheDocument()
+    expect(within(form()).getByRole('alert')).toBeEmptyDOMElement()
+    expect(screen.getAllByText(/couldn't reach RondiTrack/)).toHaveLength(1)
   })
 
   it('announces the success and clears the amount for the next contribution', async () => {
@@ -113,7 +154,7 @@ describe('ContributionForm', () => {
     fake.answer({ ok: true, amountCents: 15050 })
 
     expect(await screen.findByText('Recorded R 150,50 for Thandi Dlamini.')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Recorded R 150,50 for Thandi Dlamini.')
+    expect(within(form()).getByRole('status')).toHaveTextContent('Recorded R 150,50 for Thandi Dlamini.')
     expect(amountField()).toHaveValue('')
   })
 

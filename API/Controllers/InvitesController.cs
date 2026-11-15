@@ -36,6 +36,7 @@ public sealed class InvitesController(
     }
 
     [HttpGet("{code}")]
+    [EnableRateLimiting(RateLimitPolicies.InviteGuesses)]
     public async Task<ActionResult<InvitePreviewResponse>> Preview(string code)
     {
         var invite = await db.Set<StokvelInvite>().AsNoTracking()
@@ -75,6 +76,7 @@ public sealed class InvitesController(
     }
 
     [HttpPost("{code}/join")]
+    [EnableRateLimiting(RateLimitPolicies.InviteGuesses)]
     public async Task<IActionResult> Join(string code)
     {
         var invite = await db.Set<StokvelInvite>().AsNoTracking()

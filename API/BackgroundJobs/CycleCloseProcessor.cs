@@ -1,5 +1,6 @@
 
 using System.Data;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using RondiTrack.Domain.Entities;
@@ -18,13 +19,47 @@ public sealed class CycleCloseProcessor(
     private static readonly TimeZoneInfo Johannesburg =
         TimeZoneInfo.FindSystemTimeZoneById("Africa/Johannesburg");
 
+    // Each run starts its own trace: no request started it, so it must not
+    // inherit whatever Activity happens to be ambient (for example a test's).
     public async Task RunOnceAsync(
         CancellationToken cancellationToken = default)
+    {
+        var ambient = Activity.Current;
+        Activity.Current = null;
+        using var run = telemetry.Activities.StartActivity(
+            RondiTrackTelemetry.CycleCloseRunSpan, ActivityKind.Internal);
+        try
+        {
+            await RunCoreAsync(run, cancellationToken);
+        }
+        catch (Exception) when (run is not null)
+        {
+            run.SetStatus(ActivityStatusCode.Error);
+            throw;
+        }
+        finally
+        {
+            run?.Stop();
+            Activity.Current = ambient;
+        }
+    }
+
+    private async Task RunCoreAsync(
+        Activity? run,
+        CancellationToken cancellationToken)
     {
         var localToday = DateOnly.FromDateTime(
             TimeZoneInfo.ConvertTime(
                 clock.GetUtcNow(),
                 Johannesburg).DateTime);
+
+        var localDate = localToday.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        run?.SetTag(RondiTrackTelemetry.JobLocalDateTag, localDate);
+        run?.SetTag(RondiTrackTelemetry.JobTimeZoneTag, Johannesburg.Id);
+        // The trace id is in the message so a log line leads to the trace.
+        logger.LogInformation(
+            "Cycle-close run {TraceId} for Johannesburg date {LocalDate} (UTC now {UtcNow:O}).",
+            run?.TraceId.ToString() ?? "untraced", localDate, clock.GetUtcNow());
 
         // Find stokvels with overdue, open cycles.
         var stokvelIds = await db.ContributionCycles
@@ -36,6 +71,7 @@ public sealed class CycleCloseProcessor(
             .Select(cycle => cycle.StokvelId)
             .Distinct()
             .ToListAsync(cancellationToken);
+        run?.SetTag(RondiTrackTelemetry.StokvelsDueTag, stokvelIds.Count);
 
         foreach (var stokvelId in stokvelIds)
         {

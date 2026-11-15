@@ -13,6 +13,7 @@ import {
 } from '@/lib/contribution-feedback'
 import type { ContributionMember } from '@/lib/contribution-permissions'
 import { Button } from './ui/button'
+import { useToast } from './ToastProvider'
 
 type ContributionFormProps = {
   stokvelId: string
@@ -41,6 +42,7 @@ export function ContributionForm({
   const [amountText, setAmountText] = useState('')
   const [feedback, setFeedback] = useState<ContributionFeedback>(EMPTY)
   const [pending, setPending] = useState(false)
+  const { showToast } = useToast()
   // One key per contribution: made on the first submit, sent again on every
   // retry of that contribution, and replaced only after the API accepts it.
   const keyRef = useRef<string | null>(null)
@@ -88,6 +90,7 @@ export function ContributionForm({
     // commit: the message and the restored button appear at once.
     setFeedback(next)
     setPending(false)
+    if (next.toast) showToast({ message: next.toast.message, correlationId: next.toast.reference, persistent: true })
     if (succeeded) setAmountText('')
     if (next.fieldErrors.amount) amountRef.current?.focus()
     else if (next.fieldErrors.member) memberRef.current?.focus()

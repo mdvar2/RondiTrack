@@ -44,6 +44,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: "8080"
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      # Empty by default: spans are created but not exported. With the
+      # observability profile, set API_OTLP_ENDPOINT=http://jaeger:4317.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${API_OTLP_ENDPOINT:-}
       ConnectionStrings__RondiTrackDb: Host=db;Port=5432;Database=ronditrack;Username=ronditrack;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
     ports:
@@ -51,6 +54,19 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  # Local trace backend (Assignment 9.3 Part 2). Only starts with
+  #   docker compose --profile observability up -d
+  # In-memory storage: traces are gone when the container stops. Ports are
+  # bound to 127.0.0.1 so nothing outside this machine can read or send traces.
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686" # UI: http://localhost:16686
+      - "127.0.0.1:4317:4317"   # OTLP gRPC (the API in Compose: http://jaeger:4317)
+      - "127.0.0.1:4318:4318"   # OTLP HTTP (Next.js on the host: http://localhost:4318)
 
 volumes:
   postgres_data:

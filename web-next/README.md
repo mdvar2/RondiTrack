@@ -475,7 +475,8 @@ npm run dev        # http://localhost:3000
 | `npm run build` / `npm start` | Production build and server |
 | `npm run lint` | ESLint (`eslint-config-next`) |
 | `npm test` | Vitest unit tests (`src/**/*.test.ts`) |
-| `npm run generate:api` | Regenerates `src/lib/schema.d.ts` from `http://localhost:5101/openapi/v1.json` |
+| `npm run generate:api` | Regenerates `src/lib/schema.d.ts` from the committed `../openapi/v1.json` (no running API needed) |
+| `npm run check:api-types` | Regenerates the types and fails if they differ from the committed file (the CI type-drift check) |
 
 Every version in `package.json` is pinned exactly, with no `^` or `~`. The project uses a safe `overrides` entry for `minimatch` to remove the transitive moderate advisories without forcing a breaking ESLint upgrade. `npm audit --audit-level=low` now reports 0 vulnerabilities. Vitest is 4.1.12 because 4.1.11 (the version `web/` uses) has two moderate advisories in `@vitest/mocker`.
 

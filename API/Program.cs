@@ -39,7 +39,9 @@ var telemetry = builder.Services.AddOpenTelemetry()
         .AddSource(RondiTrackTelemetry.SourceName)
         .AddAspNetCoreInstrumentation(options =>
             options.Filter = context => !context.Request.Path.StartsWithSegments("/health"))
-        .AddNpgsql())
+        .AddNpgsql()
+        // Before any exporter: database spans lose the connection string and ids.
+        .AddProcessor(new TraceHygieneProcessor()))
     .WithMetrics(metrics => metrics
         .AddMeter(RondiTrackTelemetry.MeterName)
         .AddAspNetCoreInstrumentation()
@@ -76,13 +78,31 @@ builder.Services.AddScoped<IClaimsTransformation, PlatformRoleClaimsTransformati
 builder.Services.AddScoped<StokvelAuthorization>();
 
 // The service answers 400 without the header, so the document says it is required.
-builder.Services.AddOpenApi(options => options.AddOperationTransformer((operation, _, _) =>
-{
-    foreach (var parameter in operation.Parameters ?? [])
-        if (parameter is Microsoft.OpenApi.OpenApiParameter { Name: "Idempotency-Key" } header)
-            header.Required = true;
-    return Task.CompletedTask;
-}));
+// Descriptions come from XML doc comments, which carry the build machine's newline
+// (\r\n on Windows, \n on Linux). openapi/v1.json is the contract, so the document
+// must be identical wherever the API is built: every description uses \n.
+builder.Services.AddOpenApi(options => options
+    .AddOperationTransformer((operation, _, _) =>
+    {
+        operation.Summary = OpenApiText.Lf(operation.Summary);
+        operation.Description = OpenApiText.Lf(operation.Description);
+        foreach (var parameter in operation.Parameters ?? [])
+        {
+            if (parameter is not Microsoft.OpenApi.OpenApiParameter concrete) continue;
+            concrete.Description = OpenApiText.Lf(concrete.Description);
+            if (concrete.Name == "Idempotency-Key") concrete.Required = true;
+        }
+        if (operation.Responses is not null)
+            foreach (var response in operation.Responses.Values)
+                if (response is Microsoft.OpenApi.OpenApiResponse concrete)
+                    concrete.Description = OpenApiText.Lf(concrete.Description);
+        return Task.CompletedTask;
+    })
+    .AddSchemaTransformer((schema, _, _) =>
+    {
+        schema.Description = OpenApiText.Lf(schema.Description);
+        return Task.CompletedTask;
+    }));
 
 builder.Services.AddControllers(options =>
 {

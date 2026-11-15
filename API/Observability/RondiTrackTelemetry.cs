@@ -11,6 +11,18 @@ public sealed class RondiTrackTelemetry : IDisposable
     public const string PayoutsName = "ronditrack.payouts.processed";
     public const string RefusalsName = "ronditrack.authorization.refusals";
 
+    // Spans. Attribute values are fixed words or dates, never member data.
+    public const string ContributionRecordSpan = "contribution.record";
+    public const string IdempotencyOutcomeTag = "ronditrack.idempotency.outcome";
+    public const string OutcomeRecorded = "recorded";
+    public const string OutcomeReplayed = "replayed";
+    public const string OutcomeKeyReused = "key_reused";
+    public const string OutcomeRejected = "rejected";
+    public const string CycleCloseRunSpan = "cycle-close.run";
+    public const string JobLocalDateTag = "ronditrack.job.local_date";
+    public const string JobTimeZoneTag = "ronditrack.job.time_zone";
+    public const string StokvelsDueTag = "ronditrack.cycle_close.stokvels_due";
+
     public ActivitySource Activities { get; } = new(SourceName);
     private readonly Counter<long> _contributions;
     private readonly Counter<long> _payouts;

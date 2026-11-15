@@ -4,6 +4,7 @@ import { StokvelSummary } from './StokvelSummary'
 import { ContributionList } from './ContributionList'
 import { ToastProvider } from './ToastProvider'
 import type { ContributionWithMember, StokvelDetail, StokvelMember } from '@/lib/types'
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }) }))
 
 // Roles belong to a stokvel, not to a person. Sipho is Treasurer of the
 // family stokvel and an ordinary Member of the work one. The fixtures use the
@@ -16,7 +17,7 @@ const CYCLE = '44444444-4444-4444-8444-444444444444'
 function stokvel(id: string, name: string, role: string): StokvelDetail {
   return {
     id, name, role, contributionAmount: 500, contributionAmountCents: 50000, memberCount: 2, version: 1,
-    currentCycle: { period: '2026-11', status: 'Open', dueDate: '2026-11-30', membersPaid: 1, collectedCents: 50000, targetCents: 100000 },
+    currentCycle: { id: CYCLE, period: '2026-11', status: 'Open', dueDate: '2026-11-30', membersPaid: 1, collectedCents: 50000, targetCents: 100000 },
   }
 }
 

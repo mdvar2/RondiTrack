@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useToast } from './ToastProvider'
+import { useRouter } from 'next/navigation'
 
 const MAX_BYTES = 5 * 1024 * 1024
 const ACCEPTED = ['application/pdf', 'image/jpeg', 'image/png']
@@ -13,6 +14,7 @@ export function ProofUpload({ contributionId, ownerLabel }: { contributionId: st
   const [pending, setPending] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
+  const router = useRouter()
   const inputId = `proof-${contributionId}`
   const errorId = `proof-error-${contributionId}`
 
@@ -37,6 +39,10 @@ export function ProofUpload({ contributionId, ownerLabel }: { contributionId: st
       const response = await fetch(`/bff/contributions/${encodeURIComponent(contributionId)}/proof`, { method: 'POST', body })
       if (!response.ok) {
         const details = await response.json().catch(() => null) as { detail?: string; correlationId?: string } | null
+        if (response.status === 401) {
+          router.push(`/login?expired=1&next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`)
+          return
+        }
         if (response.status >= 500) {
           showToast({ message: 'The proof service failed. Please try again.', correlationId: details?.correlationId, persistent: true })
           return

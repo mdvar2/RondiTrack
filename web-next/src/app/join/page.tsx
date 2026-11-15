@@ -6,6 +6,9 @@ import { inviteMetadata } from '@/lib/invite-metadata'
 import { stepFromQuery } from '@/lib/join-state'
 import { formatCents } from '@/lib/money'
 import { getSession } from '@/lib/session'
+import { redirect } from 'next/navigation'
+import { ApiError, parseRetryAfter } from '@/lib/errors'
+import { expiredLoginUrl } from '@/lib/return-path'
 import { Button } from '@/components/ui/button'
 import { FocusOnMount } from '@/components/FocusOnMount'
 import { JoinCodeForm } from '@/components/JoinCodeForm'
@@ -73,13 +76,19 @@ export default async function JoinPage({ searchParams }: PageProps<'/join'>) {
   }
 
   const preview = code ? await previewInvite(code) : null
+  const status = preview?.response.status
+  // The session ended: sign in again and come back with the same code.
+  if (status === 401) redirect(expiredLoginUrl(`/join?code=${encodeURIComponent(code)}&step=${requested}`))
+  // Our failure, or no answer: app/error.tsx owns it (apology and trace reference).
+  if (status !== undefined && status >= 500) throw new ApiError(status, preview?.problem ?? null)
+  const waitSeconds = status === 429 ? parseRetryAfter(preview?.response.headers.get('Retry-After') ?? null) : null
   const step = preview?.data ? requested : 'code'
-  const message = preview?.response.status === 404
+  const message = status === 404
     ? 'We couldn’t find that code. Check it and try again.'
-    : preview?.response.status === 410
+    : status === 410
       ? 'That invite has expired. Ask for a new one.'
-      : preview?.response.status === 429
-        ? 'Too many code checks. Please wait a minute and try again.'
+      : status === 429
+        ? `Too many code checks. Try again in ${waitSeconds ?? 60} seconds.`
         : query.error === '1' ? 'We could not join with that invite. Try again.' : null
   const alreadyMember = query.already === '1' && typeof query.stokvelId === 'string'
   const encodedCode = encodeURIComponent(code)
