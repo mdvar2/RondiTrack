@@ -54,6 +54,10 @@ public class OpenApiContractTests(PostgresApiFactory factory)
     [Theory]
     [InlineData("HomeStokvelResponse", "arrearsCents")]
     [InlineData("StokvelCycleSummaryResponse", "id")]
+    [InlineData("PayoutOrderResponse", "items")]
+    [InlineData("PayoutOrderEntryResponse", "position")]
+    [InlineData("PayoutOrderEntryResponse", "amountCents")]
+    [InlineData("PayoutOrderEntryResponse", "status")]
     public async Task ServedDocument_MarksFieldRequired(string schema, string field)
     {
         var served = await FetchServedDocumentAsync();

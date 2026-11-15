@@ -1213,6 +1213,75 @@
       }
     },
     "/api/v1/stokvels/{stokvelId}/cycles/{cycleId}/payouts": {
+      "get": {
+        "tags": [
+          "Payouts"
+        ],
+        "summary": "Gets the payout order as seen from one cycle.",
+        "description": "Lists every member of the stokvel in rotation order (the order they\njoined), each with a 1-based position, the amount in cents, when they\nwere paid, and a status: Paid, Next or Waiting. The server decides\nevery status: Next is the member the next payout goes to, so no client\nworks it out. Items is empty for a cycle that isn't open and had no\npayout. Any member may read it. Returns 404 when the caller isn't a\nmember, and when the cycle doesn't exist or belongs to another stokvel.",
+        "parameters": [
+          {
+            "name": "stokvelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutOrderResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutOrderResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutOrderResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "Payouts"
@@ -2982,6 +3051,68 @@
           },
           "hasMore": {
             "type": "boolean"
+          }
+        }
+      },
+      "PayoutOrderEntryResponse": {
+        "required": [
+          "position",
+          "userId",
+          "memberName",
+          "amountCents",
+          "paidAtUtc",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberName": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paidAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "PayoutOrderResponse": {
+        "required": [
+          "stokvelId",
+          "cycleId",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "stokvelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cycleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutOrderEntryResponse"
+            }
           }
         }
       },
