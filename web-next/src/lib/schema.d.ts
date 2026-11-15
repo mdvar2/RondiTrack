@@ -978,7 +978,52 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Gets the payout order as seen from one cycle.
+         * @description Lists every member of the stokvel in rotation order (the order they
+         *     joined), each with a 1-based position, the amount in cents, when they
+         *     were paid, and a status: Paid, Next or Waiting. The server decides
+         *     every status: Next is the member the next payout goes to, so no client
+         *     works it out. Items is empty for a cycle that isn't open and had no
+         *     payout. Any member may read it. Returns 404 when the caller isn't a
+         *     member, and when the cycle doesn't exist or belongs to another stokvel.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stokvelId: string;
+                    cycleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PayoutOrderResponse"];
+                        "application/json": components["schemas"]["PayoutOrderResponse"];
+                        "text/json": components["schemas"]["PayoutOrderResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Creates a payout for the next eligible stokvel member.
@@ -1992,6 +2037,25 @@ export interface components {
             /** Format: int32 */
             pageSize: number;
             hasMore?: boolean;
+        };
+        PayoutOrderEntryResponse: {
+            /** Format: int32 */
+            position: number;
+            /** Format: uuid */
+            userId: string;
+            memberName: string;
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: date-time */
+            paidAtUtc: null | string;
+            status: string;
+        };
+        PayoutOrderResponse: {
+            /** Format: uuid */
+            stokvelId: string;
+            /** Format: uuid */
+            cycleId: string;
+            items: components["schemas"]["PayoutOrderEntryResponse"][];
         };
         PayoutResponse: {
             /** Format: uuid */

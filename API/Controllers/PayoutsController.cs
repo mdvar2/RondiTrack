@@ -26,6 +26,39 @@ public class PayoutsController : ControllerBase
     }
 
     /// <summary>
+    /// Gets the payout order as seen from one cycle.
+    /// </summary>
+    /// <remarks>
+    /// Lists every member of the stokvel in rotation order (the order they
+    /// joined), each with a 1-based position, the amount in cents, when they
+    /// were paid, and a status: Paid, Next or Waiting. The server decides
+    /// every status: Next is the member the next payout goes to, so no client
+    /// works it out. Items is empty for a cycle that isn't open and had no
+    /// payout. Any member may read it. Returns 404 when the caller isn't a
+    /// member, and when the cycle doesn't exist or belongs to another stokvel.
+    /// </remarks>
+    [ProducesResponseType(
+        typeof(PayoutOrderResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status404NotFound)]
+    [HttpGet]
+    public async Task<ActionResult<PayoutOrderResponse>> GetOrder(
+        Guid stokvelId,
+        Guid cycleId,
+        CancellationToken cancellationToken)
+    {
+        await _stokvelAuthorization.EnsureAsync(User, stokvelId, Policies.StokvelView);
+
+        return Ok(
+            await _payoutService.GetOrderAsync(
+                stokvelId,
+                cycleId,
+                cancellationToken));
+    }
+
+    /// <summary>
     /// Creates a payout for the next eligible stokvel member.
     /// </summary>
     /// <remarks>

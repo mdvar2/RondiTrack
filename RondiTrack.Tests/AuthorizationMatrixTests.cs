@@ -24,6 +24,7 @@ public class AuthorizationMatrixTests(PostgresApiFactory factory)
     [InlineData("POST", "/cycles", false)]
     [InlineData("PUT", "/cycles/{cycle}", false)]
     [InlineData("DELETE", "/cycles/{cycle}", false)]
+    [InlineData("GET", "/cycles/{cycle}/payouts", true)]
     [InlineData("POST", "/cycles/{cycle}/payouts", false)]
     public async Task EveryScopedRoute_RequiresAuthenticationAndLiveMembership(string method, string suffix, bool view)
     {
