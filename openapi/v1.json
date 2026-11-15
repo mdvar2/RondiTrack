@@ -2823,7 +2823,8 @@
           "currentCycle",
           "amountPaid",
           "amountOwed",
-          "nextPayoutDate"
+          "nextPayoutDate",
+          "arrearsCents"
         ],
         "type": "object",
         "properties": {
@@ -2864,8 +2865,7 @@
           },
           "arrearsCents": {
             "type": "integer",
-            "format": "int64",
-            "default": 0
+            "format": "int64"
           }
         }
       },
@@ -3101,6 +3101,7 @@
       },
       "StokvelCycleSummaryResponse": {
         "required": [
+          "id",
           "period",
           "status",
           "dueDate",
@@ -3110,6 +3111,10 @@
         ],
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "period": {
             "type": "string"
           },

@@ -49,6 +49,22 @@ public class OpenApiContractTests(PostgresApiFactory factory)
             string.Join("\n", differences.Take(40)));
     }
 
+    // Generated clients (the Flutter app's, from Week 11) make a field that is
+    // not "required" optional, and need the cycle id to load contributions.
+    [Theory]
+    [InlineData("HomeStokvelResponse", "arrearsCents")]
+    [InlineData("StokvelCycleSummaryResponse", "id")]
+    public async Task ServedDocument_MarksFieldRequired(string schema, string field)
+    {
+        var served = await FetchServedDocumentAsync();
+
+        var required = served["components"]?["schemas"]?[schema]?["required"]?.AsArray()
+            .Select(node => node?.GetValue<string>());
+
+        Assert.NotNull(required);
+        Assert.Contains(field, required);
+    }
+
     [Fact]
     public void Compare_ReportsRenamedField()
     {

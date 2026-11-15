@@ -1956,10 +1956,7 @@ export interface components {
             amountOwed: number;
             /** Format: date-time */
             nextPayoutDate: null | string;
-            /**
-             * Format: int64
-             * @default 0
-             */
+            /** Format: int64 */
             arrearsCents: number;
         };
         /** Format: binary */
@@ -2032,6 +2029,8 @@ export interface components {
             password: string;
         };
         StokvelCycleSummaryResponse: {
+            /** Format: uuid */
+            id: string;
             period: string;
             status: string;
             /** Format: date */

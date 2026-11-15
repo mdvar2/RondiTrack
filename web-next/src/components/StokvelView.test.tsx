@@ -17,7 +17,7 @@ const CYCLE = '44444444-4444-4444-8444-444444444444'
 function stokvel(id: string, name: string, role: string): StokvelDetail {
   return {
     id, name, role, contributionAmount: 500, contributionAmountCents: 50000, memberCount: 2, version: 1,
-    currentCycle: { period: '2026-11', status: 'Open', dueDate: '2026-11-30', membersPaid: 1, collectedCents: 50000, targetCents: 100000 },
+    currentCycle: { id: CYCLE, period: '2026-11', status: 'Open', dueDate: '2026-11-30', membersPaid: 1, collectedCents: 50000, targetCents: 100000 },
   }
 }
 
