@@ -19,7 +19,7 @@ public class PageTokenTests(PostgresApiFactory factory)
 
     private sealed record Page<T>(List<T> Items, string NextPageToken, int PageSize, bool HasMore);
 
-    private sealed record ContributionItem(Guid Id, decimal Amount);
+    private sealed record ContributionItem(Guid Id, long Amount);
 
     private sealed record MemberItem(Guid UserId);
 
@@ -98,7 +98,7 @@ public class PageTokenTests(PostgresApiFactory factory)
                 $"/api/v1/stokvels/{paging.StokvelId}/cycles/{paging.CycleId}/contributions" +
                 "?pageSize=1&sortBy=amount&sortDirection=asc");
 
-            Assert.Equal([100.25m, 200.50m, 300.75m], pages.SelectMany(page => page.Items).Select(item => item.Amount));
+            Assert.Equal([10025L, 20050L, 30075L], pages.SelectMany(page => page.Items).Select(item => item.Amount));
         }
         finally
         {
