@@ -25,6 +25,9 @@ public sealed class DevSeeder(RondiTrackDbContext db, IPasswordHasher<User> hash
     public static readonly Guid KagisoId = Guid.Parse("0b6f1a52-6a0e-4b7e-9a51-1c2f6c3e0005");
     public static readonly Guid MabenaFamilyId = Guid.Parse("5d0c9a4e-2b1f-4c8a-8e7d-3a6b9f2e0101");
     public static readonly Guid SowetoTeachersId = Guid.Parse("5d0c9a4e-2b1f-4c8a-8e7d-3a6b9f2e0102");
+    // None of the three personas is in it: a real stokvel whose link Lerato
+    // can open and get the same 404 as for one that doesn't exist.
+    public static readonly Guid MolefeBurialId = Guid.Parse("5d0c9a4e-2b1f-4c8a-8e7d-3a6b9f2e0103");
     public static readonly Guid MabenaCycleId = Guid.Parse("9e8f7a6b-5c4d-4e3f-8a2b-1c0d9e8f0201");
     public static readonly Guid SowetoCycleId = Guid.Parse("9e8f7a6b-5c4d-4e3f-8a2b-1c0d9e8f0202");
     public static readonly Guid MabenaLastCycleId = Guid.Parse("9e8f7a6b-5c4d-4e3f-8a2b-1c0d9e8f0200");
@@ -62,7 +65,8 @@ public sealed class DevSeeder(RondiTrackDbContext db, IPasswordHasher<User> hash
 
         var mabena = WithId(new Stokvel("Mabena Family", 500m), MabenaFamilyId);
         var soweto = WithId(new Stokvel("Soweto Teachers", 1500m), SowetoTeachersId);
-        db.Stokvels.AddRange(mabena, soweto);
+        var molefe = WithId(new Stokvel("Molefe Burial Society", 200m), MolefeBurialId);
+        db.Stokvels.AddRange(mabena, soweto, molefe);
 
         // Rotation order is JoinedAtUtc: Mabena pays Nomsa, Lerato, Sipho;
         // Soweto pays Kagiso, Sipho, Lerato.
@@ -73,6 +77,8 @@ public sealed class DevSeeder(RondiTrackDbContext db, IPasswordHasher<User> hash
         Member(soweto, kagiso, Roles.Treasurer, joined);
         Member(soweto, sipho, Roles.Member, joined.AddDays(1));
         Member(soweto, lerato, Roles.Member, joined.AddDays(2));
+        Member(molefe, kagiso, Roles.Chairperson, joined);
+        Member(molefe, nomsa, Roles.Member, joined.AddDays(1));
 
         // Mabena Family's last month: closed with Sipho R 250,00 short, then
         // paid out to Nomsa.

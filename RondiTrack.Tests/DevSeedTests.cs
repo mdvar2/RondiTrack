@@ -85,6 +85,19 @@ public class DevSeedTests(PostgresApiFactory factory)
     }
 
     [Fact]
+    public async Task Lerato_Gets404ForAStokvelSheIsNotIn_LikeOneThatDoesNotExist()
+    {
+        await SeedAsync();
+        using var client = await SignInAsync(DevSeeder.LeratoEmail);
+
+        var notHers = await client.GetAsync($"/api/v1/stokvels/{DevSeeder.MolefeBurialId}");
+        var none = await client.GetAsync($"/api/v1/stokvels/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, notHers.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, none.StatusCode);
+    }
+
+    [Fact]
     public async Task MabenaFamily_PaidNomsaLastMonth_AndLeratoIsNext()
     {
         await SeedAsync();
