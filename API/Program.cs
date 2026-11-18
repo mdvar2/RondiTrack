@@ -223,6 +223,7 @@ builder.Services.AddScoped<PayoutService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<MemberHomeService>();
 builder.Services.AddScoped<StokvelDetailService>();
+builder.Services.AddScoped<RondiTrack.DevSeed.DevSeeder>();
 builder.Services.AddOptions<CycleCloseOptions>()
     .Bind(builder.Configuration.GetSection(CycleCloseOptions.SectionName))
     .Validate(
@@ -247,6 +248,16 @@ if (builder.Configuration.GetValue<bool>("BackgroundJobs:Enabled", true))
 }
 
 var app = builder.Build();
+
+// The mobile app's seed personas, in Development only and only when a
+// password is passed at run time (README "Development seed").
+if (RondiTrack.DevSeed.DevSeeder.ShouldRun(app.Environment, app.Configuration))
+{
+    await using var seedScope = app.Services.CreateAsyncScope();
+    var seeded = await seedScope.ServiceProvider.GetRequiredService<RondiTrack.DevSeed.DevSeeder>()
+        .SeedAsync(app.Configuration[RondiTrack.DevSeed.DevSeeder.PasswordKey]!);
+    app.Logger.LogInformation("Development seed {Result}.", seeded ? "created" : "already present");
+}
 
 app.UseExceptionHandler();
 app.UseStatusCodePages(async statusContext =>

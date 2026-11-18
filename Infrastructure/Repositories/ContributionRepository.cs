@@ -1,4 +1,5 @@
 using RondiTrack.Domain.Repositories;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -234,7 +235,7 @@ public class ContributionRepository : IContributionRepository
         return sortBy.ToLowerInvariant() switch
         {
             "recordedatutc" =>
-                DateTime.TryParse(lastValue, out var lastRecordedAt)
+                DateTime.TryParse(lastValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var lastRecordedAt)
                     ? (isDescending
                         ? query.Where(contribution =>
                             contribution.RecordedAtUtc < lastRecordedAt ||
@@ -244,7 +245,7 @@ public class ContributionRepository : IContributionRepository
                             (contribution.RecordedAtUtc == lastRecordedAt && contribution.Id > lastId.GetValueOrDefault())))
                     : query,
             "amount" =>
-                decimal.TryParse(lastValue, out var lastAmount)
+                decimal.TryParse(lastValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var lastAmount)
                     ? (isDescending
                         ? query.Where(contribution =>
                             contribution.Amount < lastAmount ||
@@ -285,8 +286,8 @@ public class ContributionRepository : IContributionRepository
             maxAmount,
             sortBy switch
             {
-                "recordedAtUtc" => lastItem.RecordedAtUtc.ToString("O"),
-                "amount" => lastItem.Amount.ToString("G29"),
+                "recordedAtUtc" => lastItem.RecordedAtUtc.ToString("O", CultureInfo.InvariantCulture),
+                "amount" => lastItem.Amount.ToString("G29", CultureInfo.InvariantCulture),
                 "userId" => lastItem.UserId.ToString(),
                 _ => string.Empty
             },
