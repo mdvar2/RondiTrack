@@ -1,4 +1,5 @@
 using RondiTrack.Domain.Repositories;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -162,7 +163,7 @@ public class EfStokvelMemberRepository : IStokvelMemberRepository
         return sortBy.ToLowerInvariant() switch
         {
             "joinedatutc" =>
-                DateTime.TryParse(lastValue, out var lastDate)
+                DateTime.TryParse(lastValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var lastDate)
                     ? (isDescending
                         ? query.Where(member =>
                             member.JoinedAtUtc < lastDate ||
@@ -200,7 +201,7 @@ public class EfStokvelMemberRepository : IStokvelMemberRepository
             role,
             sortBy switch
             {
-                "joinedAtUtc" => lastItem.JoinedAtUtc.ToString("O"),
+                "joinedAtUtc" => lastItem.JoinedAtUtc.ToString("O", CultureInfo.InvariantCulture),
                 "userId" => lastItem.UserId.ToString(),
                 "role" => lastItem.Role,
                 _ => string.Empty
