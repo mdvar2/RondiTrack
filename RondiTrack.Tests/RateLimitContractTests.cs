@@ -64,6 +64,28 @@ public class RateLimitContractTests(PostgresApiFactory factory)
         await AssertRejected(await client.PostAsJsonAsync("/api/v1/auth/login", body));
     }
 
+    // Register shares login's per-address window: a mobile app's register
+    // then sign-in is two of the same five, and register alone can't flood.
+    [Fact]
+    public async Task Register_SharesLoginWindow_RejectsWithRetryAfter()
+    {
+        await using var app = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("RateLimiting:Login:PermitLimit", "2");
+            builder.UseSetting("RateLimiting:Login:WindowSeconds", "60");
+        });
+        using var client = app.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
+        client.DefaultRequestHeaders.Add("Origin", "http://localhost:3000");
+        var email = $"{Guid.NewGuid()}@tests.example";
+        var password = Guid.NewGuid().ToString("N");
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/v1/auth/register",
+            new { name = "Limited", email, password })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password })).StatusCode);
+        await AssertRejected(await client.PostAsJsonAsync("/api/v1/auth/register",
+            new { name = "Limited", email = $"{Guid.NewGuid()}@tests.example", password }));
+        await AssertRejected(await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password }));
+    }
+
     [Fact]
     public async Task Contribution429_DoesNotStoreKey_ThenSucceedsAndReplaysExactlyOnce()
     {

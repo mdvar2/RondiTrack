@@ -16,6 +16,7 @@ public class AuthController(AuthService authService) : ControllerBase
     // Declaring any response type stops ASP.NET inferring the 200 from
     // ActionResult<T>, so the success body has to be declared as well.
     [ProducesResponseType<AccessTokenResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimitPolicies.Login)]
@@ -43,6 +44,9 @@ public class AuthController(AuthService authService) : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("refresh")]
+    // Rotates the cookie. A spent one is refused and revokes its whole family.
+    [ProducesResponseType<AccessTokenResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AccessTokenResponse>> Refresh()
     {
         var session = await authService.RefreshAsync(Request.Cookies[RefreshCookieName]);
@@ -52,6 +56,8 @@ public class AuthController(AuthService authService) : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("logout")]
+    // 204 whatever the cookie: good, spent or none. A known one revokes its family.
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout()
     {
         await authService.LogoutAsync(Request.Cookies[RefreshCookieName]);
@@ -61,6 +67,13 @@ public class AuthController(AuthService authService) : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
+    // Creates the account; it does not sign in. Shares login's per-address
+    // limit, so creating accounts can't be used to guess or flood either.
+    [ProducesResponseType<UserResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimitPolicies.Login)]
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
         var response = await authService.RegisterAsync(request);
