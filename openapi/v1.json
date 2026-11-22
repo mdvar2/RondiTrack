@@ -683,7 +683,7 @@
           "ContributionCycles"
         ],
         "summary": "Gets contributions for a contribution cycle.",
-        "description": "Returns contributions together with membership and user information.\nThe query projects directly to the response DTO so that only the\ncolumns required by the API response are fetched.",
+        "description": "Returns contributions together with membership and user information.\nThe query projects directly to the response DTO so that only the\ncolumns required by the API response are fetched.\nFilters: userId (the member), status (Pending, Paid, Confirmed), and\nrecordedFrom (inclusive) and recordedBefore (exclusive): two instants,\nISO 8601 with an offset, so a calendar day in any zone is\n[its midnight, the next midnight). A page token works only with the\nsort and filters that made it (400 otherwise).",
         "parameters": [
           {
             "name": "stokvelId",
@@ -765,6 +765,29 @@
               "type": "number",
               "format": "double"
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordedFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "recordedBefore",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
@@ -784,6 +807,26 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PagedResultOfContributionWithMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }

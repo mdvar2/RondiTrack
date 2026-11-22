@@ -514,6 +514,11 @@ export interface paths {
          * @description Returns contributions together with membership and user information.
          *     The query projects directly to the response DTO so that only the
          *     columns required by the API response are fetched.
+         *     Filters: userId (the member), status (Pending, Paid, Confirmed), and
+         *     recordedFrom (inclusive) and recordedBefore (exclusive): two instants,
+         *     ISO 8601 with an offset, so a calendar day in any zone is
+         *     [its midnight, the next midnight). A page token works only with the
+         *     sort and filters that made it (400 otherwise).
          */
         get: {
             parameters: {
@@ -526,6 +531,9 @@ export interface paths {
                     role?: string;
                     minAmount?: number;
                     maxAmount?: number;
+                    status?: string;
+                    recordedFrom?: string;
+                    recordedBefore?: string;
                 };
                 header?: never;
                 path: {
@@ -545,6 +553,17 @@ export interface paths {
                         "text/plain": components["schemas"]["PagedResultOfContributionWithMemberResponse"];
                         "application/json": components["schemas"]["PagedResultOfContributionWithMemberResponse"];
                         "text/json": components["schemas"]["PagedResultOfContributionWithMemberResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
                 /** @description Not Found */

@@ -95,8 +95,10 @@ public sealed class DevSeeder(RondiTrackDbContext db, IPasswordHasher<User> hash
             monthStartUtc.AddDays(1).AddHours(17).AddMinutes(5));
         Contribution(sowetoNow, lerato, 750m, "Paid", "7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b0303",
             monthStartUtc.AddDays(5).AddHours(12));
+        // 00:30 SAST on the 1st: still the last day of the month before in
+        // UTC. The mobile app's date filter must put it on the 1st (11.3).
         Contribution(sowetoNow, kagiso, 1500m, "Confirmed", "7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b0304",
-            monthStartUtc.AddDays(0).AddHours(9).AddMinutes(15));
+            monthStartUtc.AddMinutes(-90));
 
         db.ContributionArrears.Add(new ContributionArrear(mabena.Id, sipho.Id, mabenaLast.Id, 25000));
         mabenaLast.Close();
