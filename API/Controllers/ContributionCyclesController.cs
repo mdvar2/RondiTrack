@@ -119,10 +119,18 @@ public class ContributionCyclesController : ControllerBase
     /// Returns contributions together with membership and user information.
     /// The query projects directly to the response DTO so that only the
     /// columns required by the API response are fetched.
+    /// Filters: userId (the member), status (Pending, Paid, Confirmed), and
+    /// recordedFrom (inclusive) and recordedBefore (exclusive): two instants,
+    /// ISO 8601 with an offset, so a calendar day in any zone is
+    /// [its midnight, the next midnight). A page token works only with the
+    /// sort and filters that made it (400 otherwise).
     /// </remarks>
     [ProducesResponseType(
         typeof(PagedResult<ContributionWithMemberResponse>),
         StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ProblemDetails),
+        StatusCodes.Status400BadRequest)]
     [ProducesResponseType(
         typeof(ProblemDetails),
         StatusCodes.Status404NotFound)]
@@ -138,7 +146,10 @@ public class ContributionCyclesController : ControllerBase
             [FromQuery] Guid? userId = null,
             [FromQuery] string? role = null,
             [FromQuery] decimal? minAmount = null,
-            [FromQuery] decimal? maxAmount = null)
+            [FromQuery] decimal? maxAmount = null,
+            [FromQuery] string? status = null,
+            [FromQuery] DateTimeOffset? recordedFrom = null,
+            [FromQuery] DateTimeOffset? recordedBefore = null)
     {
         await _stokvelAuthorization.EnsureAsync(
             User, stokvelId, Policies.StokvelView);
@@ -162,6 +173,20 @@ public class ContributionCyclesController : ControllerBase
                 "Page size cannot be negative.");
         }
 
+        if (!string.IsNullOrWhiteSpace(status) &&
+            status.Trim() is not ("Pending" or "Paid" or "Confirmed"))
+        {
+            throw new RequestValidationException(
+                "Status must be Pending, Paid or Confirmed.");
+        }
+
+        if (recordedFrom.HasValue && recordedBefore.HasValue &&
+            recordedBefore.Value <= recordedFrom.Value)
+        {
+            throw new RequestValidationException(
+                "recordedBefore must be after recordedFrom.");
+        }
+
         var safePageSize = Math.Min(
             pageSize <= 0 ? 25 : pageSize,
             100);
@@ -177,7 +202,10 @@ public class ContributionCyclesController : ControllerBase
                 userId,
                 role,
                 minAmount,
-                maxAmount);
+                maxAmount,
+                status,
+                recordedFrom?.UtcDateTime,
+                recordedBefore?.UtcDateTime);
 
         return Ok(new PagedResult<ContributionWithMemberResponse>(
             response.Items

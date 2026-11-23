@@ -24,7 +24,10 @@ public interface IContributionRepository
             Guid? userId,
             string? role,
             decimal? minAmount,
-            decimal? maxAmount);
+            decimal? maxAmount,
+            string? status = null,
+            DateTime? recordedFrom = null,
+            DateTime? recordedBefore = null);
 
     Task<IEnumerable<ContributionWithMember>>
         GetByCycleProjectedAsync(

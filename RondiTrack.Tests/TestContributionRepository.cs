@@ -42,7 +42,10 @@ public class TestContributionRepository
         Guid? userId,
         string? role,
         decimal? minAmount,
-        decimal? maxAmount)
+        decimal? maxAmount,
+        string? status = null,
+        DateTime? recordedFrom = null,
+        DateTime? recordedBefore = null)
     {
         return Task.FromResult(
             new PagedResult<ContributionWithMember>(

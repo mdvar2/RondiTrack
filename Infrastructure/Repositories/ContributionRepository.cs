@@ -52,7 +52,10 @@ public class ContributionRepository : IContributionRepository
         Guid? userId,
         string? role,
         decimal? minAmount,
-        decimal? maxAmount)
+        decimal? maxAmount,
+        string? status = null,
+        DateTime? recordedFrom = null,
+        DateTime? recordedBefore = null)
     {
         if (!string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase))
@@ -100,7 +103,32 @@ public class ContributionRepository : IContributionRepository
             query = query.Where(contribution => contribution.Amount <= maxAmount.Value);
         }
 
-        var token = ParseToken(pageToken, sortBy, sortDirection, userId, role, minAmount, maxAmount);
+        var filters = new TimeFilters(
+            string.IsNullOrWhiteSpace(status) ? null : status.Trim(),
+            recordedFrom?.ToUniversalTime(),
+            recordedBefore?.ToUniversalTime());
+
+        if (filters.Status is not null)
+        {
+            var wanted = filters.Status;
+            query = query.Where(contribution => contribution.Status == wanted);
+        }
+
+        // Two instants, half-open: [recordedFrom, recordedBefore). A caller's
+        // calendar day is its own midnight to the next, in its own zone.
+        if (filters.RecordedFrom.HasValue)
+        {
+            var from = filters.RecordedFrom.Value;
+            query = query.Where(contribution => contribution.RecordedAtUtc >= from);
+        }
+
+        if (filters.RecordedBefore.HasValue)
+        {
+            var before = filters.RecordedBefore.Value;
+            query = query.Where(contribution => contribution.RecordedAtUtc < before);
+        }
+
+        var token = ParseToken(pageToken, sortBy, sortDirection, userId, role, minAmount, maxAmount, filters);
         if (token is not null)
         {
             query = ApplyToken(query, sortBy, sortDirection, token.LastValue, token.LastId);
@@ -152,7 +180,8 @@ public class ContributionRepository : IContributionRepository
                 userId,
                 role,
                 minAmount,
-                maxAmount)
+                maxAmount,
+                filters)
             : string.Empty;
 
         return new PagedResult<ContributionWithMember>(
@@ -275,7 +304,8 @@ public class ContributionRepository : IContributionRepository
         Guid? userId,
         string? role,
         decimal? minAmount,
-        decimal? maxAmount)
+        decimal? maxAmount,
+        TimeFilters filters)
     {
         var token = new PageToken(
             sortBy,
@@ -284,6 +314,9 @@ public class ContributionRepository : IContributionRepository
             role,
             minAmount,
             maxAmount,
+            filters.Status,
+            filters.RecordedFrom,
+            filters.RecordedBefore,
             sortBy switch
             {
                 "recordedAtUtc" => lastItem.RecordedAtUtc.ToString("O", CultureInfo.InvariantCulture),
@@ -306,7 +339,8 @@ public class ContributionRepository : IContributionRepository
         Guid? userId,
         string? role,
         decimal? minAmount,
-        decimal? maxAmount)
+        decimal? maxAmount,
+        TimeFilters filters)
     {
         if (string.IsNullOrWhiteSpace(pageToken))
         {
@@ -328,7 +362,10 @@ public class ContributionRepository : IContributionRepository
                 token.UserId != userId ||
                 !string.Equals(token.Role, role, StringComparison.OrdinalIgnoreCase) ||
                 token.MinAmount != minAmount ||
-                token.MaxAmount != maxAmount)
+                token.MaxAmount != maxAmount ||
+                !string.Equals(token.Status, filters.Status, StringComparison.Ordinal) ||
+                token.RecordedFrom != filters.RecordedFrom ||
+                token.RecordedBefore != filters.RecordedBefore)
             {
                 throw new RequestValidationException(
                     "Page token does not match the current sort or filter.");
@@ -356,6 +393,12 @@ public class ContributionRepository : IContributionRepository
         string? Role,
         decimal? MinAmount,
         decimal? MaxAmount,
+        string? Status,
+        DateTime? RecordedFrom,
+        DateTime? RecordedBefore,
         string? LastValue,
         Guid? LastId);
+
+    // The status and date filters, the instants in UTC.
+    private sealed record TimeFilters(string? Status, DateTime? RecordedFrom, DateTime? RecordedBefore);
 }
