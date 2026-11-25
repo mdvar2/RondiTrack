@@ -284,6 +284,108 @@
         }
       }
     },
+    "/api/v1/stokvels/{stokvelId}/cycles/{cycleId}/contributions/{contributionId}/confirm": {
+      "post": {
+        "tags": [
+          "ContributionConfirmation"
+        ],
+        "summary": "204 when confirmed, or already confirmed (nothing is sent twice).\n404 for a stokvel the caller isn't in, or a contribution not in this\ncycle; 403 for a member who isn't its treasurer or chairperson; 409\nfor a contribution that isn't paid.",
+        "parameters": [
+          {
+            "name": "stokvelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cycleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contributionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/stokvels/{stokvelId}/cycles": {
       "get": {
         "tags": [
@@ -1110,6 +1212,102 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CloseCycleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/devices": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Registers this phone for the caller. A phone registered to someone\nelse moves to the caller: a shared phone is safe even if the last\nsign-out never reached the API.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/devices/{installationId}": {
+      "delete": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Forgets this phone, at sign-out. Only the caller's own registration\nis removed; any other id answers 204 and changes nothing.",
+        "parameters": [
+          {
+            "name": "installationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -3354,6 +3552,21 @@
           }
         }
       },
+      "RegisterDeviceRequest": {
+        "required": [
+          "installationId"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The body of POST /me/devices."
+      },
       "RegisterRequest": {
         "required": [
           "name",
@@ -3623,6 +3836,9 @@
       "name": "Auth"
     },
     {
+      "name": "ContributionConfirmation"
+    },
+    {
       "name": "ContributionCycles"
     },
     {
@@ -3630,6 +3846,9 @@
     },
     {
       "name": "CycleClose"
+    },
+    {
+      "name": "Devices"
     },
     {
       "name": "Invites"

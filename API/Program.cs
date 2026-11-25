@@ -218,6 +218,25 @@ builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddScoped<MembershipService>();
 builder.Services.AddScoped<ContributionService>();
+
+// Push (README "Notifications"): Firebase when a service account key is
+// mounted and named in Push:ServiceAccountPath; otherwise only logged, so
+// the API runs without a Firebase project.
+builder.Services.Configure<RondiTrack.Push.PushOptions>(
+    builder.Configuration.GetSection(RondiTrack.Push.PushOptions.Section));
+var pushKeyPath = builder.Configuration[$"{RondiTrack.Push.PushOptions.Section}:ServiceAccountPath"];
+if (!string.IsNullOrWhiteSpace(pushKeyPath) && File.Exists(pushKeyPath))
+{
+    builder.Services.AddSingleton<RondiTrack.Push.IPushSender>(services =>
+        new RondiTrack.Push.FirebasePushSender(
+            pushKeyPath,
+            services.GetRequiredService<ILogger<RondiTrack.Push.FirebasePushSender>>()));
+}
+else
+{
+    builder.Services.AddSingleton<RondiTrack.Push.IPushSender, RondiTrack.Push.LoggingPushSender>();
+}
+builder.Services.AddScoped<RondiTrack.Push.PushNotifier>();
 builder.Services.AddScoped<CycleCloseCalculationService>();
 builder.Services.AddScoped<PayoutService>();
 builder.Services.AddSingleton(TimeProvider.System);

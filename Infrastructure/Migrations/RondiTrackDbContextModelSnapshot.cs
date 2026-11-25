@@ -204,6 +204,33 @@ namespace RondiTrack.Infrastructure.Migrations
                     b.ToTable("CycleCloseIdempotencies");
                 });
 
+            modelBuilder.Entity("RondiTrack.Domain.Entities.DeviceInstallation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InstallationId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("RegisteredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstallationId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DeviceInstallations");
+                });
+
             modelBuilder.Entity("RondiTrack.Domain.Entities.Payout", b =>
                 {
                     b.Property<Guid>("Id")
@@ -490,6 +517,15 @@ namespace RondiTrack.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Contribution");
+                });
+
+            modelBuilder.Entity("RondiTrack.Domain.Entities.DeviceInstallation", b =>
+                {
+                    b.HasOne("RondiTrack.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RondiTrack.Domain.Entities.Payout", b =>

@@ -49,6 +49,12 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${API_OTLP_ENDPOINT:-}
       ConnectionStrings__RondiTrackDb: Host=db;Port=5432;Database=ronditrack;Username=ronditrack;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
+      # Push (README "Notifications"): the Firebase service account key is a
+      # file in ./secrets (git-ignored), mounted read-only. With no file,
+      # pushes are logged, not sent.
+      Push__ServiceAccountPath: ${PUSH_SERVICE_ACCOUNT_PATH:-/run/secrets/ronditrack/firebase-service-account.json}
+    volumes:
+      - ./secrets:/run/secrets/ronditrack:ro
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:

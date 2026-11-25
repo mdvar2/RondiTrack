@@ -24,6 +24,9 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public CorrelationLogProvider CorrelationLogs { get; } = new();
     public CapturedLogProvider CapturedLogs { get; } = new();
 
+    /// <summary>Every push the API would have sent (README "Notifications").</summary>
+    public RecordingPushSender Push { get; } = new();
+
     // Outage tests must call these only on their own separately created factory.
     public Task StopDatabaseAsync() => _container.StopAsync();
 
@@ -138,6 +141,13 @@ public class PostgresApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             {
                 services.Remove(workerRegistration);
             }
+
+            // Pushes are kept, never sent: no test needs Firebase.
+            foreach (var sender in services.Where(d => d.ServiceType == typeof(RondiTrack.Push.IPushSender)).ToArray())
+            {
+                services.Remove(sender);
+            }
+            services.AddSingleton<RondiTrack.Push.IPushSender>(Push);
         });
 
         // Test logging must not require Windows Event Log permissions.

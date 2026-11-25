@@ -1,0 +1,27 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Domain -> C:\Users\gwiny\RondiTrack\Domain\bin\Debug\net10.0\Domain.dll
+  Infrastructure -> C:\Users\gwiny\RondiTrack\Infrastructure\bin\Debug\net10.0\Infrastructure.dll
+  RondiTrack -> C:\Users\gwiny\RondiTrack\API\bin\Debug\net10.0\RondiTrack.dll
+  RondiTrack.Tests -> C:\Users\gwiny\RondiTrack\RondiTrack.Tests\bin\Debug\net10.0\RondiTrack.Tests.dll
+Test run for C:\Users\gwiny\RondiTrack\RondiTrack.Tests\bin\Debug\net10.0\RondiTrack.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:21.72]     RondiTrack.Tests.DevicesAndPushTests.ThePayload_IsExactlyTheReadmeTable [FAIL]
+  Failed RondiTrack.Tests.DevicesAndPushTests.ThePayload_IsExactlyTheReadmeTable [2 s]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "There's an update on your stokvel."
+Actual:   "Your R 500,00 was confirmed."
+           ↑ (pos 0)
+  Stack Trace:
+     at RondiTrack.Tests.DevicesAndPushTests.ThePayload_IsExactlyTheReadmeTable() in C:\Users\gwiny\RondiTrack\RondiTrack.Tests\DevicesAndPushTests.cs:line 203
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:22.47]     RondiTrack.Tests.DevicesAndPushTests.ThePush_CarriesNoNameEmailStokvelNameAmountOrDecision [FAIL]
+  Failed RondiTrack.Tests.DevicesAndPushTests.ThePush_CarriesNoNameEmailStokvelNameAmountOrDecision [588 ms]
+  Error Message:
+   The push field "Your R 500,00 was confirmed." carries "R 500,00".
+  Stack Trace:
+     at RondiTrack.Tests.DevicesAndPushTests.ThePush_CarriesNoNameEmailStokvelNameAmountOrDecision() in C:\Users\gwiny\RondiTrack\RondiTrack.Tests\DevicesAndPushTests.cs:line 243
+--- End of stack trace from previous location ---
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 3 s - RondiTrack.Tests.dll (net10.0)
