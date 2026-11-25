@@ -268,6 +268,26 @@ if (builder.Configuration.GetValue<bool>("BackgroundJobs:Enabled", true))
 
 var app = builder.Build();
 
+// Behind a tunnel or proxy (the staging API the reviewer's phone reaches,
+// app README "Releases"), every request arrives from the tunnel. Off by
+// default; on, the client's address comes from X-Forwarded-For, but only
+// from the proxies named in ForwardedHeaders:KnownNetworks (loopback by
+// default), so the sign-in limit counts each phone, not the tunnel.
+if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+{
+    var forwarded = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+            Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+        ForwardLimit = 1,
+    };
+    foreach (var cidr in builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [])
+    {
+        forwarded.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+    }
+    app.UseForwardedHeaders(forwarded);
+}
+
 // The mobile app's seed personas, in Development only and only when a
 // password is passed at run time (README "Development seed").
 if (RondiTrack.DevSeed.DevSeeder.ShouldRun(app.Environment, app.Configuration))
