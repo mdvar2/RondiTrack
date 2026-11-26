@@ -268,6 +268,12 @@ if (builder.Configuration.GetValue<bool>("BackgroundJobs:Enabled", true))
 
 var app = builder.Build();
 
+// Which push sender this API uses: never the key, only where it came from.
+if (app.Services.GetRequiredService<RondiTrack.Push.IPushSender>() is RondiTrack.Push.FirebasePushSender)
+    app.Logger.LogInformation("Push: Firebase Cloud Messaging, key from Push:ServiceAccountPath.");
+else
+    app.Logger.LogInformation("Push: not configured; pushes are logged, not sent.");
+
 // Behind a tunnel or proxy (the staging API the reviewer's phone reaches,
 // app README "Releases"), every request arrives from the tunnel. Off by
 // default; on, the client's address comes from X-Forwarded-For, but only
