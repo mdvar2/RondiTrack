@@ -41,6 +41,8 @@ public class RondiTrackDbContext : DbContext
 
     public DbSet<ContributionProof> ContributionProofs => Set<ContributionProof>();
 
+    public DbSet<DeviceInstallation> DeviceInstallations => Set<DeviceInstallation>();
+
     public DbSet<Payout> Payouts => Set<Payout>();
 
     // Outstanding contributions
@@ -235,6 +237,20 @@ public class RondiTrackDbContext : DbContext
             .IsDescending(false, false, true, true)
             .HasDatabaseName(
                 "IX_Contributions_StokvelId_ContributionCycleId_RecordedAtUtc_Id");
+
+        // A phone's push address: one row per installation id, one owner.
+        modelBuilder.Entity<DeviceInstallation>(entity =>
+        {
+            entity.HasKey(device => device.Id);
+            entity.Property(device => device.InstallationId)
+                .HasMaxLength(DeviceInstallation.MaxInstallationIdLength);
+            entity.HasIndex(device => device.InstallationId).IsUnique();
+            entity.HasIndex(device => device.UserId);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(device => device.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<ContributionProof>(entity =>
         {

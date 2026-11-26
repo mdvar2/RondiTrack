@@ -1,0 +1,26 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Domain -> C:\Users\gwiny\RondiTrack\Domain\bin\Debug\net10.0\Domain.dll
+  Infrastructure -> C:\Users\gwiny\RondiTrack\Infrastructure\bin\Debug\net10.0\Infrastructure.dll
+  RondiTrack -> C:\Users\gwiny\RondiTrack\API\bin\Debug\net10.0\RondiTrack.dll
+  RondiTrack.Tests -> C:\Users\gwiny\RondiTrack\RondiTrack.Tests\bin\Debug\net10.0\RondiTrack.Tests.dll
+Test run for C:\Users\gwiny\RondiTrack\RondiTrack.Tests\bin\Debug\net10.0\RondiTrack.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:20.20]     RondiTrack.Tests.DevicesAndPushTests.OnASharedPhone_OnlyTheMemberSignedInNowIsTold [FAIL]
+  Failed RondiTrack.Tests.DevicesAndPushTests.OnASharedPhone_OnlyTheMemberSignedInNowIsTold [3 s]
+  Error Message:
+   Assert.Empty() Failure: Collection was not empty
+Collection: [Sent { InstallationId = fid-152274e64a264667a9ad6a9790716f10, Message = PushMessage { Title = RondiTrack, Body = There's an update on your stokvel., Data = System.Collections.Generic.Dictionary`2[System.String,System.String] } }]
+  Stack Trace:
+     at RondiTrack.Tests.DevicesAndPushTests.OnASharedPhone_OnlyTheMemberSignedInNowIsTold() in C:\Users\gwiny\RondiTrack\RondiTrack.Tests\DevicesAndPushTests.cs:line 259
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:21.21]     RondiTrack.Tests.DevicesAndPushTests.ASharedPhone_MovesToWhoeverRegistersItNow [FAIL]
+  Failed RondiTrack.Tests.DevicesAndPushTests.ASharedPhone_MovesToWhoeverRegistersItNow [53 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: ee42bd5a-9848-4e81-9b54-b46a8de2e158
+Actual:   38de2175-9010-4e56-9c59-d987addc70e6
+  Stack Trace:
+     at RondiTrack.Tests.DevicesAndPushTests.ASharedPhone_MovesToWhoeverRegistersItNow() in C:\Users\gwiny\RondiTrack\RondiTrack.Tests\DevicesAndPushTests.cs:line 102
+--- End of stack trace from previous location ---
+Failed!  - Failed:     2, Passed:    18, Skipped:     0, Total:    20, Duration: 5 s - RondiTrack.Tests.dll (net10.0)

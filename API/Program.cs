@@ -218,6 +218,25 @@ builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddScoped<MembershipService>();
 builder.Services.AddScoped<ContributionService>();
+
+// Push (README "Notifications"): Firebase when a service account key is
+// mounted and named in Push:ServiceAccountPath; otherwise only logged, so
+// the API runs without a Firebase project.
+builder.Services.Configure<RondiTrack.Push.PushOptions>(
+    builder.Configuration.GetSection(RondiTrack.Push.PushOptions.Section));
+var pushKeyPath = builder.Configuration[$"{RondiTrack.Push.PushOptions.Section}:ServiceAccountPath"];
+if (!string.IsNullOrWhiteSpace(pushKeyPath) && File.Exists(pushKeyPath))
+{
+    builder.Services.AddSingleton<RondiTrack.Push.IPushSender>(services =>
+        new RondiTrack.Push.FirebasePushSender(
+            pushKeyPath,
+            services.GetRequiredService<ILogger<RondiTrack.Push.FirebasePushSender>>()));
+}
+else
+{
+    builder.Services.AddSingleton<RondiTrack.Push.IPushSender, RondiTrack.Push.LoggingPushSender>();
+}
+builder.Services.AddScoped<RondiTrack.Push.PushNotifier>();
 builder.Services.AddScoped<CycleCloseCalculationService>();
 builder.Services.AddScoped<PayoutService>();
 builder.Services.AddSingleton(TimeProvider.System);
@@ -248,6 +267,32 @@ if (builder.Configuration.GetValue<bool>("BackgroundJobs:Enabled", true))
 }
 
 var app = builder.Build();
+
+// Which push sender this API uses: never the key, only where it came from.
+if (app.Services.GetRequiredService<RondiTrack.Push.IPushSender>() is RondiTrack.Push.FirebasePushSender)
+    app.Logger.LogInformation("Push: Firebase Cloud Messaging, key from Push:ServiceAccountPath.");
+else
+    app.Logger.LogInformation("Push: not configured; pushes are logged, not sent.");
+
+// Behind a tunnel or proxy (the staging API the reviewer's phone reaches,
+// app README "Releases"), every request arrives from the tunnel. Off by
+// default; on, the client's address comes from X-Forwarded-For, but only
+// from the proxies named in ForwardedHeaders:KnownNetworks (loopback by
+// default), so the sign-in limit counts each phone, not the tunnel.
+if (builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+{
+    var forwarded = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+            Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+        ForwardLimit = 1,
+    };
+    foreach (var cidr in builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [])
+    {
+        forwarded.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+    }
+    app.UseForwardedHeaders(forwarded);
+}
 
 // The mobile app's seed personas, in Development only and only when a
 // password is passed at run time (README "Development seed").
