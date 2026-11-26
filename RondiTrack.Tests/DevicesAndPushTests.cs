@@ -373,3 +373,24 @@ public class DevicesAndPushTests(PostgresApiFactory factory)
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
+
+// What the Firebase sender hands to Firebase, without Firebase.
+public class FirebasePushMessageTests
+{
+    [Fact]
+    public void AFirebaseMessage_IsTimedNow_OnTheAppsChannel_AndPrivate()
+    {
+        var now = new DateTime(2026, 11, 26, 2, 31, 0, DateTimeKind.Utc);
+        var push = RondiTrack.Push.PushMessages.ContributionUpdate(Guid.NewGuid(), Guid.NewGuid());
+
+        var message = RondiTrack.Push.FirebasePushSender.BuildMessage("fid-1", push, now);
+
+        Assert.Equal("fid-1", message.Fid);
+        Assert.Equal(now, message.Android.Notification.EventTimestamp);
+        Assert.Equal("stokvel_updates", message.Android.Notification.ChannelId);
+        Assert.Equal(FirebaseAdmin.Messaging.NotificationVisibility.PRIVATE, message.Android.Notification.Visibility);
+        Assert.Equal(push.Title, message.Notification.Title);
+        Assert.Equal(push.Body, message.Notification.Body);
+        Assert.Equal(push.Data, message.Data);
+    }
+}

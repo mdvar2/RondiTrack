@@ -57,21 +57,8 @@ public sealed class FirebasePushSender : IPushSender
         if (installationIds.Count == 0)
             return PushResult.Nothing;
 
-        var messages = installationIds.Select(id => new Message
-        {
-            Fid = id,
-            Notification = new Notification { Title = message.Title, Body = message.Body },
-            Data = message.Data,
-            Android = new AndroidConfig
-            {
-                Priority = Priority.High,
-                Notification = new AndroidNotification
-                {
-                    ChannelId = ChannelId,
-                    Visibility = NotificationVisibility.PRIVATE,
-                },
-            },
-        }).ToList();
+        var now = DateTime.UtcNow;
+        var messages = installationIds.Select(id => BuildMessage(id, message, now)).ToList();
 
         var response = await _messaging.SendEachAsync(messages, cancellationToken);
         var gone = new List<string>();
@@ -95,4 +82,27 @@ public sealed class FirebasePushSender : IPushSender
 
         return new PushResult(gone);
     }
+
+    /// <summary>
+    /// One push to one installation, as Firebase receives it: on the app's
+    /// channel, private on the lock screen, timed now.
+    /// </summary>
+    public static Message BuildMessage(string installationId, PushMessage message, DateTime nowUtc) => new()
+    {
+        Fid = installationId,
+        Notification = new Notification { Title = message.Title, Body = message.Body },
+        Data = message.Data,
+        Android = new AndroidConfig
+        {
+            Priority = Priority.High,
+            Notification = new AndroidNotification
+            {
+                ChannelId = ChannelId,
+                Visibility = NotificationVisibility.PRIVATE,
+                // Without it the Admin SDK sends .NET's default date (year 1),
+                // which a phone shows as "1/01/03".
+                EventTimestamp = nowUtc,
+            },
+        },
+    };
 }
